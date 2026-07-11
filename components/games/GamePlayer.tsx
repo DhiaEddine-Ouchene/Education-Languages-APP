@@ -32,6 +32,11 @@ const gameMotion = {
   visible: { opacity: 1, y: 0 },
 };
 
+const gameTransition = {
+  duration: 0.28,
+  ease: "easeOut" as const,
+};
+
 type GameType = keyof typeof GAMES;
 type Result = {
   xpEarned: number;
@@ -120,7 +125,7 @@ export function GamePlayer({ gameId, title, type, items, settings, previewMode =
       variants={gameMotion}
       initial="hidden"
       animate="visible"
-      transition= duration: 0.28, ease: "easeOut" 
+      transition={gameTransition}
       className="py-4"
     >
       <div className="mx-auto mb-5 max-w-4xl rounded-card border border-border bg-card/90 p-4 shadow-card backdrop-blur sm:p-5">
