@@ -27,6 +27,11 @@ const GAMES = {
   STORY: StoryGame,
 } as const;
 
+const gameMotion = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0 },
+};
+
 type GameType = keyof typeof GAMES;
 type Result = {
   xpEarned: number;
@@ -112,8 +117,9 @@ export function GamePlayer({ gameId, title, type, items, settings, previewMode =
   return (
     <motion.div
       key={round + (result ? "-result" : "-play")}
-      initial= opacity: 0, y: 14 
-      animate= opacity: 1, y: 0 
+      variants={gameMotion}
+      initial="hidden"
+      animate="visible"
       transition= duration: 0.28, ease: "easeOut" 
       className="py-4"
     >
