@@ -13,7 +13,10 @@ export default async function EditGamePage({ params }: { params: { id: string } 
 
   const [game, sets] = await Promise.all([
     prisma.game.findFirst({ where: { id: params.id, educatorId: profile.id } }),
-    prisma.vocabularySet.findMany({ where: { educatorId: profile.id }, include: { items: { select: { id: true, word: true, translation: true } } } }),
+    prisma.vocabularySet.findMany({
+      where: { educatorId: profile.id },
+      include: { items: { select: { id: true, word: true, translation: true, audioUrl: true, imageUrl: true, exampleSentence: true } } },
+    }),
   ]);
   if (!game) notFound();
 
@@ -23,9 +26,14 @@ export default async function EditGamePage({ params }: { params: { id: string } 
       <GameBuilder
         sets={sets}
         initial={{
-          id: game.id, title: game.title, type: game.type, vocabularySetId: game.vocabularySetId,
-          settings: game.settings as Record<string, unknown>, isPublished: game.isPublished,
-          isMarketplace: game.isMarketplace, price: game.price,
+          id: game.id,
+          title: game.title,
+          type: game.type,
+          vocabularySetId: game.vocabularySetId,
+          settings: (game.settings ?? {}) as Record<string, unknown>,
+          isPublished: game.isPublished,
+          isMarketplace: game.isMarketplace,
+          price: Number(game.price),
         }}
       />
     </div>

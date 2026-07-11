@@ -18,7 +18,10 @@
 }
 
 body {
-  background-color: var(--background);
+  background:
+    radial-gradient(circle at top left, rgba(127, 119, 221, 0.12), transparent 32rem),
+    radial-gradient(circle at top right, rgba(29, 158, 117, 0.10), transparent 28rem),
+    var(--background);
   color: var(--text-primary);
   font-family: var(--font-body), sans-serif;
 }
@@ -32,3 +35,24 @@ h1, h2, h3, h4, h5, h6 {
 .card-flip.flipped .card-flip-inner { transform: rotateY(180deg); }
 .card-face { backface-visibility: hidden; position: absolute; inset: 0; }
 .card-back { transform: rotateY(180deg); }
+
+@keyframes flyup {
+  0% { opacity: 0; transform: translateY(10px) scale(0.96); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-22px) scale(1.04); }
+}
+
+@keyframes soft-shine {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-flyup {
+  animation: flyup 1.35s ease-out forwards;
+}
+
+.game-surface {
+  background-size: 180% 180%;
+  animation: soft-shine 8s ease infinite;
+}
