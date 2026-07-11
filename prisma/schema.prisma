@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  EDUCATOR
+  STUDENT
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  SCHOOL
+}
+
+enum CourseLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+enum GameType {
+  FLASHCARD
+  FILL_BLANK
+  DRAG_DROP
+  QUIZ
+  DICTATION
+  MEMORY
+  SPEED_ROUND
+  STORY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELLED
+}
+
+model User {
+  id                      String    @id @default(cuid())
+  email                   String    @unique
+  password                String?
+  name                    String
+  avatar                  String?
+  role                    Role      @default(STUDENT)
+  isVerified              Boolean   @default(false)
+  verificationCode        String?
+  verificationCodeExpires DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  educatorProfile  EducatorProfile?
+  classMemberships ClassMember[]
+  progress         StudentProgress[]
+  xp               StudentXP?
+  badges           StudentBadge[]
+  purchases        MarketplacePurchase[]
+}
+
+model EducatorProfile {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brandName            String?
+  brandLogo            String?
+  primaryColor         String   @default("#7F77DD")
+  accentColor          String   @default("#1D9E75")
+  customDomain         String?  @unique
+  domainVerified       Boolean  @default(false)
+  creatorType          String? // Teacher | Content Creator | Both
+  subscriptionPlan     Plan     @default(FREE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  stripeConnectId      String?
+  monthlyRevenue       Float    @default(0)
+  createdAt            DateTime @default(now())
+
+  courses        Course[]
+  games          Game[]
+  vocabularySets VocabularySet[]
+  classes        Class[]
+  subscriptions  Subscription[]
+}
+
+model Course {
+  id            String      @id @default(cuid())
+  title         String
+  description   String
+  language      String
+  level         CourseLevel
+  coverImage    String?
+  price         Float       @default(0)
+  isPublished   Boolean     @default(false)
+  isMarketplace Boolean     @default(false)
+  approved      Boolean     @default(false)
+  rejectReason  String?
+  educatorId    String
+  educator      EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  lessons   Lesson[]
+  purchases MarketplacePurchase[]
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  order     Int      @default(0)
+  type      String   @default("text")
+  content   String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model VocabularySet {
+  id         String   @id @default(cuid())
+  educatorId String
+  educator   EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
+  name       String
+  language   String
+  createdAt  DateTime @default(now())
+
+  items VocabularyItem[]
+  games Game[]
+}
+
+model VocabularyItem {
+  id              String   @id @default(cuid())
+  setId           String
+  set             VocabularySet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  word            String
+  translation     String
+  audioUrl        String?
+  imageUrl        String?
+  exampleSentence String?
+  createdAt       DateTime @default(now())
+}
+
+model Game {
+  id              String   @id @default(cuid())
+  educatorId      String
+  educator        EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
+  title           String
+  type            GameType
+  vocabularySetId String
+  vocabularySet   VocabularySet @relation(fields: [vocabularySetId], references: [id])
+  settings        Json     @default("{}")
+  isPublished     Boolean  @default(false)
+  isMarketplace   Boolean  @default(false)
+  approved        Boolean  @default(false)
+  rejectReason    String?
+  price           Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  assignments Assignment[]
+  progress    StudentProgress[]
+  purchases   MarketplacePurchase[]
+}
+
+model Class {
+  id         String   @id @default(cuid())
+  educatorId String
+  educator   EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
+  name       String
+  language   String
+  level      CourseLevel
+  inviteCode String   @unique
+  createdAt  DateTime @default(now())
+
+  members     ClassMember[]
+  assignments Assignment[]
+}
+
+model ClassMember {
+  id        String   @id @default(cuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime @default(now())
+
+  @@unique([classId, studentId])
+}
+
+model Assignment {
+  id        String   @id @default(cuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  dueDate   DateTime
+  isLive    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model StudentProgress {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  score       Float
+  timeTaken   Int
+  completedAt DateTime @default(now())
+  xpEarned    Int      @default(0)
+}
+
+model StudentXP {
+  id             String   @id @default(cuid())
+  studentId      String   @unique
+  student        User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  totalXP        Int      @default(0)
+  level          Int      @default(1)
+  streak         Int      @default(0)
+  lastActiveDate DateTime?
+}
+
+model Badge {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String
+  iconUrl     String?
+  condition   String
+
+  students StudentBadge[]
+}
+
+model StudentBadge {
+  id        String   @id @default(cuid())
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt  DateTime @default(now())
+
+  @@unique([studentId, badgeId])
+}
+
+model MarketplacePurchase {
+  id              String   @id @default(cuid())
+  buyerId         String
+  buyer           User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  courseId        String?
+  course          Course?  @relation(fields: [courseId], references: [id])
+  gameId          String?
+  game            Game?    @relation(fields: [gameId], references: [id])
+  amount          Float
+  stripePaymentId String?
+  createdAt       DateTime @default(now())
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  educatorId       String
+  educator         EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
+  plan             Plan
+  status           SubscriptionStatus @default(ACTIVE)
+  stripeId         String?  @unique
+  currentPeriodEnd DateTime?
+  createdAt        DateTime @default(now())
+}
+
+model PlatformSettings {
+  id              String @id @default("singleton")
+  revenueSharePct Float  @default(25)
+  promoCodes      Json   @default("[]")
+  emailTemplates  Json   @default("{}")
+}
