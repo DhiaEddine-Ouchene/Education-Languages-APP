@@ -12,7 +12,9 @@ const schema = z.object({
   price: z.number().min(0),
   isPublished: z.boolean(),
   isMarketplace: z.boolean(),
-  lessons: z.array(z.object({ title: z.string(), type: z.string(), content: z.string(), order: z.number() })).default([]),
+  lessons: z
+    .array(z.object({ id: z.string().optional(), title: z.string(), type: z.string(), content: z.string(), order: z.number() }))
+    .default([]),
 });
 
 async function owned(id: string, educatorId: string) {
@@ -36,8 +38,26 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (!body.success) return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
     const { lessons, ...data } = body.data;
     const course = await prisma.$transaction(async (tx) => {
-      await tx.lesson.deleteMany({ where: { courseId: params.id } });
-      return tx.course.update({ where: { id: params.id }, data: { ...data, coverImage: data.coverImage || null, lessons: { create: lessons } } });
+      const existing = await tx.lesson.findMany({ where: { courseId: params.id }, select: { id: true } });
+      const existingIds = new Set(existing.map((l) => l.id));
+      const incomingIds = new Set(lessons.filter((l) => l.id).map((l) => l.id as string));
+
+      // Remove lessons the teacher deleted in this edit (cascades to their ExerciseSets, which is correct here)
+      const idsToDelete = [...existingIds].filter((id) => !incomingIds.has(id));
+      if (idsToDelete.length) {
+        await tx.lesson.deleteMany({ where: { id: { in: idsToDelete } } });
+      }
+
+      // Update lessons that already exist (preserves id -> keeps their ExerciseSets), create the new ones
+      for (const [i, l] of lessons.entries()) {
+        if (l.id && existingIds.has(l.id)) {
+          await tx.lesson.update({ where: { id: l.id }, data: { title: l.title, type: l.type, content: l.content, order: i } });
+        } else {
+          await tx.lesson.create({ data: { courseId: params.id, title: l.title, type: l.type, content: l.content, order: i } });
+        }
+      }
+
+      return tx.course.update({ where: { id: params.id }, data: { ...data, coverImage: data.coverImage || null } });
     });
     return NextResponse.json(course);
   } catch (err) {

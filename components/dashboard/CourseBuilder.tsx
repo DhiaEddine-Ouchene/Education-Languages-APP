@@ -17,7 +17,7 @@ const courseSchema = z.object({
   level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]),
 });
 
-type LessonInput = { title: string; type: string; content: string };
+type LessonInput = { id?: string; title: string; type: string; content: string };
 type GameOption = { id: string; title: string };
 type Props = {
   games: GameOption[];
@@ -50,7 +50,38 @@ export function CourseBuilder({ games, initial }: Props) {
     initial?.lessons?.filter((l) => l.type === "game").map((l) => l.content) ?? []
   );
 
+  const [generating, setGenerating] = useState<number | null>(null);
+  const [generated, setGenerated] = useState<Record<number, { word: string; translation: string }[]>>({});
+
   const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
+
+  const generateVocabulary = async (i: number) => {
+    const lesson = lessons[i];
+    if (!lesson.id) {
+      toast("error", "Save the course first, then generate vocabulary for this lesson");
+      return;
+    }
+    setGenerating(i);
+    try {
+      const res = await fetch(`/api/lessons/${lesson.id}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ anex: "VOCABULARY" }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast("error", body.error ?? "Generation failed");
+        return;
+      }
+      const exerciseSet = await res.json();
+      setGenerated((g) => ({ ...g, [i]: exerciseSet.items }));
+      toast("success", `Generated ${exerciseSet.items.length} vocabulary items`);
+    } catch {
+      toast("error", "Generation failed");
+    } finally {
+      setGenerating(null);
+    }
+  };
 
   const validateStep1 = () => {
     const res = courseSchema.safeParse(form);
@@ -139,6 +170,27 @@ export function CourseBuilder({ games, initial }: Props) {
                 <Button size="sm" variant="ghost" onClick={() => setLessons((ls) => ls.filter((_, j) => j !== i))} aria-label="Delete"><Trash2 className="h-4 w-4 text-error" /></Button>
               </div>
               <Textarea value={l.content} onChange={(e) => setLessons((ls) => ls.map((x, j) => (j === i ? { ...x, content: e.target.value } : x)))} placeholder="Lesson content (markdown supported)" />
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!l.id || generating === i}
+                  onClick={() => generateVocabulary(i)}
+                  title={!l.id ? "Save the course first to generate vocabulary for this lesson" : undefined}
+                >
+                  {generating === i ? "Generating..." : "✨ Generate vocabulary with AI"}
+                </Button>
+                {!l.id && <span className="text-xs text-txt-secondary">Save the course to enable this</span>}
+              </div>
+              {generated[i] && (
+                <div className="border border-border rounded-btn p-2 text-sm space-y-1 bg-primary-light/30">
+                  {generated[i].map((item, k) => (
+                    <div key={k}>
+                      <span className="font-medium">{item.word}</span> — {item.translation}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
           <Button variant="outline" onClick={() => setLessons((ls) => [...ls, { title: "", type: "text", content: "" }])}><Plus className="h-4 w-4" /> Add lesson</Button>

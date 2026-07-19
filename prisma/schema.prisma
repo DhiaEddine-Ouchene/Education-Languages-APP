@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -39,6 +38,37 @@ enum GameType {
   MEMORY
   SPEED_ROUND
   STORY
+
+  // Vocabulary
+  SYNONYM_ANTONYM
+  FILL_GAP_WORD
+  WORD_MEANING_MATCH
+  SITUATION_DIALOGUE_FILL
+  WORD_IN_CONTEXT
+  WORD_SCRAMBLE
+  ODD_ONE_OUT
+
+  // Grammar
+  SENTENCE_BUILDER
+  ERROR_SPOTTING
+  FILL_BLANK_GRAMMAR
+  VERB_CONJUGATION
+  MULTIPLE_CHOICE_GRAMMAR
+
+  // Listening & Writing
+  LISTEN_FILL_WORD
+  LISTEN_FILL_SENTENCE
+
+  // Speaking
+  SPEAK_FILL_WORD
+  SPEAK_FILL_SENTENCE
+}
+
+enum Anex {
+  VOCABULARY
+  GRAMMAR
+  LISTENING_WRITING
+  SPEAKING
 }
 
 enum SubscriptionStatus {
@@ -124,6 +154,22 @@ model Lesson {
   type      String   @default("text")
   content   String   @default("")
   createdAt DateTime @default(now())
+
+  exerciseSets ExerciseSet[]
+}
+
+model ExerciseSet {
+  id          String   @id @default(cuid())
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  anex        Anex
+  language    String
+  level       CourseLevel
+  items       Json     @default("[]")
+  generatedBy String   @default("gemini")
+  createdAt   DateTime @default(now())
+
+  games Game[]
 }
 
 model VocabularySet {
@@ -156,8 +202,10 @@ model Game {
   educator        EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
   title           String
   type            GameType
-  vocabularySetId String
-  vocabularySet   VocabularySet @relation(fields: [vocabularySetId], references: [id])
+  vocabularySetId String?
+  vocabularySet   VocabularySet? @relation(fields: [vocabularySetId], references: [id])
+  exerciseSetId   String?
+  exerciseSet     ExerciseSet? @relation(fields: [exerciseSetId], references: [id])
   settings        Json     @default("{}")
   isPublished     Boolean  @default(false)
   isMarketplace   Boolean  @default(false)
