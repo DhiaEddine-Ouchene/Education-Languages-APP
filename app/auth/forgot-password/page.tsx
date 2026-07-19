@@ -1,7 +1,6 @@
 "use client";
-import { useState, Suspense, useRef, useEffect } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState, useRef, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,62 +14,49 @@ import { Gamepad2, ArrowLeft, RefreshCw } from "lucide-react";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
-  password: z.string().min(1, "Password is required"),
 });
+
 type FormData = z.infer<typeof schema>;
 
-function LoginForm() {
+function ForgotPasswordForm() {
   const router = useRouter();
-  const params = useSearchParams();
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
-
-  // States for OTP verification flow
-  const [verifyingEmail, setVerifyingEmail] = useState<string | null>(null);
+  const [step, setStep] = useState<"email" | "code">("email");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const [loginPassword, setLoginPassword] = useState("");
-
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     if (resendTimer <= 0) return;
-    const interval = setInterval(() => {
-      setResendTimer((prev) => prev - 1);
-    }, 1000);
+    const interval = setInterval(() => setResendTimer((prev) => prev - 1), 1000);
     return () => clearInterval(interval);
   }, [resendTimer]);
+
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      const res = await signIn("credentials", { ...data, redirect: false });
-      if (res?.error) {
-        if (res.error === "UNVERIFIED" || res.error.includes("UNVERIFIED")) {
-          // Store credentials for auto-signin
-          setLoginPassword(data.password);
-          setVerifyingEmail(data.email);
-          
-          // Request new code automatically so the user receives it immediately
-          await fetch("/api/auth/verify/resend", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: data.email }),
-          });
-          
-          toast("info", "Please verify your email address. A code has been sent.");
-        } else {
-          toast("error", "Invalid email or password");
-        }
-      } else {
-        toast("success", "Welcome back!");
-        router.push(params.get("callbackUrl") ?? "/dashboard");
-        router.refresh();
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast("error", err.error ?? "Failed to send reset code");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      toast("error", "An error occurred during sign in");
+
+      setEmail(data.email);
+      setStep("code");
+      toast("success", "If an account exists, a reset code has been sent");
+      setResendTimer(60);
+    } catch {
+      toast("error", "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -100,20 +86,16 @@ function LoginForm() {
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/[^0-9]/g, "").slice(0, 6);
-    if (pastedData) {
+    const pasted = e.clipboardData.getData("text").replace(/[^0-9]/g, "").slice(0, 6);
+    if (pasted) {
       const newOtp = [...otp];
-      for (let i = 0; i < 6; i++) {
-        newOtp[i] = pastedData[i] || "";
-      }
+      for (let i = 0; i < 6; i++) newOtp[i] = pasted[i] || "";
       setOtp(newOtp);
-      
-      const focusIndex = Math.min(pastedData.length, 5);
-      otpInputsRef.current[focusIndex]?.focus();
+      otpInputsRef.current[Math.min(pasted.length, 5)]?.focus();
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
     if (code.length < 6) {
@@ -123,88 +105,72 @@ function LoginForm() {
 
     setVerifyLoading(true);
     try {
-      const res = await fetch("/api/auth/verify", {
+      const res = await fetch("/api/auth/verify-reset-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: verifyingEmail, code }),
+        body: JSON.stringify({ email, code }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        toast("error", err.error ?? "Verification failed");
+        toast("error", err.error ?? "Invalid code");
         return;
       }
 
-      toast("success", "Email verified! Logging in...");
-      
-      // Auto login
-      const loginRes = await signIn("credentials", { 
-        email: verifyingEmail, 
-        password: loginPassword, 
-        redirect: false 
-      });
-
-      if (loginRes?.error) {
-        toast("error", "Automatic sign-in failed. Please enter your credentials again.");
-        setVerifyingEmail(null);
-      } else {
-        router.push(params.get("callbackUrl") ?? "/dashboard");
-        router.refresh();
-      }
-    } catch (err) {
-      console.error(err);
-      toast("error", "Verification failed. Please try again.");
+      toast("success", "Code verified! Redirecting to reset password...");
+      router.push(`/auth/reset-password?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`);
+      router.refresh();
+    } catch {
+      toast("error", "Verification failed");
     } finally {
       setVerifyLoading(false);
     }
   };
 
-  const handleResendCode = async () => {
-    if (!verifyingEmail) return;
+  const handleResend = async () => {
     try {
-      const res = await fetch("/api/auth/verify/resend", {
+      const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: verifyingEmail }),
+        body: JSON.stringify({ email }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        toast("error", err.error ?? "Failed to resend code");
+        toast("error", err.error ?? "Failed to resend");
         return;
       }
 
-      toast("success", "A new verification code has been sent!");
+      toast("success", "A new reset code has been sent!");
       setResendTimer(60);
       setOtp(Array(6).fill(""));
       otpInputsRef.current[0]?.focus();
-    } catch (err) {
-      console.error(err);
-      toast("error", "Failed to resend verification code");
+    } catch {
+      toast("error", "Failed to resend code");
     }
   };
 
-  if (verifyingEmail) {
+  if (step === "code") {
     return (
       <Card className="w-full max-w-md shadow-hover border-border">
         <CardContent className="pt-8 pb-8">
-          <button 
-            onClick={() => setVerifyingEmail(null)}
+          <button
+            onClick={() => setStep("email")}
             className="flex items-center gap-1 text-sm text-txt-secondary hover:text-primary mb-6 transition-colors font-medium focus:outline-none"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to log in
+            <ArrowLeft className="h-4 w-4" /> Back
           </button>
           <div className="flex justify-center mb-4">
             <div className="rounded-full bg-primary-light p-3">
               <Gamepad2 className="h-10 w-10 text-primary" />
             </div>
           </div>
-          <h1 className="font-heading font-bold text-2xl text-center mb-2">Verify your email</h1>
+          <h1 className="font-heading font-bold text-2xl text-center mb-2">Verify reset code</h1>
           <p className="text-sm text-center text-txt-secondary mb-6">
-            An OTP verification code was sent to <span className="font-medium text-txt">{verifyingEmail}</span>. Enter it below to verify and sign in.
+            A 6-digit code was sent to <span className="font-medium text-txt">{email}</span>. Enter it below.
           </p>
 
-          <form onSubmit={handleVerifyOtp} className="space-y-6">
+          <form onSubmit={handleVerify} className="space-y-6">
             <div className="flex justify-center gap-2" onPaste={handlePaste}>
               {otp.map((digit, idx) => (
                 <input
@@ -231,10 +197,10 @@ function LoginForm() {
             ) : (
               <button
                 type="button"
-                onClick={handleResendCode}
+                onClick={handleResend}
                 className="flex items-center gap-1 text-primary hover:underline font-medium focus:outline-none"
               >
-                <RefreshCw className="h-3.5 w-3.5" /> Resend verification code
+                <RefreshCw className="h-3.5 w-3.5" /> Resend code
               </button>
             )}
           </div>
@@ -246,42 +212,32 @@ function LoginForm() {
   return (
     <Card className="w-full max-w-md">
       <CardContent className="pt-8 pb-8">
-        <div className="flex justify-center mb-4"><Gamepad2 className="h-10 w-10 text-primary" /></div>
-        <h1 className="font-heading font-bold text-2xl text-center mb-6">Log in to EduPlay</h1>
+        <div className="flex justify-center mb-4">
+          <Gamepad2 className="h-10 w-10 text-primary" />
+        </div>
+        <h1 className="font-heading font-bold text-2xl text-center mb-6">Reset your password</h1>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
             <FieldError message={errors.email?.message} />
           </div>
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" {...register("password")} />
-            <FieldError message={errors.password?.message} />
-          </div>
-          <div className="flex justify-end">
-            <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline font-medium transition-colors">
-              Forgot password?
-            </Link>
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>{loading ? "Signing in..." : "Sign in"}</Button>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Sending..." : "Send reset code"}
+          </Button>
         </form>
-        <div className="my-4 flex items-center gap-3 text-xs text-txt-secondary"><span className="h-px bg-border flex-1" />or<span className="h-px bg-border flex-1" /></div>
-        <Button variant="outline" className="w-full" onClick={() => signIn("google", { callbackUrl: "/dashboard" })}>
-          Continue with Google
-        </Button>
         <p className="text-sm text-center text-txt-secondary mt-6">
-          No account? <Link href="/auth/register" className="text-primary font-medium">Register</Link>
+          Remember your password? <Link href="/auth/login" className="text-primary font-medium">Log in</Link>
         </p>
       </CardContent>
     </Card>
   );
 }
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
-      <Suspense><LoginForm /></Suspense>
+      <Suspense><ForgotPasswordForm /></Suspense>
     </main>
   );
 }

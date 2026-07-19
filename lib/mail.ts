@@ -43,6 +43,26 @@ export const sendVerificationCode = (to: string, name: string, code: string) => 
   return sendMail(to, "Verify your email address", html);
 };
 
+// Password reset emails
+export const sendResetCode = (to: string, name: string, code: string) => {
+  const html = layout(
+    "Reset your password",
+    `Hi <b>${name}</b>,<br/><br/>
+    You requested to reset your password for <b>${process.env.NEXT_PUBLIC_APP_NAME ?? "EduPlay"}</b>.<br/><br/>
+    Please use the following 6-digit code to reset your password:
+    <div style="background:#FEF3C7;padding:20px;border-radius:10px;font-size:28px;font-weight:bold;letter-spacing:6px;text-align:center;color:#F59E0B;margin:20px auto;max-width:240px;border:1px solid #F59E0B;">
+      ${code}
+    </div>
+    This code is valid for <b>10 minutes</b>. If you did not request a password reset, please ignore this email.<br/><br/>
+    Thanks!`
+  );
+
+  // Fallback logs for dev testing
+  console.log(`\n==========================================\n[MAIL FALLBACK] Password Reset Code for ${to}: ${code}\n==========================================\n`);
+
+  return sendMail(to, "Reset your password", html);
+};
+
 // Student emails
 export const sendWelcomeStudent = (to: string, name: string) =>
   sendMail(to, "Welcome to your learning journey!", layout(`Welcome, ${name}!`, `You are all set. Play your first game today to start your streak and earn XP.`));
