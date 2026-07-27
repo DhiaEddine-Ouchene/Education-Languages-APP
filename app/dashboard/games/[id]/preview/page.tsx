@@ -30,8 +30,8 @@ export default async function PreviewGamePage({ params }: { params: { id: string
       <GamePlayer
         gameId={game.id}
         title={game.title}
-        type={game.type}
-        items={game.vocabularySet.items.map((i) => ({
+        type={game.type as any}
+        items={(game.vocabularySet?.items ?? []).map((i) => ({
           id: i.id, word: i.word, translation: i.translation,
           audioUrl: i.audioUrl, imageUrl: i.imageUrl, exampleSentence: i.exampleSentence,
         }))}

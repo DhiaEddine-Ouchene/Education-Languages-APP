@@ -43,13 +43,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       const incomingIds = new Set(lessons.filter((l) => l.id).map((l) => l.id as string));
 
       // Remove lessons the teacher deleted in this edit (cascades to their ExerciseSets, which is correct here)
-      const idsToDelete = [...existingIds].filter((id) => !incomingIds.has(id));
+      const idsToDelete = Array.from(existingIds).filter((id) => !incomingIds.has(id));
       if (idsToDelete.length) {
         await tx.lesson.deleteMany({ where: { id: { in: idsToDelete } } });
       }
 
       // Update lessons that already exist (preserves id -> keeps their ExerciseSets), create the new ones
-      for (const [i, l] of lessons.entries()) {
+      for (let i = 0; i < lessons.length; i++) {
+        const l = lessons[i];
         if (l.id && existingIds.has(l.id)) {
           await tx.lesson.update({ where: { id: l.id }, data: { title: l.title, type: l.type, content: l.content, order: i } });
         } else {

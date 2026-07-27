@@ -8,7 +8,8 @@ import { Input, Textarea, Select } from "@/components/ui/input";
 import { Label, FieldError } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { ArrowUp, ArrowDown, Trash2, Plus } from "lucide-react";
+import { ArrowUp, ArrowDown, Trash2, Plus, Sparkles, Gamepad2 } from "lucide-react";
+import { GameSelectionModal, GameDefinition } from "./GameSelectionModal";
 
 const courseSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -53,12 +54,29 @@ export function CourseBuilder({ games, initial }: Props) {
   const [generating, setGenerating] = useState<number | null>(null);
   const [generated, setGenerated] = useState<Record<number, { word: string; translation: string }[]>>({});
 
+  // Game Selection Wizard Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeLessonIndex, setActiveLessonIndex] = useState<number | null>(null);
+
   const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
+
+  const openGameWizard = (index?: number) => {
+    if (typeof index === "number") {
+      setActiveLessonIndex(index);
+    } else {
+      setActiveLessonIndex(null);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleGamesSelected = (selectedDefs: GameDefinition[]) => {
+    toast("success", `Selected ${selectedDefs.length} game type(s).`);
+  };
 
   const generateVocabulary = async (i: number) => {
     const lesson = lessons[i];
     if (!lesson.id) {
-      toast("error", "Save the course first, then generate vocabulary for this lesson");
+      toast("error", "Save the course first, then generate games for this lesson");
       return;
     }
     setGenerating(i);
@@ -75,7 +93,7 @@ export function CourseBuilder({ games, initial }: Props) {
       }
       const exerciseSet = await res.json();
       setGenerated((g) => ({ ...g, [i]: exerciseSet.items }));
-      toast("success", `Generated ${exerciseSet.items.length} vocabulary items`);
+      toast("success", `Generated ${exerciseSet.items.length} exercise items`);
     } catch {
       toast("error", "Generation failed");
     } finally {
@@ -137,6 +155,15 @@ export function CourseBuilder({ games, initial }: Props) {
 
   return (
     <div className="max-w-3xl space-y-6">
+      <GameSelectionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        lessonId={activeLessonIndex !== null ? lessons[activeLessonIndex]?.id : undefined}
+        lessonTitle={activeLessonIndex !== null ? lessons[activeLessonIndex]?.title : form.title}
+        lessonContent={activeLessonIndex !== null ? lessons[activeLessonIndex]?.content : form.description}
+        onGamesSelected={handleGamesSelected}
+      />
+
       <div className="flex gap-2">
         {steps.map((s, i) => (
           <button key={s} onClick={() => setStep(i)} className={cn("flex-1 text-xs py-2 rounded-btn border", i === step ? "border-primary bg-primary-light text-primary-dark font-medium" : "border-border text-txt-secondary")}>
@@ -162,7 +189,7 @@ export function CourseBuilder({ games, initial }: Props) {
 
         {step === 1 && (<>
           {lessons.map((l, i) => (
-            <div key={i} className="border border-border rounded-card p-3 space-y-2">
+            <div key={i} className="border border-border rounded-card p-4 space-y-3 bg-white dark:bg-slate-900 shadow-sm">
               <div className="flex items-center gap-2">
                 <Input value={l.title} onChange={(e) => setLessons((ls) => ls.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} placeholder="Lesson title" />
                 <Button size="sm" variant="ghost" onClick={() => move(i, -1)} aria-label="Move up"><ArrowUp className="h-4 w-4" /></Button>
@@ -170,7 +197,15 @@ export function CourseBuilder({ games, initial }: Props) {
                 <Button size="sm" variant="ghost" onClick={() => setLessons((ls) => ls.filter((_, j) => j !== i))} aria-label="Delete"><Trash2 className="h-4 w-4 text-error" /></Button>
               </div>
               <Textarea value={l.content} onChange={(e) => setLessons((ls) => ls.map((x, j) => (j === i ? { ...x, content: e.target.value } : x)))} placeholder="Lesson content (markdown supported)" />
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="bg-primary text-white font-semibold"
+                  onClick={() => openGameWizard(i)}
+                >
+                  <Gamepad2 className="h-4 w-4 mr-1.5" /> Choose & Generate Games for Lesson
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -178,14 +213,15 @@ export function CourseBuilder({ games, initial }: Props) {
                   onClick={() => generateVocabulary(i)}
                   title={!l.id ? "Save the course first to generate vocabulary for this lesson" : undefined}
                 >
-                  {generating === i ? "Generating..." : "✨ Generate vocabulary with AI"}
+                  {generating === i ? "Generating..." : "✨ Auto-generate Exercises"}
                 </Button>
-                {!l.id && <span className="text-xs text-txt-secondary">Save the course to enable this</span>}
+                {!l.id && <span className="text-xs text-txt-secondary">Save course to enable auto-generation</span>}
               </div>
               {generated[i] && (
-                <div className="border border-border rounded-btn p-2 text-sm space-y-1 bg-primary-light/30">
+                <div className="border border-border rounded-btn p-3 text-sm space-y-1 bg-primary-light/30">
+                  <p className="text-xs font-bold text-primary mb-1">Generated items:</p>
                   {generated[i].map((item, k) => (
-                    <div key={k}>
+                    <div key={k} className="text-xs">
                       <span className="font-medium">{item.word}</span> — {item.translation}
                     </div>
                   ))}
@@ -197,15 +233,34 @@ export function CourseBuilder({ games, initial }: Props) {
         </>)}
 
         {step === 2 && (<>
-          <p className="text-sm text-txt-secondary">Attach games to this course. They appear as interactive lessons.</p>
+          <div className="flex justify-between items-center mb-2">
+            <div>
+              <h3 className="font-bold text-base font-heading">Course Games</h3>
+              <p className="text-sm text-txt-secondary">Attach games to this course. They appear as interactive lessons for students.</p>
+            </div>
+            <Button size="sm" variant="accent" onClick={() => openGameWizard()}>
+              <Sparkles className="h-4 w-4 mr-1.5" /> Open Game Selection Wizard
+            </Button>
+          </div>
+
           {games.length === 0 ? (
-            <p className="text-sm">You have no games yet. <a href="/dashboard/games/new" className="text-primary">Build one</a>.</p>
+            <div className="border border-dashed border-border rounded-xl p-8 text-center bg-slate-50 dark:bg-slate-900">
+              <Gamepad2 className="h-10 w-10 text-primary mx-auto mb-2 opacity-80" />
+              <p className="text-sm font-semibold mb-1">You have no games created yet</p>
+              <p className="text-xs text-txt-secondary mb-4">Use the Game Selection Wizard above or build a custom game.</p>
+              <Button size="sm" onClick={() => openGameWizard()}>
+                <Sparkles className="h-4 w-4 mr-1.5" /> Select & Generate Games
+              </Button>
+            </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {games.map((g) => (
-                <label key={g.id} className="flex items-center gap-2 text-sm border border-border rounded-btn px-3 py-2">
-                  <input type="checkbox" checked={attachedGames.includes(g.id)} onChange={(e) => setAttachedGames((a) => (e.target.checked ? [...a, g.id] : a.filter((x) => x !== g.id)))} />
-                  {g.title}
+                <label key={g.id} className="flex items-center justify-between text-sm border border-border rounded-btn px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" checked={attachedGames.includes(g.id)} onChange={(e) => setAttachedGames((a) => (e.target.checked ? [...a, g.id] : a.filter((x) => x !== g.id)))} className="rounded text-primary focus:ring-primary" />
+                    <span className="font-medium">{g.title}</span>
+                  </div>
+                  <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full font-semibold">Attached</span>
                 </label>
               ))}
             </div>

@@ -36,6 +36,11 @@ h1, h2, h3, h4, h5, h6 {
 .card-face { backface-visibility: hidden; position: absolute; inset: 0; }
 .card-back { transform: rotateY(180deg); }
 
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes flyup {
   0% { opacity: 0; transform: translateY(10px) scale(0.96); }
   20% { opacity: 1; }
@@ -50,6 +55,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-flyup {
   animation: flyup 1.35s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
 }
 
 .game-surface {

@@ -29,7 +29,7 @@ export default async function EditGamePage({ params }: { params: { id: string } 
           id: game.id,
           title: game.title,
           type: game.type,
-          vocabularySetId: game.vocabularySetId,
+          vocabularySetId: game.vocabularySetId ?? "",
           settings: (game.settings ?? {}) as Record<string, unknown>,
           isPublished: game.isPublished,
           isMarketplace: game.isMarketplace,

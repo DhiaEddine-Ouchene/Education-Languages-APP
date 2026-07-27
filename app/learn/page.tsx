@@ -115,7 +115,7 @@ export default async function LearnHomePage() {
             {practice.map((g) => (
               <Link key={g.id} href={`/learn/game/${g.id}`}>
                 <Card className="h-full"><CardContent className="pt-4 text-center">
-                  <p className="text-2xl mb-1">{{ FLASHCARD: "🃏", FILL_BLANK: "✏️", DRAG_DROP: "🧩", QUIZ: "❓", DICTATION: "🎧", MEMORY: "🧠", SPEED_ROUND: "⚡", STORY: "📖" }[g.type]}</p>
+                  <p className="text-2xl mb-1">{({ FLASHCARD: "🃏", FILL_BLANK: "✏️", DRAG_DROP: "🧩", QUIZ: "❓", DICTATION: "🎧", MEMORY: "🧠", SPEED_ROUND: "⚡", STORY: "📖" } as Record<string, string>)[g.type] || "🎮"}</p>
                   <p className="text-sm font-medium">{g.title}</p>
                 </CardContent></Card>
               </Link>

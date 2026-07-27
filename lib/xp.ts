@@ -156,7 +156,7 @@ async function checkBadges(params: {
     select: { game: { select: { vocabularySetId: true } } },
     distinct: ["gameId"],
   });
-  const setIds = Array.from(new Set(played.map((p) => p.game.vocabularySetId)));
+  const setIds = Array.from(new Set(played.map((p) => p.game.vocabularySetId).filter((id): id is string => Boolean(id))));
   const wordCount = await prisma.vocabularyItem.count({ where: { setId: { in: setIds } } });
   if (wordCount >= 100) {
     const b = await grantBadge(studentId, defs["words_100"]);

@@ -49,7 +49,7 @@ export default async function ProgressPage() {
 
   // Words learned (distinct across played sets)
   const wordSet = new Map<string, string>();
-  for (const p of progress) for (const i of p.game.vocabularySet.items) wordSet.set(i.id, `${i.word} — ${i.translation}`);
+  for (const p of progress) for (const i of (p.game.vocabularySet?.items ?? [])) wordSet.set(i.id, `${i.word} — ${i.translation}`);
   const words = Array.from(wordSet.values());
 
   const level = xp?.level ?? 1;

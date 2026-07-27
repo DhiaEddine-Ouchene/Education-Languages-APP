@@ -20,7 +20,7 @@ export default async function AnalyticsPage() {
 
   const gameStats = games
     .filter((g) => g.progress.length > 0)
-    .map((g) => ({ title: g.title, avgScore: g.progress.reduce((s, p) => s + p.score, 0) / g.progress.length, words: g.vocabularySet.items.map((i) => i.word) }))
+    .map((g) => ({ title: g.title, avgScore: g.progress.reduce((s, p) => s + p.score, 0) / g.progress.length, words: g.vocabularySet?.items.map((i) => i.word) ?? [] }))
     .sort((a, b) => a.avgScore - b.avgScore);
   const hardestWords = gameStats.slice(0, 3).flatMap((g) => g.words.map((w) => ({ word: w, game: g.title, avgScore: Math.round(g.avgScore) }))).slice(0, 10);
 

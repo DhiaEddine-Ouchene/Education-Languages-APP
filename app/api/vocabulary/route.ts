@@ -3,7 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireEducator } from "@/lib/api";
 
-const schema = z.object({ name: z.string().min(2), language: z.string().min(2) });
+const itemSchema = z.object({ word: z.string().min(1), translation: z.string().min(1), exampleSentence: z.string().optional().default("") });
+const schema = z.object({ name: z.string().min(2), language: z.string().min(2), items: z.array(itemSchema).optional().default([]) });
 
 export async function GET() {
   const { error, profile } = await requireEducator();
@@ -18,7 +19,14 @@ export async function POST(req: Request) {
   try {
     const body = schema.safeParse(await req.json());
     if (!body.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-    const set = await prisma.vocabularySet.create({ data: { ...body.data, educatorId: profile!.id } });
+    const { items, ...setData } = body.data;
+    const set = await prisma.vocabularySet.create({
+      data: {
+        ...setData,
+        educatorId: profile!.id,
+        items: items.length > 0 ? { create: items } : undefined,
+      },
+    });
     return NextResponse.json(set, { status: 201 });
   } catch (err) {
     console.error("[vocabulary:POST]", err);

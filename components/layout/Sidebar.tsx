@@ -5,16 +5,14 @@ import { useState } from "react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard, BookOpen, Gamepad2, ListChecks, Users, BarChart3, Store, Palette, Settings, CreditCard,
-  LogOut, ChevronLeft, ChevronRight, ShieldCheck, UserCog, Receipt, Sparkles
+  LayoutDashboard, BookOpen, Gamepad2, Users, BarChart3, Store, Palette, Settings, CreditCard,
+  LogOut, ChevronLeft, ChevronRight, ShieldCheck, UserCog, Receipt
 } from "lucide-react";
 
 const educatorLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/courses", label: "Courses", icon: BookOpen },
-  { href: "/dashboard/ai-generator", label: "AI Generator", icon: Sparkles },
   { href: "/dashboard/games", label: "Games", icon: Gamepad2 },
-  { href: "/dashboard/vocabulary", label: "Vocabulary", icon: ListChecks },
   { href: "/dashboard/classes", label: "Classes", icon: Users },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/marketplace", label: "Marketplace", icon: Store },

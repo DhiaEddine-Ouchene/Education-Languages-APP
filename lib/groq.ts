@@ -124,3 +124,141 @@ Remember to follow the JSON structure exactly.
     throw new Error(err.message || "AI generated invalid response format.");
   }
 }
+
+// ----------------------------------------------------
+// Lesson-based Exercise Generation
+// ----------------------------------------------------
+
+import { z } from "zod";
+
+export const vocabularyItemSchema = z.object({
+  word: z.string(),
+  translation: z.string(),
+  exampleSentence: z.string(),
+  synonyms: z.array(z.string()).default([]),
+  antonyms: z.array(z.string()).default([]),
+});
+export type VocabularyItem = z.infer<typeof vocabularyItemSchema>;
+
+const vocabularySetSchema = z.object({
+  items: z.array(vocabularyItemSchema).min(1),
+});
+
+export const grammarItemSchema = z.object({
+  gameType: z.enum([
+    "SENTENCE_BUILDER",
+    "ERROR_SPOTTING",
+    "FILL_BLANK_GRAMMAR",
+    "VERB_CONJUGATION",
+    "MULTIPLE_CHOICE_GRAMMAR",
+  ]),
+  prompt: z.string(),
+  correctAnswer: z.string(),
+  distractors: z.array(z.string()).default([]),
+  rule: z.string(),
+  conjugation: z
+    .object({
+      verb: z.string(),
+      tense: z.string(),
+      forms: z.record(z.string()),
+    })
+    .nullable()
+    .default(null),
+});
+export type GrammarItem = z.infer<typeof grammarItemSchema>;
+
+const grammarSetSchema = z.object({
+  items: z.array(grammarItemSchema).min(1),
+});
+
+function targetItemCount(lessonContent: string, wordsPerItem: number, min: number, max: number): number {
+  const wordCount = lessonContent.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(min, Math.min(max, Math.round(wordCount / wordsPerItem)));
+}
+
+async function callGroq<T>(prompt: string, schema: z.ZodTypeAny): Promise<T[]> {
+  const chatCompletion = await groq.chat.completions.create({
+    messages: [{ role: "user", content: prompt }],
+    model: "llama-3.3-70b-versatile",
+    temperature: 0.3,
+    response_format: { type: "json_object" },
+  });
+
+  const responseText = chatCompletion.choices[0]?.message?.content;
+  if (!responseText) throw new Error("Groq returned no content");
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(responseText);
+  } catch {
+    throw new Error("Groq response was not valid JSON");
+  }
+
+  const validated = schema.safeParse(parsed);
+  if (!validated.success) {
+    throw new Error(`Groq response failed validation: ${validated.error.message}`);
+  }
+
+  return (validated.data as { items: T[] }).items;
+}
+
+export async function generateVocabularySet(params: {
+  lessonContent: string;
+  language: string;
+  level: string;
+}): Promise<VocabularyItem[]> {
+  const targetCount = targetItemCount(params.lessonContent, 40, 6, 30);
+
+  const prompt = `You are generating a vocabulary exercise set for a language-learning app.
+
+Language being learned: ${params.language}
+Learner level (CEFR): ${params.level}
+Target number of vocabulary items: ${targetCount}
+
+Lesson content:
+"""
+${params.lessonContent}
+"""
+
+Pick the ${targetCount} most useful vocabulary words or short phrases from this lesson for a learner at this level. For each one, return:
+- word: the word/phrase in ${params.language}
+- translation: a short translation or definition
+- exampleSentence: one natural example sentence using the word, in ${params.language}
+- synonyms: 0-3 synonyms in ${params.language} (empty array if none fit)
+- antonyms: 0-3 antonyms in ${params.language} (empty array if none fit)
+
+Respond with ONLY a raw JSON object of the shape {"items": [...]}. No markdown fences, no commentary.`;
+
+  return callGroq<VocabularyItem>(prompt, vocabularySetSchema);
+}
+
+export async function generateGrammarSet(params: {
+  lessonContent: string;
+  language: string;
+  level: string;
+}): Promise<GrammarItem[]> {
+  const targetCount = targetItemCount(params.lessonContent, 60, 4, 20);
+
+  const prompt = `You are generating a grammar exercise set for a language-learning app.
+
+Language being learned: ${params.language}
+Learner level (CEFR): ${params.level}
+Target number of exercise items: ${targetCount}
+
+Lesson content:
+"""
+${params.lessonContent}
+"""
+
+Identify the ${targetCount} most useful grammar points actually present or implied in this lesson (e.g. a verb tense used, a sentence structure, a common error at this level) and build one exercise item per point. Vary the gameType across the set rather than repeating one. For each item return:
+- gameType: one of SENTENCE_BUILDER, ERROR_SPOTTING, FILL_BLANK_GRAMMAR, VERB_CONJUGATION, MULTIPLE_CHOICE_GRAMMAR
+- prompt: the sentence or instruction shown to the student. Use "___" for a blank in FILL_BLANK_GRAMMAR, show the flawed sentence in ERROR_SPOTTING, show scrambled/unordered words in SENTENCE_BUILDER, show the sentence with the question in MULTIPLE_CHOICE_GRAMMAR
+- correctAnswer: the correct word, sentence, or corrected version
+- distractors: 2-4 wrong options (only needed for MULTIPLE_CHOICE_GRAMMAR and ERROR_SPOTTING style hints; empty array otherwise)
+- rule: a short, student-friendly explanation of the grammar rule behind this item, in plain language
+- conjugation: only when gameType is VERB_CONJUGATION, an object {verb, tense, forms} where forms maps each pronoun/subject to its conjugated form in ${params.language}. Otherwise null.
+
+Respond with ONLY a raw JSON object of the shape {"items": [...]}. No markdown fences, no commentary.`;
+
+  return callGroq<GrammarItem>(prompt, grammarSetSchema);
+}

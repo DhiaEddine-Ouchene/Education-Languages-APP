@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+// Classic games
 import { FlashcardGame } from "./FlashcardGame";
 import { FillBlankGame } from "./FillBlankGame";
 import { DragDropGame } from "./DragDropGame";
@@ -12,20 +13,120 @@ import { DictationGame } from "./DictationGame";
 import { MemoryGame } from "./MemoryGame";
 import { SpeedRoundGame } from "./SpeedRoundGame";
 import { StoryGame } from "./StoryGame";
+// New dedicated vocabulary games
+import { SynonymAntonymGame } from "./SynonymAntonymGame";
+import { FillGapAnimatedGame } from "./FillGapAnimatedGame";
+import { WordMeaningMatchGame } from "./WordMeaningMatchGame";
+import { DialogueCompletionGame } from "./DialogueCompletionGame";
+import { WordContextMatchGame } from "./WordContextMatchGame";
+import { WordScrambleGame } from "./WordScrambleGame";
+import { OddOneOutGame } from "./OddOneOutGame";
+import { CollocationBuilderGame } from "./CollocationBuilderGame";
+import { CrosswordGame } from "./CrosswordGame";
+import { PictureToWordGame } from "./PictureToWordGame";
+import { Flashcard3DGame } from "./Flashcard3DGame";
+// Grammar games
+import { SentenceBuilderGame } from "./SentenceBuilderGame";
+// Listening games
+import { DictationChallengeGame } from "./DictationChallengeGame";
+import { ListenFillGapGame } from "./ListenFillGapGame";
+import { ListenOrderGame } from "./ListenOrderGame";
+import { ListenSelectGame } from "./ListenSelectGame";
+import { MinimalPairMatchGame } from "./MinimalPairMatchGame";
+// Shared result / UI
 import { GameResultScreen } from "./GameResultScreen";
 import { LevelUpModal } from "./LevelUpModal";
 import type { GameItem, GameSettings } from "./types";
 
-const GAMES = {
+// ── Wrapper: adapt SentenceBuilderGame's {prompt, correctAnswer} interface ──
+function SentenceBuilderAdapter({ items, onComplete }: { items: GameItem[]; onComplete: (score: number, total: number) => void }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+
+  if (done || !items.length) {
+    if (!done) {
+      // Immediately complete if no items
+      onComplete(0, 0);
+      setDone(true);
+    }
+    return null;
+  }
+
+  const currentItem = items[currentIndex];
+  if (!currentItem) return null;
+
+  const handleSentenceComplete = (isCorrect: boolean) => {
+    const newScore = score + (isCorrect ? 1 : 0);
+    if (currentIndex < items.length - 1) {
+      setCurrentIndex((c) => c + 1);
+      setScore(newScore);
+    } else {
+      setDone(true);
+      // Use setTimeout so state updates flush before onComplete is called
+      setTimeout(() => onComplete(newScore, items.length), 0);
+    }
+  };
+
+  return (
+    <div key={currentIndex} className="animate-fade-in">
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+          Word {currentIndex + 1} of {items.length}
+        </span>
+        <span className="text-xs font-bold text-primary">
+          Score: {score}/{currentIndex}
+        </span>
+      </div>
+      <SentenceBuilderGame
+        prompt={currentItem.exampleSentence || currentItem.word}
+        correctAnswer={currentItem.exampleSentence || currentItem.word}
+        onComplete={handleSentenceComplete}
+      />
+    </div>
+  );
+}
+
+const GAMES: Record<string, any> = {
+  // Classic — keep existing dedicated components
   FLASHCARD: FlashcardGame,
   FILL_BLANK: FillBlankGame,
   DRAG_DROP: DragDropGame,
   QUIZ: QuizGame,
-  DICTATION: DictationGame,
+  DICTATION: DictationChallengeGame, // upgraded to the new polished component
   MEMORY: MemoryGame,
-  SPEED_ROUND: SpeedRoundGame,
+  SPEED_ROUND: ListenSelectGame, // upgraded — listen & select fits "speed round with audio"
   STORY: StoryGame,
-} as const;
+
+  // Vocabulary — dedicated components
+  SYNONYM_ANTONYM: SynonymAntonymGame,
+  FILL_GAP_WORD: FillGapAnimatedGame,
+  WORD_MEANING_MATCH: WordMeaningMatchGame,
+  SITUATION_DIALOGUE_FILL: DialogueCompletionGame,
+  WORD_IN_CONTEXT: WordContextMatchGame,
+  WORD_SCRAMBLE: WordScrambleGame,
+  ODD_ONE_OUT: OddOneOutGame,
+
+  // Grammar — SentenceBuilder has its own interface, use wrapper
+  SENTENCE_BUILDER: SentenceBuilderAdapter,
+  ERROR_SPOTTING: QuizGame,
+  FILL_BLANK_GRAMMAR: FillBlankGame,
+  VERB_CONJUGATION: FillBlankGame,
+  MULTIPLE_CHOICE_GRAMMAR: QuizGame,
+
+  // Listening & Speaking
+  LISTEN_FILL_WORD: ListenFillGapGame,
+  LISTEN_FILL_SENTENCE: ListenOrderGame,
+  SPEAK_FILL_WORD: FillBlankGame,
+  SPEAK_FILL_SENTENCE: FillBlankGame,
+
+  // Extra game types (for manual creation / marketplace)
+  CROSSWORD: CrosswordGame,
+  COLLOCATION_BUILDER: CollocationBuilderGame,
+  FLASHCARD_3D: Flashcard3DGame,
+  MINIMAL_PAIR: MinimalPairMatchGame,
+  PICTURE_TO_WORD: PictureToWordGame,
+};
 
 const gameMotion = {
   hidden: { opacity: 0, y: 14 },
@@ -37,7 +138,6 @@ const gameTransition = {
   ease: "easeOut" as const,
 };
 
-type GameType = keyof typeof GAMES;
 type Result = {
   xpEarned: number;
   totalXP: number;
@@ -50,21 +150,47 @@ type Result = {
 type Props = {
   gameId: string;
   title: string;
-  type: GameType;
+  type: string;
   items: GameItem[];
   settings: GameSettings | Record<string, unknown>;
   previewMode?: boolean;
 };
 
-const gameLabels: Record<GameType, string> = {
+const gameLabels: Record<string, string> = {
+  // Classic
   FLASHCARD: "Flashcard",
   FILL_BLANK: "Fill the blank",
   DRAG_DROP: "Drag & drop",
   QUIZ: "Quiz",
-  DICTATION: "Dictation",
+  DICTATION: "Dictation Challenge",
   MEMORY: "Memory match",
-  SPEED_ROUND: "Speed round",
+  SPEED_ROUND: "Speed round / Listen & Select",
   STORY: "Story builder",
+  // Vocabulary
+  SYNONYM_ANTONYM: "Synonym & Antonym",
+  FILL_GAP_WORD: "Fill the Gap",
+  WORD_MEANING_MATCH: "Word Meaning Match",
+  SITUATION_DIALOGUE_FILL: "Dialogue Fill",
+  WORD_IN_CONTEXT: "Word in Context",
+  WORD_SCRAMBLE: "Word Scramble",
+  ODD_ONE_OUT: "Odd One Out",
+  // Grammar
+  SENTENCE_BUILDER: "Sentence Builder",
+  ERROR_SPOTTING: "Error Spotting",
+  FILL_BLANK_GRAMMAR: "Fill the Blank (Grammar)",
+  VERB_CONJUGATION: "Verb Conjugation",
+  MULTIPLE_CHOICE_GRAMMAR: "Multiple Choice Grammar",
+  // Listening & Speaking
+  LISTEN_FILL_WORD: "Listen & Fill Word",
+  LISTEN_FILL_SENTENCE: "Listen & Fill Sentence",
+  SPEAK_FILL_WORD: "Speak & Fill Word",
+  SPEAK_FILL_SENTENCE: "Speak & Fill Sentence",
+  // Extra
+  CROSSWORD: "Crossword",
+  COLLOCATION_BUILDER: "Collocation Builder",
+  FLASHCARD_3D: "3D Word Matcher",
+  MINIMAL_PAIR: "Minimal Pair Match",
+  PICTURE_TO_WORD: "Picture to Word",
 };
 
 export function GamePlayer({ gameId, title, type, items, settings, previewMode = false }: Props) {

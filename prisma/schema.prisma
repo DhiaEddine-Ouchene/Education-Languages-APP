@@ -62,6 +62,13 @@ enum GameType {
   // Speaking
   SPEAK_FILL_WORD
   SPEAK_FILL_SENTENCE
+
+  // Extra game types
+  CROSSWORD
+  COLLOCATION_BUILDER
+  FLASHCARD_3D
+  MINIMAL_PAIR
+  PICTURE_TO_WORD
 }
 
 enum Anex {
@@ -214,20 +221,105 @@ model Game {
   price           Float    @default(0)
   createdAt       DateTime @default(now())
 
-  assignments Assignment[]
-  progress    StudentProgress[]
-  purchases   MarketplacePurchase[]
+  // AI generation tracking
+  generationStatus String @default("manual")  // "manual" | "ready" | "needs_review"
+  generationError  String?
+  generationRaw    Json?
+
+  assignments   Assignment[]
+  progress      StudentProgress[]
+  purchases     MarketplacePurchase[]
+
+  // Type-specific game data (one per game, set by the game type)
+  flashcardData        FlashcardData?
+  quizData             QuizData?
+  crosswordData        CrosswordData?
+  verbConjugationData  VerbConjugationData?
+  storyData            StoryData?
+}
+
+// ── Flashcard pairs (covers FLASHCARD, SYNONYM_ANTONYM, WORD_SCRAMBLE, PICTURE_TO_WORD, COLLOCATION_BUILDER, ODD_ONE_OUT, FLASHCARD_3D) ──
+model FlashcardData {
+  id     String   @id @default(cuid())
+  gameId String   @unique
+  game   Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  pairs FlashcardPair[]
+}
+
+model FlashcardPair {
+  id               String       @id @default(cuid())
+  flashcardDataId  String
+  flashcardData    FlashcardData @relation(fields: [flashcardDataId], references: [id], onDelete: Cascade)
+  word             String
+  translation      String
+  exampleSentence  String?
+  audioUrl         String?
+  imageUrl         String?
+  order            Int          @default(0)
+}
+
+// ── Quiz questions (covers QUIZ, MULTIPLE_CHOICE_GRAMMAR, ERROR_SPOTTING, WORD_IN_CONTEXT) ──
+model QuizData {
+  id     String   @id @default(cuid())
+  gameId String   @unique
+  game   Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  config Json     @default("{}") // { optionsCount, shuffle, etc. }
+
+  questions Question[]
+}
+
+model Question {
+  id         String   @id @default(cuid())
+  quizDataId String
+  quizData   QuizData @relation(fields: [quizDataId], references: [id], onDelete: Cascade)
+  prompt     String
+  options    Json     // string[]
+  correctAnswer String
+  explanation   String?
+  order         Int     @default(0)
+}
+
+// ── Crossword grid ──
+model CrosswordData {
+  id       String   @id @default(cuid())
+  gameId   String   @unique
+  game     Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gridSize Int      @default(8)
+  words    Json     // [{ word, clue, direction: "across"|"down", row, col }]
+}
+
+// ── Verb conjugation ──
+model VerbConjugationData {
+  id       String   @id @default(cuid())
+  gameId   String   @unique
+  game     Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  verb     String
+  tense    String
+  forms    Json     // { "I": "was", "You": "were", ... }
+}
+
+// ── Story builder ──
+model StoryData {
+  id       String   @id @default(cuid())
+  gameId   String   @unique
+  game     Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  prompt   String
+  wordBank Json?    // string[]
+  template String?
 }
 
 model Class {
-  id         String   @id @default(cuid())
-  educatorId String
-  educator   EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
-  name       String
-  language   String
-  level      CourseLevel
-  inviteCode String   @unique
-  createdAt  DateTime @default(now())
+  id                String   @id @default(cuid())
+  educatorId        String
+  educator          EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
+  name              String
+  language          String
+  level             CourseLevel
+  nativeLanguage    String?  // e.g. "English", "Arabic", "French"
+  showNativeSupport Boolean  @default(true)
+  inviteCode        String   @unique
+  createdAt         DateTime @default(now())
 
   members     ClassMember[]
   assignments Assignment[]
