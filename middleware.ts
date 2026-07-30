@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 export async function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
@@ -17,17 +18,31 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
-  // Check if session cookie exists (quick check — full verification happens in page/API)
-  const cookieName = process.env.NODE_ENV === "production"
-    ? "__Secure-ep.session-token"
-    : "ep.session-token";
+  // Read JWT from the custom cookie
+  const secret = process.env.NEXTAUTH_SECRET;
 
-  const sessionToken = req.cookies.get(cookieName)?.value;
+  const token = await getToken({
+    req,
+    secret: secret ?? undefined,
+    cookieName: "ep.session-token",
+  });
 
-  if (!sessionToken) {
+  if (!token) {
     const login = new URL("/auth/login", req.url);
     login.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(login);
+  }
+
+  const role = token.role as string;
+
+  if (pathname.startsWith("/admin") && role !== "SUPER_ADMIN") {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+  if (pathname.startsWith("/dashboard") && role !== "EDUCATOR") {
+    return NextResponse.redirect(new URL(role === "SUPER_ADMIN" ? "/admin" : "/learn", req.url));
+  }
+  if (pathname.startsWith("/learn") && role === "SUPER_ADMIN") {
+    return NextResponse.redirect(new URL("/admin", req.url));
   }
 
   return NextResponse.next({ request: { headers: requestHeaders } });
