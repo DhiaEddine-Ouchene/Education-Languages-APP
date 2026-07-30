@@ -19,7 +19,7 @@ export async function PUT(req: Request) {
     if (!body.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     const data: Record<string, unknown> = {};
     if (body.data.name) data.name = body.data.name;
-    if (body.data.avatar) data.avatar = body.data.avatar;
+    if (body.data.avatar) data.image = body.data.avatar;
 
     if (body.data.newPassword) {
       const user = await prisma.user.findUnique({ where: { id: session.user.id } });

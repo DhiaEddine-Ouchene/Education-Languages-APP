@@ -24,7 +24,7 @@ export default async function StudentProfilePage() {
   if (!user) redirect("/auth/login");
 
   const initials = user.name?.trim()?.[0]?.toUpperCase() ?? "U";
-  const profileCompleteness = Math.round(((user.name ? 1 : 0) + (user.email ? 1 : 0) + (user.avatar ? 1 : 0)) / 3 * 100);
+  const profileCompleteness = Math.round(((user.name ? 1 : 0) + (user.email ? 1 : 0) + (user.image ? 1 : 0)) / 3 * 100);
 
   return (
     <div className="space-y-6">
@@ -33,8 +33,8 @@ export default async function StudentProfilePage() {
         <div className="px-5 pb-5 sm:px-6">
           <div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-end gap-4">
-              {user.avatar ? (
-                <img src={user.avatar} alt={`${user.name} profile picture`} className="h-24 w-24 rounded-pill border-4 border-card object-cover shadow-hover" />
+              {user.image ? (
+                <img src={user.image} alt={`${user.name} profile picture`} className="h-24 w-24 rounded-pill border-4 border-card object-cover shadow-hover" />
               ) : (
                 <div className="flex h-24 w-24 items-center justify-center rounded-pill border-4 border-card bg-primary text-3xl font-bold text-white shadow-hover">{initials}</div>
               )}
@@ -77,7 +77,7 @@ export default async function StudentProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
-        <ProfileForm name={user.name} avatarUrl={user.avatar} />
+        <ProfileForm name={user.name} avatarUrl={user.image} />
         <Card>
           <CardHeader><CardTitle>Account information</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">

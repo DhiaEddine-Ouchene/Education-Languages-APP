@@ -1,12 +1,14 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { compare } from "bcryptjs";
 import { prisma } from "./prisma";
 import { getServerSession } from "next-auth";
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 }, // 7 days
+  adapter: PrismaAdapter(prisma),
+  session: { strategy: "database", maxAge: 7 * 24 * 60 * 60 },
   cookies: {
     sessionToken: {
       name: process.env.NODE_ENV === "production"
@@ -54,13 +56,12 @@ export const authOptions: NextAuthOptions = {
         if (!user?.password) return null;
         const valid = await compare(credentials.password, user.password);
         if (!valid) return null;
-        
-        // If the email is not verified, throw a distinct error to handle in frontend
+
         if (!user.isVerified) {
           throw new Error("UNVERIFIED");
         }
-        
-        return { id: user.id, email: user.email, name: user.name, image: user.avatar, role: user.role };
+
+        return { id: user.id, email: user.email, name: user.name, image: user.image, role: user.role };
       },
     }),
     GoogleProvider({
@@ -77,7 +78,7 @@ export const authOptions: NextAuthOptions = {
             data: {
               email: user.email.toLowerCase(),
               name: user.name ?? "User",
-              avatar: user.image,
+              image: user.image,
               role: "EDUCATOR",
               isVerified: true,
               educatorProfile: { create: { creatorType: "Teacher" } },
@@ -86,38 +87,24 @@ export const authOptions: NextAuthOptions = {
           user.id = created.id;
         } else {
           if (!existing.isVerified) {
-            await prisma.user.update({
-              where: { id: existing.id },
-              data: { isVerified: true },
-            });
+            await prisma.user.update({ where: { id: existing.id }, data: { isVerified: true } });
           }
           user.id = existing.id;
         }
       }
       return true;
     },
-    async jwt({ token, user, trigger, session }) {
-      if (user) {
-        const dbUser = await prisma.user.findUnique({ where: { id: user.id as string } });
-        if (dbUser) {
-          token.id = dbUser.id;
-          token.role = dbUser.role;
-        }
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id;
-        session.user.role = token.role as "SUPER_ADMIN" | "EDUCATOR" | "STUDENT";
-        
-        // Fetch latest data from database to avoid JWT cookie size limits (e.g. for base64 avatars)
-        const dbUser = await prisma.user.findUnique({ 
-          where: { id: token.id as string },
-          select: { avatar: true, name: true }
+    async session({ session, user }) {
+      if (session.user) {
+        session.user.id = user.id;
+        session.user.role = user.role as "SUPER_ADMIN" | "EDUCATOR" | "STUDENT";
+
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { image: true, name: true },
         });
         if (dbUser) {
-          session.user.image = dbUser.avatar;
+          session.user.image = dbUser.image;
           session.user.name = dbUser.name;
         }
       }

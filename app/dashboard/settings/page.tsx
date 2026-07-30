@@ -14,7 +14,7 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6 max-w-lg">
       <h1 className="font-heading font-bold text-2xl">Profile &amp; Settings</h1>
-      <SettingsForm name={user.name} email={user.email} avatar={user.avatar} role={user.role} createdAt={user.createdAt.toISOString()} />
+      <SettingsForm name={user.name} email={user.email} avatar={user.image} role={user.role} createdAt={user.createdAt.toISOString()} />
     </div>
   );
 }
