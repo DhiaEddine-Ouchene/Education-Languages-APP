@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ type Props = { name: string; email: string; avatar: string | null; role: string;
 
 export function ProfileForm({ name, email, avatar, role, createdAt }: Props) {
   const router = useRouter();
+  const { update } = useSession();
   const [displayName, setDisplayName] = useState(name);
   const [currentAvatar, setCurrentAvatar] = useState(avatar);
   const [busy, setBusy] = useState(false);
@@ -28,6 +30,7 @@ export function ProfileForm({ name, email, avatar, role, createdAt }: Props) {
         body: JSON.stringify({ name: displayName }),
       });
       if (!res.ok) return toast("error", "Failed to update profile");
+      await update({ name: displayName });
       toast("success", "Profile updated");
       router.refresh();
     } finally {
@@ -53,6 +56,7 @@ export function ProfileForm({ name, email, avatar, role, createdAt }: Props) {
       });
       if (!save.ok) return toast("error", "Failed to save avatar");
       setCurrentAvatar(url);
+      await update({ picture: url });
       toast("success", "Profile picture updated");
       router.refresh();
     } catch {

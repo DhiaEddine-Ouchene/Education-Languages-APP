@@ -1,3 +1,10 @@
+// ═══════════════════════════════════════════════════════════
+// DEPRECATED — This file is superseded by lib/generate-game.ts
+// and lib/game-schemas.ts. All game generation now routes through
+// generateGame(). Keep this file for reference; remove after
+// confirming nothing else imports from it.
+// ═══════════════════════════════════════════════════════════
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 

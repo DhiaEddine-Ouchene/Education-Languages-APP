@@ -8,7 +8,6 @@ import { useSession } from "next-auth/react";
 const links = [
   { href: "/#features", label: "Features" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/marketplace", label: "Marketplace" },
 ];
 
 export function Navbar() {
@@ -29,7 +28,18 @@ export function Navbar() {
             </Link>
           ))}
           {session ? (
-            <Link href={dashHref}><Button size="sm">Open app</Button></Link>
+            <div className="flex items-center gap-4">
+              <Link href={dashHref}><Button size="sm">Open app</Button></Link>
+              <Link href={dashHref === "/learn" ? "/learn/profile" : "/dashboard/settings"}>
+                {session.user.image ? (
+                  <img src={session.user.image} alt={session.user.name ?? "Profile"} className="h-8 w-8 rounded-full object-cover ring-2 ring-transparent hover:ring-primary transition-all" />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm ring-2 ring-transparent hover:ring-primary transition-all">
+                    {session.user.name?.[0]?.toUpperCase() ?? "?"}
+                  </div>
+                )}
+              </Link>
+            </div>
           ) : (
             <>
               <Link href="/auth/login" className="text-sm text-txt-secondary hover:text-txt-primary">Login</Link>

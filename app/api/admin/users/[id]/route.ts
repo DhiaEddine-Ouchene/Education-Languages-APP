@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/api";
 
 const schema = z.object({
   role: z.enum(["SUPER_ADMIN", "EDUCATOR", "STUDENT"]).optional(),
-  plan: z.enum(["FREE", "STARTER", "PRO", "SCHOOL"]).optional(),
+  plan: z.enum(["FREE", "PRO", "ULTIMATE"]).optional(),
 });
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {

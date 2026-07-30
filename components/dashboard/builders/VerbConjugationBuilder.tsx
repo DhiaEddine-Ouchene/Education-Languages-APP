@@ -20,7 +20,16 @@ export function VerbConjugationBuilder({ onChange, initial, onValidation }: Buil
   const [tense, setTense] = useState((initial?.tense as string) || "Present");
   const [language, setLanguage] = useState("English");
   const [forms, setForms] = useState<Record<string, string>>(() => {
-    if (initial?.forms) return initial.forms as Record<string, string>;
+    if (initial?.forms && Array.isArray(initial.forms)) {
+      const mapped: Record<string, string> = {};
+      initial.forms.forEach((f: any) => {
+        if (f.pronoun) {
+          mapped[f.pronoun] = f.form_target || f.form || "";
+        }
+      });
+      return mapped;
+    }
+    if (initial?.forms && !Array.isArray(initial.forms)) return initial.forms as Record<string, string>;
     return Object.fromEntries((DEFAULT_PRONOUNS["English"] || []).map((p) => [p, ""]));
   });
 

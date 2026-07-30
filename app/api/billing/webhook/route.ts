@@ -1,68 +1,84 @@
 import { NextResponse } from "next/server";
-import type Stripe from "stripe";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { stripe, planFromPriceId } from "@/lib/stripe";
 import { sendSaleNotification } from "@/lib/mail";
+import { planFromVariantId } from "@/lib/lemonsqueezy";
 
 export async function POST(req: Request) {
   const body = await req.text();
-  const sig = req.headers.get("stripe-signature");
-  if (!sig) return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+  const signature = req.headers.get("x-signature");
 
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET ?? "");
-  } catch (err) {
-    console.error("[webhook] signature verification failed", err);
+  if (!signature) {
+    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+  }
+
+  const secret = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET ?? "";
+  const hmac = crypto.createHmac("sha256", secret);
+  const digest = Buffer.from(hmac.update(body).digest("hex"), "utf8");
+  const signatureBuffer = Buffer.from(signature, "utf8");
+
+  if (!crypto.timingSafeEqual(digest, signatureBuffer)) {
+    console.error("[webhook] Invalid signature");
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  let event;
   try {
-    switch (event.type) {
-      case "customer.subscription.created":
-      case "customer.subscription.updated": {
-        const sub = event.data.object as Stripe.Subscription;
-        const educatorId = sub.metadata.educatorId;
+    event = JSON.parse(body);
+  } catch (e) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  const eventName = event.meta.event_name;
+  const customData = event.meta.custom_data || {};
+
+  try {
+    switch (eventName) {
+      case "subscription_created":
+      case "subscription_updated": {
+        const sub = event.data.attributes;
+        const educatorId = customData.educatorId;
         if (!educatorId) break;
-        const priceId = sub.items.data[0]?.price.id ?? "";
-        const plan = (sub.metadata.plan as "STARTER" | "PRO" | "SCHOOL") ?? planFromPriceId(priceId) ?? "STARTER";
-        const status = sub.status === "active" ? "ACTIVE" : sub.status === "trialing" ? "TRIALING" : sub.status === "past_due" ? "PAST_DUE" : "CANCELLED";
+        
+        const variantId = sub.variant_id;
+        const plan = planFromVariantId(variantId) ?? "PRO";
+        const status = sub.status === "active" ? "ACTIVE" : sub.status === "past_due" ? "PAST_DUE" : "CANCELLED";
+        const subId = event.data.id;
+        
         await prisma.$transaction([
           prisma.educatorProfile.update({
             where: { id: educatorId },
-            data: { subscriptionPlan: status === "CANCELLED" ? "FREE" : plan, stripeSubscriptionId: sub.id },
+            data: { subscriptionPlan: status === "CANCELLED" ? "FREE" : plan, lemonSqueezySubscriptionId: subId },
           }),
           prisma.subscription.upsert({
-            where: { stripeId: sub.id },
-            create: { educatorId, plan, status, stripeId: sub.id, currentPeriodEnd: new Date(sub.current_period_end * 1000) },
-            update: { plan, status, currentPeriodEnd: new Date(sub.current_period_end * 1000) },
+            where: { lemonSqueezyId: subId },
+            create: { educatorId, plan, status, lemonSqueezyId: subId, currentPeriodEnd: new Date(sub.renews_at) },
+            update: { plan, status, currentPeriodEnd: new Date(sub.renews_at) },
           }),
         ]);
         break;
       }
-      case "customer.subscription.deleted": {
-        const sub = event.data.object as Stripe.Subscription;
-        const educatorId = sub.metadata.educatorId;
-        await prisma.subscription.updateMany({ where: { stripeId: sub.id }, data: { status: "CANCELLED" } });
+      case "subscription_cancelled":
+      case "subscription_expired": {
+        const subId = event.data.id;
+        const educatorId = customData.educatorId;
+        await prisma.subscription.updateMany({ where: { lemonSqueezyId: subId }, data: { status: "CANCELLED" } });
         if (educatorId) {
-          await prisma.educatorProfile.update({ where: { id: educatorId }, data: { subscriptionPlan: "FREE", stripeSubscriptionId: null } });
+          await prisma.educatorProfile.update({ where: { id: educatorId }, data: { subscriptionPlan: "FREE", lemonSqueezySubscriptionId: null } });
         }
         break;
       }
-      case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
-        if (subId) await prisma.subscription.updateMany({ where: { stripeId: subId }, data: { status: "PAST_DUE" } });
-        break;
-      }
-      case "payment_intent.succeeded": {
-        const pi = event.data.object as Stripe.PaymentIntent;
-        const { buyerId, courseId, gameId } = pi.metadata;
+      case "order_created": {
+        // This is for marketplace purchases
+        const order = event.data.attributes;
+        const { buyerId, courseId, gameId } = customData;
         if (!buyerId || (!courseId && !gameId)) break;
-        const amount = pi.amount_received / 100;
+        
+        const amount = order.total / 100; // Assuming total is in cents
         await prisma.marketplacePurchase.create({
-          data: { buyerId, courseId: courseId || null, gameId: gameId || null, amount, stripePaymentId: pi.id },
+          data: { buyerId, courseId: courseId || null, gameId: gameId || null, amount, lemonSqueezyOrderId: event.data.id },
         });
+        
         // Notify the creator and track revenue
         const item = courseId
           ? await prisma.course.findUnique({ where: { id: courseId }, include: { educator: { include: { user: true } } } })
@@ -76,7 +92,7 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("[webhook]", event.type, err);
+    console.error("[webhook]", eventName, err);
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
   }
 }

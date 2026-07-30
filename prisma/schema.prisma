@@ -15,9 +15,8 @@ enum Role {
 
 enum Plan {
   FREE
-  STARTER
   PRO
-  SCHOOL
+  ULTIMATE
 }
 
 enum CourseLevel {
@@ -118,11 +117,12 @@ model EducatorProfile {
   domainVerified       Boolean  @default(false)
   creatorType          String? // Teacher | Content Creator | Both
   subscriptionPlan     Plan     @default(FREE)
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  stripeConnectId      String?
-  monthlyRevenue       Float    @default(0)
-  createdAt            DateTime @default(now())
+  lemonSqueezyCustomerId     String?
+  lemonSqueezySubscriptionId String?
+  monthlyRevenue           Float    @default(0)
+  aiGenerationsThisMonth   Int      @default(0)
+  aiGenerationsResetAt     DateTime?
+  createdAt                DateTime @default(now())
 
   courses        Course[]
   games          Game[]
@@ -180,12 +180,16 @@ model ExerciseSet {
 }
 
 model VocabularySet {
-  id         String   @id @default(cuid())
-  educatorId String
-  educator   EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
-  name       String
-  language   String
-  createdAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  educatorId     String
+  educator       EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
+  name           String
+  language       String
+  nativeLanguage String   @default("English")
+  level          String?
+  sourceType     String   @default("MANUAL")   // "AI_TOPIC" | "AI_COURSE" | "MANUAL"
+  courseId       String?
+  createdAt      DateTime @default(now())
 
   items VocabularyItem[]
   games Game[]
@@ -200,6 +204,8 @@ model VocabularyItem {
   audioUrl        String?
   imageUrl        String?
   exampleSentence String?
+  synonyms        Json     @default("[]")
+  antonyms        Json     @default("[]")
   createdAt       DateTime @default(now())
 }
 
@@ -225,6 +231,8 @@ model Game {
   generationStatus String @default("manual")  // "manual" | "ready" | "needs_review"
   generationError  String?
   generationRaw    Json?
+  version          Int     @default(1)
+  previousData     Json?
 
   assignments   Assignment[]
   progress      StudentProgress[]
@@ -399,7 +407,7 @@ model MarketplacePurchase {
   gameId          String?
   game            Game?    @relation(fields: [gameId], references: [id])
   amount          Float
-  stripePaymentId String?
+  lemonSqueezyOrderId String?
   createdAt       DateTime @default(now())
 }
 
@@ -409,7 +417,7 @@ model Subscription {
   educator         EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
   plan             Plan
   status           SubscriptionStatus @default(ACTIVE)
-  stripeId         String?  @unique
+  lemonSqueezyId         String?  @unique
   currentPeriodEnd DateTime?
   createdAt        DateTime @default(now())
 }

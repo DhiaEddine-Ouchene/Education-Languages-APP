@@ -8,10 +8,7 @@ export type ChipData = {
   id: string;
   word: string;
   translation: string;
-  synonym?: string;
-  antonym?: string;
   exampleSentence?: string;
-  definition?: string;
 };
 
 type Props = {

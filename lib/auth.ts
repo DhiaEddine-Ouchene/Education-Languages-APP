@@ -74,7 +74,7 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         const dbUser = await prisma.user.findUnique({ where: { id: user.id as string } });
         if (dbUser) {
@@ -85,9 +85,19 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token.id) {
         session.user.id = token.id;
         session.user.role = token.role as "SUPER_ADMIN" | "EDUCATOR" | "STUDENT";
+        
+        // Fetch latest data from database to avoid JWT cookie size limits (e.g. for base64 avatars)
+        const dbUser = await prisma.user.findUnique({ 
+          where: { id: token.id as string },
+          select: { avatar: true, name: true }
+        });
+        if (dbUser) {
+          session.user.image = dbUser.avatar;
+          session.user.name = dbUser.name;
+        }
       }
       return session;
     },

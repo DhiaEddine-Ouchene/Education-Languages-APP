@@ -7,8 +7,8 @@ import { X, Plus } from "lucide-react";
 import type { BuilderProps } from "./index";
 
 export function StoryPromptBuilder({ onChange, initial, onValidation, wordBank }: BuilderProps) {
-  const [prompt, setPrompt] = useState((initial?.prompt as string) || "");
-  const [template, setTemplate] = useState((initial?.template as string) || "");
+  const [prompt, setPrompt] = useState((initial?.prompt as string) || (initial?.prompt_target as string) || "");
+  const [template, setTemplate] = useState((initial?.template as string) || (initial?.template_target as string) || "");
   const [storyWordBank, setStoryWordBank] = useState<string[]>(() => (initial?.wordBank ? initial.wordBank as string[] : []));
   const [newWord, setNewWord] = useState("");
 

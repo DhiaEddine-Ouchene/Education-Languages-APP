@@ -2,11 +2,19 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireEducator } from "@/lib/api";
-import { generateVocabularySet, generateGrammarSet } from "@/lib/gemini";
+import { generateGame } from "@/lib/generate-game";
 
 const schema = z.object({
   anex: z.enum(["VOCABULARY", "GRAMMAR", "LISTENING_WRITING", "SPEAKING"]),
 });
+
+// Map Anex types to GameTypes for generateGame
+const ANEX_TO_GAME_TYPE: Record<string, string> = {
+  VOCABULARY: "FLASHCARD",
+  GRAMMAR: "QUIZ",
+  LISTENING_WRITING: "STORY",
+  SPEAKING: "DICTATION",
+};
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const { error, profile } = await requireEducator();
@@ -27,22 +35,27 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: "Lesson has no content to generate from" }, { status: 400 });
   }
 
-  // Each anex has its own generator in lib/gemini.ts. LISTENING_WRITING and
-  // SPEAKING aren't implemented yet — they need audio/TTS handling first.
-  const generators: Partial<Record<typeof body.data.anex, () => Promise<unknown[]>>> = {
-    VOCABULARY: () =>
-      generateVocabularySet({ lessonContent: lesson.content, language: lesson.course.language, level: lesson.course.level }),
-    GRAMMAR: () =>
-      generateGrammarSet({ lessonContent: lesson.content, language: lesson.course.language, level: lesson.course.level }),
-  };
-
-  const generate = generators[body.data.anex];
-  if (!generate) {
+  const gameType = ANEX_TO_GAME_TYPE[body.data.anex];
+  if (!gameType) {
     return NextResponse.json({ error: `Generation for ${body.data.anex} is not implemented yet` }, { status: 501 });
   }
 
   try {
-    const items = await generate();
+    // Use generateGame to produce structured content from the lesson text
+    const result = await generateGame(gameType, lesson.content, 10, {
+      targetLang: lesson.course.language,
+      nativeLang: "English",
+      educatorId: profile!.id,
+    });
+
+    if (result.status === "needs_review") {
+      // If generation failed, return the raw output for manual review
+      return NextResponse.json({
+        status: "needs_review",
+        error: result.error,
+        rawData: result.data,
+      }, { status: 422 });
+    }
 
     const exerciseSet = await prisma.exerciseSet.create({
       data: {
@@ -50,11 +63,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         anex: body.data.anex,
         language: lesson.course.language,
         level: lesson.course.level,
-        items: items as unknown as object,
+        items: result.data as object,
+        generatedBy: "groq",
       },
     });
 
-    return NextResponse.json(exerciseSet, { status: 201 });
+    return NextResponse.json({ ...exerciseSet, wordSetId: result.wordSetId }, { status: 201 });
   } catch (err) {
     console.error("[lessons:generate:POST]", err);
     return NextResponse.json({ error: "Generation failed" }, { status: 500 });

@@ -13,6 +13,7 @@ import { GamePreviewImage } from "@/components/dashboard/GamePreviewImage";
 import { getBuilderForGameType } from "@/components/dashboard/builders";
 import { WordBank } from "@/components/dashboard/builders/WordBank";
 import type { ChipData } from "@/components/dashboard/builders/WordBank";
+import { mapAiResponseToBuilderData } from "@/lib/map-ai-data";
 import {
   GAME_TYPES,
   CATEGORY_META,
@@ -97,9 +98,14 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
   // Builder state
   const [builderData, setBuilderData] = useState<Record<string, unknown>>({});
   const [builderValid, setBuilderValid] = useState(false);
+  const [builderKey, setBuilderKey] = useState(0);
+  const [generatingGame, setGeneratingGame] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<"ready" | "needs_review" | null>(null);
 
   // Word bank state
   const [wordBankWords, setWordBankWords] = useState<ChipData[]>([]);
+  const [wordBankId, setWordBankId] = useState<string | null>(null);
+  const [nativeLang, setNativeLang] = useState("English");
 
   // Preview modal state (for step 2 and step 3)
   const [previewGame, setPreviewGame] = useState<GameTypeMeta | null>(null);
@@ -122,6 +128,24 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
     if (!builderData) return [];
     // For pair-based builders
     if (builderData.pairs && Array.isArray(builderData.pairs)) {
+      // For COLLOCATION_BUILDER: expand each partner into a separate pair ("word + partner")
+      if (currentGameType?.type === "COLLOCATION_BUILDER") {
+        const items: any[] = [];
+        (builderData.pairs as any[]).forEach((p: any) => {
+          const partners = (p.translation || "").split(",").map((s: string) => s.trim()).filter(Boolean);
+          partners.forEach((partner: string, pi: number) => {
+            items.push({
+              id: `preview-${items.length}`,
+              word: `${p.word} + ${partner}`,
+              translation: partner,
+              audioUrl: null,
+              imageUrl: null,
+              exampleSentence: p.exampleSentence || null,
+            });
+          });
+        });
+        return items;
+      }
       return (builderData.pairs as any[]).map((p: any, i: number) => ({
         id: `preview-${i}`,
         word: p.word || "",
@@ -153,6 +177,29 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
         imageUrl: null,
       }));
     }
+    // For quiz/Q&A builders (QUIZ, MULTIPLE_CHOICE_GRAMMAR, ERROR_SPOTTING, WORD_IN_CONTEXT)
+    if (builderData.questions && Array.isArray(builderData.questions)) {
+      return (builderData.questions as any[]).map((q: any, i: number) => ({
+        id: `preview-${i}`,
+        word: q.prompt || "",
+        translation: q.correctAnswer || "",
+        options: q.options || [],
+        explanation: q.explanation || "",
+        audioUrl: null,
+        imageUrl: null,
+      }));
+    }
+    // For odd-one-out builder
+    if (builderData.oddOneOutItems && Array.isArray(builderData.oddOneOutItems)) {
+      return (builderData.oddOneOutItems as any[]).map((o: any, i: number) => ({
+        id: `preview-${i}`,
+        word: Array.isArray(o.groupWords) ? o.groupWords.join(", ") : "",
+        translation: o.oddWord || "",
+        exampleSentence: o.category || "",
+        audioUrl: null,
+        imageUrl: null,
+      }));
+    }
     return [];
   }, [builderData]);
 
@@ -175,6 +222,63 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
     } else if (wizardStep === 2) {
       setWizardStep(1);
       setSelectedCategory(null);
+    }
+  };
+
+  // ── Game Generation ──
+  const handleGenerateGame = async (providedWords?: ChipData[]) => {
+    const effectiveWords = providedWords !== undefined ? providedWords : wordBankWords;
+    if (!selectedTemplate) return;
+    if (!wordBankId && effectiveWords.length === 0) {
+      toast("error", "Please add words to the word bank first.");
+      return;
+    }
+    setGeneratingGame(true);
+    setGenerationStatus(null);
+    try {
+      const res = await fetch("/api/ai/generate-game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameType: selectedTemplate.type,
+          wordBankId: wordBankId || undefined,
+          words: effectiveWords.map((w) => ({
+            word: w.word,
+            translation: w.translation,
+            exampleSentence: w.exampleSentence,
+          })),
+          count: 10,
+          options: {
+            targetLang: language,
+            nativeLang,
+          },
+        }),
+      });
+      const result = await res.json();
+      
+      if (!res.ok && result.status !== "needs_review") {
+        throw new Error(result.error || "Generation failed");
+      }
+      
+      if (result.status === "needs_review") {
+        setGenerationStatus("needs_review");
+        toast("error", "Generation needs review");
+      } else {
+        setGenerationStatus("ready");
+        toast("success", "Game content generated!");
+      }
+
+      // Pre-fill builder with generated data
+      if (result.data) {
+        const mappedData = mapAiResponseToBuilderData(selectedTemplate.type, result.data);
+        setBuilderData(mappedData);
+        // Force Builder to reinitialize with new data
+        setBuilderKey((k) => k + 1);
+      }
+    } catch (err: any) {
+      toast("error", err.message || "Failed to generate game content");
+    } finally {
+      setGeneratingGame(false);
     }
   };
 
@@ -429,11 +533,43 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
             level={level}
             onLanguageChange={setLanguage}
             onLevelChange={setLevel}
+            onSetSaved={setWordBankId}
+            onNativeLangChange={setNativeLang}
+            onAiGenerateComplete={(generatedWords) => { handleGenerateGame(generatedWords); }}
           />
         </div>
 
         {/* Right: Builder Workspace + Settings */}
         <div className="space-y-4 min-w-0">
+          {/* Generation Banner */}
+          {generationStatus === "needs_review" && (
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 flex items-start gap-3 text-yellow-800">
+              <div className="mt-0.5"><Lightbulb className="w-5 h-5 text-yellow-600" /></div>
+              <div>
+                <h4 className="font-semibold text-sm">Review Needed</h4>
+                <p className="text-xs opacity-90 mt-1">The AI struggled to generate perfect content for this word bank. Please review the items below carefully and fix any mistakes before saving.</p>
+              </div>
+            </div>
+          )}
+
+          {/* AI Generation Control */}
+          <div className="rounded-xl border border-border/60 bg-card p-4 flex items-center justify-between">
+             <div className="flex items-center gap-3 text-txt">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <div>
+                   <h3 className="font-semibold text-sm">AI Game Generation</h3>
+                   <p className="text-xs text-txt-secondary">Auto-build this game using the selected word bank</p>
+                </div>
+             </div>
+             <Button 
+                onClick={() => handleGenerateGame()} 
+                disabled={generatingGame || (!wordBankId && wordBankWords.length === 0)}
+                variant={builderData && Object.keys(builderData).length > 0 ? "outline" : "primary"}
+             >
+                {generatingGame ? "Generating..." : (builderData && Object.keys(builderData).length > 0 ? "Regenerate" : "Generate Game Content")}
+             </Button>
+          </div>
+
           {/* Title */}
           <div className="rounded-xl border border-border/60 bg-card p-4">
             <Input
@@ -465,12 +601,14 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
                   if (!Builder || !currentGameType) return null;
                   return (
                     <Builder
+                      key={builderKey}
                       gameMeta={currentGameType}
                       onChange={setBuilderData}
-                      initial={undefined}
+                      initial={builderData}
                       onValidation={setBuilderValid}
                       wordBank={wordBankWords}
                       onWordBankChange={setWordBankWords}
+                      generating={generatingGame}
                     />
                   );
                 })()}

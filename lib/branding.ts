@@ -19,7 +19,7 @@ export const DEFAULT_BRANDING: Branding = {
 
 export function toBranding(profile: EducatorProfile | null): Branding {
   if (!profile) return DEFAULT_BRANDING;
-  const whiteLabel = profile.subscriptionPlan === "PRO" || profile.subscriptionPlan === "SCHOOL";
+  const whiteLabel = profile.subscriptionPlan === "PRO" || profile.subscriptionPlan === "ULTIMATE";
   return {
     appName: whiteLabel && profile.brandName ? profile.brandName : DEFAULT_BRANDING.appName,
     logo: whiteLabel ? profile.brandLogo : null,

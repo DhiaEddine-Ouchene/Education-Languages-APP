@@ -24,11 +24,11 @@ const schema = z.object({
     .refine((val) => /[a-z]/.test(val), "Must contain a lowercase letter")
     .refine((val) => /[0-9]/.test(val), "Must contain a number")
     .refine((val) => /[^A-Za-z0-9]/.test(val), "Must contain a special character"),
-  creatorType: z.enum(["Teacher", "Content Creator", "Both", "Student"]),
+  creatorType: z.enum(["Teacher", "Student"]),
 });
 type FormData = z.infer<typeof schema>;
 
-const roles = ["Teacher", "Content Creator", "Both", "Student"] as const;
+const roles = ["Teacher", "Student"] as const;
 
 export default function RegisterPage() {
   const router = useRouter();

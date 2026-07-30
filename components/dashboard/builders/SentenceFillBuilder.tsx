@@ -83,6 +83,24 @@ function getLabels(gameType: string) {
         showOptions: true,
         itemLabel: "dialogue",
       };
+    case "FILL_BLANK_GRAMMAR":
+      return {
+        sentenceLabel: "Sentence with blank (use ___ for the gap)",
+        sentencePlaceholder: "e.g. She ___ (play) tennis every Sunday.",
+        answerLabel: "Correct conjugation",
+        answerPlaceholder: "e.g. plays",
+        showOptions: false,
+        itemLabel: "grammar item",
+      };
+    case "FILL_BLANK":
+      return {
+        sentenceLabel: "Flawed sentence to rewrite",
+        sentencePlaceholder: "e.g. He go to school yesterday.",
+        answerLabel: "Improvement guideline",
+        answerPlaceholder: "e.g. Use past tense 'went'",
+        showOptions: false,
+        itemLabel: "rewrite item",
+      };
     default:
       // FILL_GAP_WORD, FILL_BLANK, FILL_BLANK_GRAMMAR
       return {
@@ -100,14 +118,32 @@ export function SentenceFillBuilder({ onChange, initial, onValidation, gameMeta,
   const labels = getLabels(gameMeta.type);
 
   const [items, setItems] = useState<SentenceItem[]>(() => {
-    if (initial?.sentenceItems) return (initial.sentenceItems as any[]).map((s, i) => createItem({ ...s, id: s.id || `sf-${i}` }));
-    if (initial?.items) return (initial.items as any[]).map((s, i) => createItem({
-      id: `sf-${i}`,
-      sentence: s.sentence || s.sentence_target || "",
-      correctAnswer: s.correctAnswer || s.expectedResponse_target || "",
-      options: s.options || ["", "", ""],
-    }));
-    return [];
+    const rawItems = initial?.sentenceItems || initial?.items || [];
+    return (rawItems as any[]).map((s, i) => {
+      // Map AI fields properly
+      const sentence = s.sentence || s.sentence_target || s.flawedSentence_target || s.flawedSentence || "";
+      let correctAnswer = s.correctAnswer || s.correctConjugation || s.expectedResponse_target || s.guideline_target || s.guideline || "";
+      if (!correctAnswer && (s.sentence_target || s.sentence)) {
+        correctAnswer = s.sentence_target || s.sentence || "";
+      }
+      
+      // AI might return options including the correct answer. Filter it out for the distractor inputs.
+      let distractors = ["", "", ""];
+      if (Array.isArray(s.options) && s.options.length > 0) {
+         distractors = s.options.filter((o: string) => o.toLowerCase() !== correctAnswer.toLowerCase());
+         while (distractors.length < 3) distractors.push("");
+         distractors = distractors.slice(0, 3);
+      } else if (s.baseVerb) {
+        distractors[0] = s.baseVerb;
+      }
+
+      return createItem({
+        id: s.id || `sf-${i}`,
+        sentence,
+        correctAnswer,
+        options: distractors,
+      });
+    });
   });
 
   const [expandedId, setExpandedId] = useState<string | null>(null);

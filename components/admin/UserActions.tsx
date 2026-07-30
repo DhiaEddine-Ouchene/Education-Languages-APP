@@ -24,7 +24,7 @@ export function UserActions({ userId, role, plan }: { userId: string; role: stri
       </select>
       {plan !== null && (
         <select disabled={busy} value={plan} onChange={(e) => update({ plan: e.target.value })} className="h-8 rounded-btn border border-border bg-card px-1 text-xs">
-          {["FREE", "STARTER", "PRO", "SCHOOL"].map((p) => <option key={p} value={p}>{p}</option>)}
+          {["FREE", "PRO", "ULTIMATE"].map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
       )}
     </div>

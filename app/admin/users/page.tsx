@@ -36,7 +36,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
         </select>
         <select name="plan" defaultValue={searchParams.plan ?? ""} className="h-9 rounded-btn border border-border bg-card px-2 text-sm">
           <option value="">All plans</option>
-          {["FREE", "STARTER", "PRO", "SCHOOL"].map((p) => <option key={p} value={p}>{p}</option>)}
+          {["FREE", "PRO", "ULTIMATE"].map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
         <button className="h-9 px-4 rounded-btn bg-primary text-white text-sm">Filter</button>
       </form>

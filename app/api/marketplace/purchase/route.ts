@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { stripe, PLATFORM_REVENUE_SHARE } from "@/lib/stripe";
+import { createCheckout } from "@lemonsqueezy/lemonsqueezy.js";
 
 const schema = z.object({ courseId: z.string().optional(), gameId: z.string().optional() }).refine((d) => d.courseId || d.gameId, { message: "courseId or gameId required" });
 
@@ -24,22 +24,50 @@ export async function POST(req: Request) {
       return NextResponse.json({ free: true, purchaseId: purchase.id });
     }
 
-    const amountCents = Math.round(item.price * 100);
+    const storeId = process.env.LEMON_SQUEEZY_STORE_ID;
+    const variantIdEnv = process.env.LEMON_SQUEEZY_DUMMY_VARIANT_ID;
+    const apiKey = process.env.LEMON_SQUEEZY_API_KEY;
+
     const origin = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-    const checkout = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: [{ price_data: { currency: "usd", unit_amount: amountCents, product_data: { name: item.title } }, quantity: 1 }],
-      success_url: `${origin}/marketplace?purchased=1`,
-      cancel_url: `${origin}/marketplace?cancelled=1`,
-      payment_intent_data: {
-        metadata: { buyerId: session.user.id, courseId: courseId ?? "", gameId: gameId ?? "" },
-        // Stripe Connect: creator keeps 75%, platform takes 25%
-        ...(item.educator.stripeConnectId
-          ? { application_fee_amount: Math.round(amountCents * PLATFORM_REVENUE_SHARE), transfer_data: { destination: item.educator.stripeConnectId } }
-          : {}),
+
+    const isConfigured =
+      storeId && storeId !== "your_store_id_here" &&
+      apiKey && apiKey !== "your_api_key_here" && apiKey !== "dummy_key" &&
+      variantIdEnv && variantIdEnv.length > 0;
+
+    if (!isConfigured) {
+      console.warn("[marketplace:purchase] Lemon Squeezy not configured. Mocking successful purchase.");
+      await prisma.marketplacePurchase.create({
+        data: { buyerId: session.user.id, courseId: courseId || null, gameId: gameId || null, amount: item.price, lemonSqueezyOrderId: `mock_order_${Date.now()}` },
+      });
+      return NextResponse.json({ url: `${origin}/marketplace?purchased=1` });
+    }
+
+    // Creating a custom checkout with overridden price for dynamic pricing
+    const { data, error: checkoutError } = await createCheckout(storeId, parseInt(variantIdEnv!, 10), {
+      checkoutData: {
+        email: session.user.email ?? undefined,
+        name: session.user.name ?? undefined,
+        // @ts-expect-error: customPrice is supported by the API but missing in the SDK type definitions
+        customPrice: Math.round(item.price * 100), // LS expects cents for customPrice
+        custom: {
+          buyerId: session.user.id,
+          courseId: courseId ?? "",
+          gameId: gameId ?? "",
+        },
+      },
+      productOptions: {
+        name: item.title,
+        redirectUrl: `${origin}/marketplace?purchased=1`,
       },
     });
-    return NextResponse.json({ url: checkout.url });
+
+    if (checkoutError || !data?.data?.attributes?.url) {
+      console.error("[marketplace:purchase] Lemon Squeezy error", checkoutError);
+      return NextResponse.json({ error: "Could not create checkout session" }, { status: 500 });
+    }
+
+    return NextResponse.json({ url: data.data.attributes.url });
   } catch (err) {
     console.error("[marketplace:purchase]", err);
     return NextResponse.json({ error: "Could not start checkout" }, { status: 500 });

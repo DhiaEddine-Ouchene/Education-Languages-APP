@@ -27,6 +27,8 @@ import { PictureToWordGame } from "./PictureToWordGame";
 import { Flashcard3DGame } from "./Flashcard3DGame";
 // Grammar games
 import { SentenceBuilderGame } from "./SentenceBuilderGame";
+import { ErrorSpottingGame } from "./ErrorSpottingGame";
+import { VerbConjugationGame } from "./VerbConjugationGame";
 // Listening games
 import { DictationChallengeGame } from "./DictationChallengeGame";
 import { ListenFillGapGame } from "./ListenFillGapGame";
@@ -109,9 +111,9 @@ const GAMES: Record<string, any> = {
 
   // Grammar — SentenceBuilder has its own interface, use wrapper
   SENTENCE_BUILDER: SentenceBuilderAdapter,
-  ERROR_SPOTTING: QuizGame,
+  ERROR_SPOTTING: ErrorSpottingGame,
   FILL_BLANK_GRAMMAR: FillBlankGame,
-  VERB_CONJUGATION: FillBlankGame,
+  VERB_CONJUGATION: VerbConjugationGame,
   MULTIPLE_CHOICE_GRAMMAR: QuizGame,
 
   // Listening & Speaking

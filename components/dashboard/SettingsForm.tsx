@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ type Props = {
 
 export function SettingsForm({ name, email, avatar, role, createdAt }: Props) {
   const router = useRouter();
+  const { update } = useSession();
   const [profile, setProfile] = useState({ name });
   const [currentAvatar, setCurrentAvatar] = useState(avatar);
   const [pw, setPw] = useState({ current: "", next: "" });
@@ -32,6 +33,7 @@ export function SettingsForm({ name, email, avatar, role, createdAt }: Props) {
     try {
       const res = await fetch("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: profile.name }) });
       if (!res.ok) return toast("error", "Failed to update profile");
+      await update({ name: profile.name });
       toast("success", "Profile updated");
       router.refresh();
     } finally { setBusy(false); }
@@ -47,6 +49,7 @@ export function SettingsForm({ name, email, avatar, role, createdAt }: Props) {
       const { url } = await res.json();
       await fetch("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar: url }) });
       setCurrentAvatar(url);
+      await update({ picture: url });
       toast("success", "Avatar updated");
       router.refresh();
     } catch {

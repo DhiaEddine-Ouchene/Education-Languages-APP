@@ -13,10 +13,25 @@ export function QuizGame({ items, settings, onComplete }: GameProps) {
   const [timeLeft, setTimeLeft] = useState(limit);
   const item = deck[idx];
 
+  // Use generated fields when available, fallback to old behavior
+  const hasGeneratedContent = !!(item.question && item.options?.length && item.correctOption);
+
+  const questionText = hasGeneratedContent ? item.question : `What does "${item.word}" mean?`;
+
   const options = useMemo(() => {
+    if (hasGeneratedContent) {
+      return item.options!;
+    }
+    // Fallback: derive from sibling items
     const others = shuffle(deck.filter((i) => i.id !== item.id)).slice(0, 3).map((i) => i.translation);
     return shuffle([item.translation, ...others]);
-  }, [item, deck]);
+  }, [item, deck, hasGeneratedContent]);
+
+  const correctAnswer = hasGeneratedContent ? item.correctOption! : item.translation;
+  const explanation = hasGeneratedContent ? item.explanation : null;
+
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
 
   useEffect(() => {
     if (picked) return;
@@ -27,17 +42,21 @@ export function QuizGame({ items, settings, onComplete }: GameProps) {
 
   useEffect(() => {
     if (!picked) return;
+    setIsCorrect(picked === correctAnswer);
+    if (picked === correctAnswer) setCorrect((c) => c + 1);
+    // Show explanation briefly before advancing
+    setShowExplanation(true);
     const t = setTimeout(() => {
-      if (idx + 1 >= deck.length) onComplete(correct, deck.length);
+      setShowExplanation(false);
+      if (idx + 1 >= deck.length) onComplete(correct + (picked === correctAnswer ? 1 : 0), deck.length);
       else { setPicked(null); setTimeLeft(limit); setIdx((i) => i + 1); }
-    }, 1200);
+    }, 2000);
     return () => clearTimeout(t);
   }, [picked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pick = (o: string) => {
     if (picked) return;
     setPicked(o);
-    if (o === item.translation) setCorrect((c) => c + 1);
   };
 
   const pct = timeLeft / limit;
@@ -53,7 +72,9 @@ export function QuizGame({ items, settings, onComplete }: GameProps) {
           <span className="absolute inset-0 flex items-center justify-center font-heading font-bold">{timeLeft}</span>
         </div>
       </div>
-      <p className="font-heading font-semibold text-xl text-center">What does “{item.word}” mean?</p>
+
+      <p className="font-heading font-semibold text-xl text-center">{questionText}</p>
+
       <div className="grid grid-cols-1 gap-2">
         {options.map((o) => (
           <button
@@ -62,7 +83,7 @@ export function QuizGame({ items, settings, onComplete }: GameProps) {
             className={cn(
               "border rounded-btn px-3 py-3 text-sm font-medium text-left transition-colors",
               picked == null ? "border-border bg-card hover:bg-primary-light"
-                : o === item.translation ? "border-accent bg-accent-light text-accent"
+                : o === correctAnswer ? "border-accent bg-accent-light text-accent"
                 : o === picked ? "border-error bg-red-50 text-error animate-shake"
                 : "border-border bg-card opacity-50"
             )}
@@ -71,6 +92,16 @@ export function QuizGame({ items, settings, onComplete }: GameProps) {
           </button>
         ))}
       </div>
+
+      {showExplanation && explanation && (
+        <div className={cn(
+          "rounded-btn p-3 text-sm border",
+          isCorrect ? "bg-accent-light border-accent text-accent" : "bg-red-50 border-error text-error"
+        )}>
+          <p className="font-semibold">{isCorrect ? "✓ Correct" : "✗ Incorrect"}</p>
+          <p className="mt-1 opacity-80">{explanation}</p>
+        </div>
+      )}
     </div>
   );
 }

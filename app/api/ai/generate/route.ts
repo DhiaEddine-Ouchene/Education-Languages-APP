@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
-import { generateCourseContentGroq, generateVocabularySet, generateGrammarSet } from "@/lib/groq";
 import { prisma } from "@/lib/prisma";
+import { generateGame } from "@/lib/generate-game";
+import {
+  checkAIGenerationLimit,
+  incrementAIGenerationCount,
+} from "@/lib/plan-guard";
 
 export async function POST(req: Request) {
   try {
@@ -16,6 +20,19 @@ export async function POST(req: Request) {
 
     if (!educator) {
       return NextResponse.json({ error: "Educator profile not found" }, { status: 404 });
+    }
+
+    // ── Check AI generation limit ──
+    const limit = await checkAIGenerationLimit(educator.id);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Monthly AI generation limit reached. Upgrade to Pro for unlimited AI games.",
+          remaining: 0,
+          resetAt: limit.resetAt?.toISOString() ?? null,
+        },
+        { status: 429 }
+      );
     }
 
     const formData = await req.formData();
@@ -57,101 +74,42 @@ export async function POST(req: Request) {
       throw new Error("No text found in the uploaded document.");
     }
 
-    // ── Step 1: Call AI OUTSIDE the transaction (AI calls can take 10-30s) ──
-    let vocabItems: any[] | null = null;
-    let grammarItems: any[] | null = null;
-    let genericResult: any | null = null;
+    // Use generateGame instead of the old groq functions
+    const result = await generateGame(gameType, extractedText, 10, {
+      targetLang: targetLanguage,
+      nativeLang: "English",
+      educatorId: educator.id,
+    });
 
-    if (category === "vocabulary") {
-      vocabItems = await generateVocabularySet({
-        lessonContent: extractedText,
-        language: targetLanguage,
-        level,
-      });
-    } else if (category === "grammar") {
-      grammarItems = await generateGrammarSet({
-        lessonContent: extractedText,
-        language: targetLanguage,
-        level,
-      });
-    } else if (category === "listening" || category === "writing") {
-      // For listening/writing, use the generic course content generator
-      genericResult = await generateCourseContentGroq(extractedText, targetLanguage, level);
-    } else {
-      throw new Error("Unknown category: " + category);
+    if (result.status === "needs_review") {
+      return NextResponse.json({
+        success: false,
+        status: "needs_review",
+        error: result.error,
+        rawData: result.data,
+      }, { status: 422 });
     }
 
-    // ── Step 2: Save results in a fast transaction ──
-    const result = await prisma.$transaction(async (tx) => {
-      let vocabSetId: string | null = null;
-      let gameSettings: any = {};
-      let title = "";
+    // ── Increment counter after successful generation ──
+    await incrementAIGenerationCount(educator.id);
 
-      if (category === "vocabulary" && vocabItems) {
-        const vocabSet = await tx.vocabularySet.create({
-          data: {
-            educatorId: educator.id,
-            name: `Vocabulary for ${targetLanguage} ${level}`,
-            language: targetLanguage,
-            items: {
-              create: vocabItems.map((item) => ({
-                word: item.word,
-                translation: item.translation,
-                exampleSentence: item.exampleSentence,
-              })),
-            },
-          },
-        });
-        vocabSetId = vocabSet.id;
-        gameSettings = { items: vocabItems };
-        title = `${targetLanguage} ${level} – ${gameType.replace(/_/g, " ")}`;
-
-      } else if (category === "grammar" && grammarItems) {
-        const relevantItems = grammarItems.filter((i) => i.gameType === gameType);
-        gameSettings = { items: relevantItems.length > 0 ? relevantItems : grammarItems };
-        title = `${targetLanguage} ${level} – ${gameType.replace(/_/g, " ")}`;
-
-      } else if ((category === "listening" || category === "writing") && genericResult) {
-        // Use the generic result — extract games matching the requested type
-        const matchingGames = genericResult.games?.filter((g: any) => g.type === gameType) || [];
-        gameSettings = matchingGames.length > 0 ? matchingGames[0].settings : (genericResult.games?.[0]?.settings || {});
-        title = matchingGames.length > 0 ? matchingGames[0].title : `${targetLanguage} ${level} – ${gameType.replace(/_/g, " ")}`;
-        
-        // Also save the vocabulary set if present
-        if (genericResult.vocabularySet?.items?.length > 0) {
-          const vocabSet = await tx.vocabularySet.create({
-            data: {
-              educatorId: educator.id,
-              name: genericResult.vocabularySet.name || `Vocab for ${targetLanguage}`,
-              language: targetLanguage,
-              items: {
-                create: genericResult.vocabularySet.items.map((item: any) => ({
-                  word: item.word,
-                  translation: item.translation,
-                  exampleSentence: item.exampleSentence || "",
-                })),
-              },
-            },
-          });
-          vocabSetId = vocabSet.id;
-        }
-      }
-
+    // ── Save results in a transaction ──
+    const saveResult = await prisma.$transaction(async (tx) => {
       const game = await tx.game.create({
         data: {
           educatorId: educator.id,
-          title,
+          title: `${targetLanguage} ${level} – ${gameType.replace(/_/g, " ")}`,
           type: gameType as any,
-          vocabularySetId: vocabSetId,
-          settings: gameSettings,
+          vocabularySetId: result.wordSetId || null,
+          settings: { generated: result.data } as object,
           isPublished: false,
+          generationStatus: "ready",
         },
       });
-
       return { gameId: game.id, title: game.title };
     });
 
-    return NextResponse.json({ success: true, data: result }, { status: 200 });
+    return NextResponse.json({ success: true, data: saveResult }, { status: 200 });
 
   } catch (err: any) {
     console.error("[generate-course-content]", err);

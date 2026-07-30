@@ -9,6 +9,7 @@ export type BuilderProps = {
   gameMeta: GameTypeMeta;
   wordBank: ChipData[];
   onWordBankChange?: (words: ChipData[]) => void;
+  generating?: boolean;
 };
 
 export type BuilderComponent = React.ComponentType<BuilderProps>;
@@ -21,11 +22,12 @@ const VerbConjugationBuilder = React.lazy(() => import("./VerbConjugationBuilder
 const StoryPromptBuilder = React.lazy(() => import("./StoryPromptBuilder").then(m => ({ default: m.StoryPromptBuilder })));
 const SentenceFillBuilder = React.lazy(() => import("./SentenceFillBuilder").then(m => ({ default: m.SentenceFillBuilder })));
 const SynonymAntonymBuilder = React.lazy(() => import("./SynonymAntonymBuilder").then(m => ({ default: m.SynonymAntonymBuilder })));
+const OddOneOutBuilder = React.lazy(() => import("./OddOneOutBuilder").then(m => ({ default: m.OddOneOutBuilder })));
 
 // Games that use the standard word-pair builder (word + translation)
 export const PAIR_BUILDER_TYPES = [
   "FLASHCARD", "WORD_SCRAMBLE", "PICTURE_TO_WORD",
-  "COLLOCATION_BUILDER", "FLASHCARD_3D", "ODD_ONE_OUT", "MEMORY",
+  "COLLOCATION_BUILDER", "FLASHCARD_3D", "MEMORY",
   "WORD_MEANING_MATCH", "MINIMAL_PAIR", "SPEED_ROUND",
 ];
 
@@ -49,6 +51,7 @@ export const BUILDER_REGISTRY: Record<string, BuilderComponent> = {
   VERB_CONJUGATION: VerbConjugationBuilder,
   STORY: StoryPromptBuilder,
   SYNONYM_ANTONYM: SynonymAntonymBuilder,
+  ODD_ONE_OUT: OddOneOutBuilder,
 };
 
 export function getBuilderForGameType(type: string): BuilderComponent | null {

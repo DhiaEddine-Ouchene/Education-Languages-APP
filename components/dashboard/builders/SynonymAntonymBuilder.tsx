@@ -47,8 +47,8 @@ export function SynonymAntonymBuilder({ onChange, initial, onValidation, wordBan
   const addFromWordBank = (chip: any) => {
     setItems((prev) => [...prev, createItem({ 
       word: chip.word, 
-      synonym: chip.synonym || chip.translation || "",
-      antonym: chip.antonym || ""
+      synonym: chip.translation || "",
+      antonym: ""
     })]);
   };
 
@@ -58,8 +58,8 @@ export function SynonymAntonymBuilder({ onChange, initial, onValidation, wordBan
       .filter((chip) => !items.some((p) => p.word === chip.word))
       .map((chip) => createItem({ 
         word: chip.word, 
-        synonym: chip.synonym || chip.translation || "",
-        antonym: chip.antonym || ""
+        synonym: chip.translation || "",
+        antonym: ""
       }));
     setItems((prev) => [...prev, ...newItems]);
   };

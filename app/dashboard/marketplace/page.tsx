@@ -44,8 +44,8 @@ export default async function EducatorMarketplacePage() {
         <Card><CardContent className="pt-5 flex items-start gap-4">
           <div className="h-10 w-10 rounded-btn bg-primary-light flex items-center justify-center shrink-0"><Link2 className="h-5 w-5 text-primary" /></div>
           <div>
-            <p className="font-heading font-bold text-sm leading-tight">{profile.stripeConnectId ? "Stripe Connect linked" : "Stripe Connect not linked"}</p>
-            <p className="text-xs text-txt-secondary">{profile.stripeConnectId ? "Payouts are automatic." : "Link Stripe to receive payouts."}</p>
+            <p className="font-heading font-bold text-sm leading-tight">Payouts Enabled</p>
+            <p className="text-xs text-txt-secondary">Payouts are sent directly to your bank account via Lemon Squeezy.</p>
           </div>
         </CardContent></Card>
       </div>

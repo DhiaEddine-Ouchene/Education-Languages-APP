@@ -15,16 +15,42 @@ type Question = {
   explanation: string;
 };
 
-function createQuestion(): Question {
+function createQuestion(overrides?: Partial<Question>): Question {
   return {
     id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     prompt: "", options: ["", "", "", ""], correctAnswer: "", explanation: "",
+    ...overrides,
   };
 }
 
 export function QuizQuestionBuilder({ onChange, initial, onValidation, gameMeta, wordBank }: BuilderProps) {
   const [questions, setQuestions] = useState<Question[]>(() => {
-    if (initial?.questions) return initial.questions as Question[];
+    const rawQuestions = (initial?.questions || initial?.items || []) as any[];
+    if (Array.isArray(rawQuestions) && rawQuestions.length > 0) {
+      return (rawQuestions as any[]).map((q: any, i: number) => {
+        const prompt = q.prompt || q.prompt_target || q.sentenceWithError_target || q.sentenceWithError || (q.word_target ? `Which sentence uses "${q.word_target}" correctly?` : "") || "";
+        const explanation = q.explanation || q.explanation_target || q.ruleExplanation_target || "";
+        const correctAnswer = q.correctAnswer || q.correction || q.correctSentence || "";
+        
+        let mappedOptions: string[] = [];
+        if (Array.isArray(q.options) && q.options.length > 0) {
+          mappedOptions = q.options.map((o: any) => typeof o === "string" ? o : (o.option_target || o.option || ""));
+        } else if (q.correctSentence && Array.isArray(q.incorrectSentences)) {
+          mappedOptions = [q.correctSentence, ...q.incorrectSentences];
+        } else if (q.correction && q.wrongPart) {
+          mappedOptions = [q.correction, q.wrongPart];
+        }
+        while (mappedOptions.length < 4) mappedOptions.push("");
+        
+        return createQuestion({
+          id: q.id || `q-${i}`,
+          prompt,
+          explanation,
+          correctAnswer,
+          options: mappedOptions,
+        });
+      });
+    }
     return [createQuestion()];
   });
   const [optionsCount, setOptionsCount] = useState(4);

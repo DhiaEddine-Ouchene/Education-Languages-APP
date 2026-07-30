@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 import { auth, getEducatorProfile } from "@/lib/auth";
+import {
+  checkAIGenerationLimit,
+  incrementAIGenerationCount,
+} from "@/lib/plan-guard";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -14,6 +18,19 @@ export async function POST(req: Request) {
     const profile = await getEducatorProfile(session.user.id);
     if (!profile) return NextResponse.json({ error: "Profile required" }, { status: 403 });
 
+    // ── Check AI generation limit ──
+    const limit = await checkAIGenerationLimit(profile.id);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Monthly AI generation limit reached. Upgrade to Pro for unlimited AI vocabulary generation.",
+          remaining: 0,
+          resetAt: limit.resetAt?.toISOString() ?? null,
+        },
+        { status: 429 }
+      );
+    }
+
     const { topic, language = "English", targetLanguage = "English", level = "B1", count = 10 } = await req.json();
 
     if (!topic) return NextResponse.json({ error: "Topic is required" }, { status: 400 });
@@ -22,18 +39,13 @@ export async function POST(req: Request) {
 The words should be in ${language}.
 Also provide their accurate translation in ${targetLanguage}.
 
-For the antonym field, if a word does not have a clear or natural opposite (like many nouns or specific terms), leave the antonym string empty "".
-
 Respond ONLY with a valid JSON object in this exact format:
 {
   "items": [
     {
       "word": "word in ${language}",
       "translation": "translation in ${targetLanguage}",
-      "synonym": "a synonym in ${targetLanguage}",
-      "antonym": "an antonym in ${targetLanguage} (or empty string if none exists)",
-      "exampleSentence": "an example sentence using the word in ${language}",
-      "definition": "a simple definition in ${targetLanguage}"
+      "exampleSentence": "a natural example sentence using the word in ${language}"
     }
   ]
 }`;
@@ -62,6 +74,9 @@ Respond ONLY with a valid JSON object in this exact format:
     if (!data.items || !Array.isArray(data.items)) {
       throw new Error("Invalid format returned from AI");
     }
+
+    // ── Increment counter after successful generation ──
+    await incrementAIGenerationCount(profile.id);
 
     return NextResponse.json(data);
   } catch (error: any) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,7 @@ export type ChipData = {
   id: string; 
   word: string; 
   translation: string;
-  synonym?: string;
-  antonym?: string;
   exampleSentence?: string;
-  definition?: string;
 };
 
 type ExistingSet = { id: string; name: string; items: { id: string; word: string; translation: string; exampleSentence?: string }[] };
@@ -28,12 +25,15 @@ type Props = {
   level?: string;
   onLanguageChange?: (lang: string) => void;
   onLevelChange?: (level: string) => void;
+  onSetSaved?: (setId: string) => void;
+  onNativeLangChange?: (lang: string) => void;
+  onAiGenerateComplete?: (words: ChipData[]) => void;
 };
 
 export function WordBank({
   words, onWordsChange, contentType = "words",
   existingSets, language = "English", level = "B1",
-  onLanguageChange, onLevelChange,
+  onLanguageChange, onLevelChange, onSetSaved, onNativeLangChange, onAiGenerateComplete
 }: Props) {
   const [mode, setMode] = useState<"ai" | "existing" | "manual">("ai");
   const [topic, setTopic] = useState("");
@@ -47,6 +47,9 @@ export function WordBank({
   const [savingSet, setSavingSet] = useState(false);
   const [setName, setSetName] = useState("");
   const [showSaveSet, setShowSaveSet] = useState(false);
+
+  // Notify parent when translation language changes (for game generation nativeLang)
+  useEffect(() => { onNativeLangChange?.(targetLanguage); }, [targetLanguage, onNativeLangChange]);
 
   const generateWithAI = async () => {
     if (!topic.trim()) { toast("error", "Please enter a topic"); return; }
@@ -64,13 +67,12 @@ export function WordBank({
         id: `gen-${Date.now()}-${i}`,
         word: item.word || "",
         translation: item.translation || "",
-        synonym: item.synonym || "",
-        antonym: item.antonym || "",
         exampleSentence: item.exampleSentence || "",
-        definition: item.definition || "",
       }));
       onWordsChange(generated);
       toast("success", `Generated ${generated.length} items!`);
+      // Notify parent to auto-trigger game content generation
+      onAiGenerateComplete?.(generated);
     } catch (err: any) {
       toast("error", err.message || "Failed to generate");
     } finally {
@@ -86,6 +88,7 @@ export function WordBank({
         id: `existing-${set.id}-${i}`,
         word: item.word,
         translation: item.translation,
+        exampleSentence: item.exampleSentence || "",
       })));
     }
   };
@@ -115,17 +118,24 @@ export function WordBank({
         body: JSON.stringify({
           name: setName.trim(),
           language,
+          nativeLanguage: targetLanguage,
+          level,
+          sourceType: mode === "ai" ? "AI_TOPIC" : "MANUAL",
           items: words.map((w) => ({
             word: w.word,
             translation: w.translation,
-            exampleSentence: "",
+            exampleSentence: w.exampleSentence || "",
           })),
         }),
       });
       if (!vocabRes.ok) throw new Error("Failed to create vocabulary set");
       
+      const vocabData = await vocabRes.json();
+      
       toast("success", "Set saved successfully!");
       setShowSaveSet(false);
+      setSetName("");
+      if (onSetSaved) onSetSaved(vocabData.id);
       setSetName("");
     } catch (err: any) {
       toast("error", err.message || "Something went wrong");
@@ -255,13 +265,6 @@ export function WordBank({
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-semibold text-txt truncate block">{chip.word}</span>
                 <span className="text-[10px] text-txt-secondary truncate block">{chip.translation}</span>
-                {(chip.synonym || chip.antonym || chip.exampleSentence) && (
-                  <div className="flex gap-1 mt-1">
-                    {chip.synonym && <span className="text-[8px] px-1 py-0.5 rounded bg-green-50 text-green-600 border border-green-200" title="Synonym">S</span>}
-                    {chip.antonym && <span className="text-[8px] px-1 py-0.5 rounded bg-red-50 text-red-600 border border-red-200" title="Antonym">A</span>}
-                    {chip.exampleSentence && <span className="text-[8px] px-1 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200" title="Example Sentence">Ex</span>}
-                  </div>
-                )}
               </div>
               <button
                 onClick={() => removeWord(chip.id)}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/api";
-import { PLAN_MRR } from "@/lib/stripe";
+import { PLAN_MRR } from "@/lib/lemonsqueezy";
 
 export async function GET() {
   const { error } = await requireAdmin();
