@@ -6,18 +6,40 @@ import { prisma } from "./prisma";
 import { getServerSession } from "next-auth";
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 }, // 30 days
+  session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 }, // 7 days
   cookies: {
     sessionToken: {
       name: process.env.NODE_ENV === "production"
-        ? "__Secure-next-auth.session-token"
-        : "next-auth.session-token",
+        ? "__Secure-ep.session-token"
+        : "ep.session-token",
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
-        maxAge: 30 * 24 * 60 * 60, // 30 days — keeps cookie alive across browser restarts
+        maxAge: 7 * 24 * 60 * 60,
+      },
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-ep.callback-url"
+        : "ep.callback-url",
+      options: {
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 7 * 24 * 60 * 60,
+      },
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Host-ep.csrf-token"
+        : "ep.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
       },
     },
   },
