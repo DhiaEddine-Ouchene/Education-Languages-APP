@@ -16,7 +16,7 @@ export function LearnHeader({ appName, logo }: { appName: string; logo: string |
   const pathname = usePathname();
   return (
     <header className="sticky top-0 z-40 bg-card/80 backdrop-blur border-b border-border">
-      <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/learn" className="flex items-center gap-2 font-heading font-bold text-primary">
           {logo ? <img src={logo} alt="" className="h-7 w-7 rounded" /> : <span className="h-7 w-7 rounded bg-primary inline-block" />}
           {appName}

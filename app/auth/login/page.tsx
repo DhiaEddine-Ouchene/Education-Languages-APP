@@ -1,6 +1,6 @@
 "use client";
 import { useState, Suspense, useRef, useEffect } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -65,7 +65,10 @@ function LoginForm() {
         }
       } else {
         toast("success", "Welcome back!");
-        router.push(params.get("callbackUrl") ?? "/dashboard");
+        // Route students to the learning area, educators to the dashboard
+        const session = await getSession();
+        const home = session?.user?.role === "STUDENT" ? "/learn" : "/dashboard";
+        router.push(params.get("callbackUrl") ?? home);
         router.refresh();
       }
     } catch (err) {
@@ -148,7 +151,9 @@ function LoginForm() {
         toast("error", "Automatic sign-in failed. Please enter your credentials again.");
         setVerifyingEmail(null);
       } else {
-        router.push(params.get("callbackUrl") ?? "/dashboard");
+        const session = await getSession();
+        const home = session?.user?.role === "STUDENT" ? "/learn" : "/dashboard";
+        router.push(params.get("callbackUrl") ?? home);
         router.refresh();
       }
     } catch (err) {

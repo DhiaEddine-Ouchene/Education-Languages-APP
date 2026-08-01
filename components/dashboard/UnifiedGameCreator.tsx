@@ -533,6 +533,7 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
             onClose={() => setPreviewGame(null)}
             gameType={previewGame.type}
             gameTitle={previewGame.title}
+            settings={builderData as Record<string, unknown>}
           />
         )}
       </div>
@@ -709,6 +710,7 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
           gameType={currentGameType.type}
           gameTitle={title || currentGameType.title}
           customItems={previewItems as any}
+          settings={builderData as Record<string, unknown>}
         />
       )}
     </div>

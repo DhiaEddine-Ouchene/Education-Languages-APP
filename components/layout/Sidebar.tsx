@@ -50,7 +50,7 @@ export function Sidebar({ role }: { role: "EDUCATOR" | "SUPER_ADMIN" }) {
 
       <aside className={cn(
         "flex flex-col bg-card border-r border-border transition-all z-50",
-        "fixed inset-y-0 left-0 top-[73px] h-[calc(100vh-73px)] md:static md:h-screen md:top-0 md:sticky",
+        "fixed inset-y-0 left-0 top-[73px] h-[calc(100vh-73px)] md:sticky md:top-0 md:h-screen",
         mobileOpen ? "translate-x-0 w-60" : "-translate-x-full md:translate-x-0",
         collapsed ? "md:w-16" : "md:w-60"
       )}>

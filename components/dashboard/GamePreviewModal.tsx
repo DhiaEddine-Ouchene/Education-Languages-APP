@@ -30,9 +30,11 @@ type Props = {
   gameTitle: string;
   /** Optional custom items to preview (from builder data) */
   customItems?: GameItem[];
+  /** Optional real game settings so the preview matches the actual game content */
+  settings?: Record<string, unknown>;
 };
 
-export function GamePreviewModal({ isOpen, onClose, gameType, gameTitle, customItems }: Props) {
+export function GamePreviewModal({ isOpen, onClose, gameType, gameTitle, customItems, settings }: Props) {
   const [activeTab, setActiveTab] = useState<"guide" | "play">("guide");
   const [mounted, setMounted] = useState(false);
   const meta = getGameTypeMeta(gameType);
@@ -244,7 +246,7 @@ export function GamePreviewModal({ isOpen, onClose, gameType, gameTitle, customI
                 title={gameTitle}
                 type={gameType}
                 items={previewItems}
-                settings={{ difficulty: "medium", timer: 30, hints: true, audioAutoplay: false, shuffle: false }}
+                settings={{ difficulty: "medium", timer: 30, hints: true, audioAutoplay: false, shuffle: false, ...(settings ?? {}) }}
                 previewMode={true}
               />
             </div>

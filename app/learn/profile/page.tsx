@@ -28,34 +28,49 @@ export default async function StudentProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-card border border-border bg-card shadow-card">
-        <div className="h-28 bg-gradient-to-r from-primary via-primary-dark to-accent" />
-        <div className="px-5 pb-5 sm:px-6">
-          <div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-end gap-4">
+      {/* Profile header */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+        <div className="h-28 bg-gradient-to-r from-primary via-primary-dark to-accent sm:h-36" />
+        <div className="px-5 pb-6 sm:px-8">
+          <div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:-mt-14">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               {user.image ? (
-                <img src={user.image} alt={`${user.name} profile picture`} className="h-24 w-24 rounded-pill border-4 border-card object-cover shadow-hover" />
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.image}
+                  alt={`${user.name} profile picture`}
+                  className="h-24 w-24 rounded-pill border-4 border-card object-cover shadow-hover sm:h-28 sm:w-28"
+                />
               ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-pill border-4 border-card bg-primary text-3xl font-bold text-white shadow-hover">{initials}</div>
+                <div className="flex h-24 w-24 items-center justify-center rounded-pill border-4 border-card bg-primary text-3xl font-bold text-white shadow-hover sm:h-28 sm:w-28">
+                  {initials}
+                </div>
               )}
               <div className="pb-1">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <h1 className="font-heading text-2xl font-bold">{user.name}</h1>
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <h1 className="font-heading text-2xl font-bold sm:text-3xl">{user.name}</h1>
                   <Badge variant="accent">{user.role.toLowerCase()}</Badge>
                 </div>
-                <p className="flex items-center gap-2 text-sm text-txt-secondary"><Mail className="h-4 w-4" /> {user.email}</p>
+                <p className="flex items-center gap-2 text-sm text-txt-secondary">
+                  <Mail className="h-4 w-4" /> {user.email}
+                </p>
+                <p className="mt-1 flex items-center gap-2 text-sm text-txt-secondary">
+                  <CalendarDays className="h-4 w-4" /> Joined {formatDate(user.createdAt)}
+                </p>
               </div>
             </div>
-            <div className="rounded-card border border-border bg-background px-4 py-3 text-sm">
+
+            <div className="rounded-card border border-border bg-background px-4 py-3 text-sm sm:min-w-[180px]">
               <p className="font-semibold text-txt-primary">Profile {profileCompleteness}% complete</p>
-              <div className="mt-2 h-2 w-40 overflow-hidden rounded-pill bg-border">
-                <div className="h-full rounded-pill bg-accent" style={{ width: `${profileCompleteness}%` }} />
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-pill bg-border">
+                <div className="h-full rounded-pill bg-accent transition-all" style={{ width: `${profileCompleteness}%` }} />
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           { v: xp?.level ?? 1, l: "Level", icon: Trophy, color: "text-primary-dark", bg: "bg-primary-light" },
@@ -76,12 +91,13 @@ export default async function StudentProfilePage() {
         })}
       </div>
 
+      {/* Edit profile + account info */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
         <ProfileForm name={user.name} avatarUrl={user.image} />
         <Card>
           <CardHeader><CardTitle>Account information</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between gap-3 border-b border-border pb-3"><span className="text-txt-secondary">Email</span><span className="font-medium text-right">{user.email}</span></div>
+            <div className="flex items-center justify-between gap-3 border-b border-border pb-3"><span className="text-txt-secondary">Email</span><span className="font-medium text-right break-all">{user.email}</span></div>
             <div className="flex items-center justify-between gap-3 border-b border-border pb-3"><span className="text-txt-secondary">Role</span><span className="font-medium">{user.role}</span></div>
             <div className="flex items-center justify-between gap-3 border-b border-border pb-3"><span className="text-txt-secondary">Joined</span><span className="inline-flex items-center gap-1 font-medium"><CalendarDays className="h-4 w-4" /> {formatDate(user.createdAt)}</span></div>
             <div className="flex items-center justify-between gap-3"><span className="text-txt-secondary">Last game</span><span className="font-medium">{lastProgress ? formatDate(lastProgress.completedAt) : "Not played yet"}</span></div>

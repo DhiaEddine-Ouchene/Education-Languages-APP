@@ -21,7 +21,7 @@ export default async function LearnLayout({ children }: { children: React.ReactN
       style={{ "--primary": branding.primaryColor, "--accent": branding.accentColor } as React.CSSProperties}
     >
       <LearnHeader appName={branding.appName} logo={branding.logo} />
-      <main className="max-w-3xl mx-auto px-4 py-6">{children}</main>
+      <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
       <BottomNav />
     </div>
   );

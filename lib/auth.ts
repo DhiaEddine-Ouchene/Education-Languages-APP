@@ -120,14 +120,20 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.id) {
         session.user.id = token.id as string;
         session.user.role = token.role as "SUPER_ADMIN" | "EDUCATOR" | "STUDENT";
-        // Fetch name & image from DB (NOT stored in cookie to keep headers small)
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { name: true, image: true },
-        });
-        if (dbUser) {
-          session.user.name = dbUser.name;
-          session.user.image = dbUser.image;
+        // Fetch name & image from DB (NOT stored in cookie to keep headers small).
+        // Wrap in try/catch: a DB hiccup here must never throw and knock the
+        // user back to the login screen on a reload.
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { name: true, image: true },
+          });
+          if (dbUser) {
+            session.user.name = dbUser.name;
+            session.user.image = dbUser.image;
+          }
+        } catch (e) {
+          console.error("[auth:session] DB lookup failed:", e);
         }
       }
       return session;
