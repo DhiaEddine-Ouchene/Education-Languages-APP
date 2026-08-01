@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import "@/components/games/engines/folder.css";
 import { Providers } from "@/components/shared/Providers";
 import { Toaster } from "@/components/ui/toast";
+import { CookieBanner } from "@/components/shared/CookieBanner";
 
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-body" });
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-heading" });
@@ -18,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.variable} ${jakarta.variable} font-body min-h-screen`}>
         <Providers>{children}</Providers>
         <Toaster />
+        <CookieBanner />
       </body>
     </html>
   );

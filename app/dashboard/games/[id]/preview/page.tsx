@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth, getEducatorProfile } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GamePlayer } from "@/components/games/GamePlayer";
+import { adaptPlayItems } from "@/lib/adapt-generated-game";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -15,9 +16,23 @@ export default async function PreviewGamePage({ params }: { params: { id: string
 
   const game = await prisma.game.findFirst({
     where: { id: params.id, educatorId: profile.id },
-    include: { vocabularySet: { include: { items: true } } },
+    include: {
+      vocabularySet: { include: { items: true } },
+      flashcardData: { include: { pairs: true } },
+    },
   });
   if (!game) notFound();
+
+  const pairItems =
+    game.flashcardData?.pairs?.length
+      ? game.flashcardData.pairs.map((p, idx) => ({
+          id: `pair-${idx}`, word: p.word, translation: p.translation,
+          audioUrl: p.audioUrl, imageUrl: p.imageUrl, exampleSentence: p.exampleSentence,
+        }))
+      : (game.vocabularySet?.items ?? []).map((i) => ({
+          id: i.id, word: i.word, translation: i.translation,
+          audioUrl: i.audioUrl, imageUrl: i.imageUrl, exampleSentence: i.exampleSentence,
+        }));
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
@@ -31,10 +46,7 @@ export default async function PreviewGamePage({ params }: { params: { id: string
         gameId={game.id}
         title={game.title}
         type={game.type as any}
-        items={(game.vocabularySet?.items ?? []).map((i) => ({
-          id: i.id, word: i.word, translation: i.translation,
-          audioUrl: i.audioUrl, imageUrl: i.imageUrl, exampleSentence: i.exampleSentence,
-        }))}
+        items={adaptPlayItems(game.type as string, (game.settings ?? {}) as Record<string, any>, pairItems)}
         settings={(game.settings ?? {}) as Record<string, unknown>}
         previewMode
       />

@@ -266,10 +266,6 @@ function LoginForm() {
           </div>
           <Button type="submit" className="w-full" disabled={loading}>{loading ? "Signing in..." : "Sign in"}</Button>
         </form>
-        <div className="my-4 flex items-center gap-3 text-xs text-txt-secondary"><span className="h-px bg-border flex-1" />or<span className="h-px bg-border flex-1" /></div>
-        <Button variant="outline" className="w-full" onClick={() => signIn("google", { callbackUrl: "/dashboard" })}>
-          Continue with Google
-        </Button>
         <p className="text-sm text-center text-txt-secondary mt-6">
           No account? <Link href="/auth/register" className="text-primary font-medium">Register</Link>
         </p>

@@ -142,32 +142,47 @@ export function mapAiResponseToBuilderData(gameType: string, aiData: any): Recor
           options: Array.from(categoryMap.values()),
         });
       });
-    } else if (gameType === "SITUATION_DIALOGUE_FILL" && rawItems.length > 0 && rawItems[0].lines) {
-      // Unpack Dialogue structure (supports old "text_target"/"options" and new "text"/"distractors" formats)
-      rawItems.forEach((dialogue: any) => {
-        (dialogue.lines || []).forEach((line: any, i: number) => {
-          const lineText = line.text || line.text_target || "";
-          if (line.blanks && line.blanks.length > 0) {
-            line.blanks.forEach((b: any, bi: number) => {
-              const distractors = b.distractors || b.options || [];
-              sentenceItems.push({
-                id: `sf-${i}-${bi}`,
-                sentence: `${line.speaker || "A"}: ${lineText}`,
-                correctAnswer: b.correctAnswer || "",
-                options: Array.isArray(distractors) ? distractors.slice(0, 3) : [],
-              });
-            });
-          } else if (line.isBlank && !line.blanks) {
-            // Line with isBlank=true but no blanks array — use line text as answer
-            sentenceItems.push({
-              id: `sf-${i}`,
-              sentence: `${line.speaker || "A"}: ${lineText}`,
-              correctAnswer: lineText,
-              options: [],
-            });
-          }
+    } else if (gameType === "SITUATION_DIALOGUE_FILL" && rawItems.length > 0) {
+      // Dialogue structure: { scenario, lines:[{speaker,text,isBlank}], blanks:[{lineIndex,correctAnswer,distractors}] }
+      // Emit the shape DialogueBuilder reads: dialogueItems.
+      const dialogueItems = rawItems.map((dialogue: any) => {
+        const lines: any[] = Array.isArray(dialogue.lines) ? dialogue.lines : [];
+        const topBlanks: any[] = Array.isArray(dialogue.blanks) ? dialogue.blanks : [];
+
+        // Resolve blanks (top-level preferred; fall back to lines[].blanks / isBlank)
+        const resolved: { answer: string; options: string[]; lineIndex: number }[] = [];
+        topBlanks.forEach((b: any) => {
+          resolved.push({
+            answer: b.correctAnswer || "",
+            options: (b.distractors || b.options || []).slice(0, 3),
+            lineIndex: typeof b.lineIndex === "number" ? b.lineIndex : 0,
+          });
         });
+        if (!resolved.length) {
+          lines.forEach((line: any, i: number) => {
+            if (Array.isArray(line.blanks) && line.blanks.length) {
+              line.blanks.forEach((b: any) =>
+                resolved.push({ answer: b.correctAnswer || "", options: (b.distractors || b.options || []).slice(0, 3), lineIndex: i })
+              );
+            } else if (line.isBlank) {
+              resolved.push({ answer: line.text || line.text_target || "", options: [], lineIndex: i });
+            }
+          });
+        }
+
+        const blankIndexes = new Set(resolved.map((r) => r.lineIndex));
+        return {
+          scenario: dialogue.scenario || "",
+          lines: lines.map((line: any, i: number) => ({
+            name: line.speaker || (blankIndexes.has(i) ? "You" : "Speaker"),
+            s: blankIndexes.has(i) ? "B" : "A",
+            text: line.text || line.text_target || "",
+          })),
+          answer: resolved[0]?.answer || "",
+          options: resolved[0]?.options || [],
+        };
       });
+      return { dialogueItems };
     } else {
       sentenceItems = rawItems.map((item: any, i: number) => {
         let sentence = item.sentence || item.sentence_target || "";

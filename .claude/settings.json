@@ -4,7 +4,13 @@
       "WebSearch",
       "WebFetch(domain:dhialabs.lemonsqueezy.com)",
       "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(p.scripts.build\\)\")",
-      "Bash(taskkill /f /im node.exe)"
+      "Bash(taskkill /f /im node.exe)",
+      "Bash(npx vercel *)",
+      "Read(//c/Users/ASUS/**)",
+      "Read(//c/Users/ASUS/.config/**)",
+      "Bash(cd \"c:\\\\Users\\\\ASUS\\\\Desktop\\\\New folder\\\\Edu Game GitLab\" && printf 'education-languages-app.vercel.app' | npx vercel env add NEXT_PUBLIC_APP_DOMAIN production --token=\"$VERCEL_TOKEN\" 2>&1 | tail -3 && echo \"---SECRET---\" && cat /tmp/nexauth_secret.txt | tr -d '\\\\n' | npx vercel env add NEXTAUTH_SECRET production --token=\"$VERCEL_TOKEN\" 2>&1 | tail -3)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://education-languages-app.vercel.app/login)"
     ]
   }
 }

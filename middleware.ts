@@ -21,10 +21,11 @@ export async function middleware(req: NextRequest) {
   // Read JWT from the custom cookie
   const secret = process.env.NEXTAUTH_SECRET;
 
+  const isProd = process.env.NODE_ENV === "production";
   const token = await getToken({
     req,
     secret: secret ?? undefined,
-    cookieName: "ep.session-token",
+    cookieName: isProd ? "__Secure-ep.s" : "ep.s",
   });
 
   if (!token) {

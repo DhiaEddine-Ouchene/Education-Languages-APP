@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, GripVertical, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ImageUpload } from "./ImageUpload";
 import type { BuilderProps } from "./index";
 
 type Pair = {
@@ -118,10 +119,14 @@ export function FlashcardPairBuilder({ onChange, initial, onValidation, gameMeta
                 </span>
               )}
 
+              {gameMeta.type === "PICTURE_TO_WORD" && (
+                <ImageUpload value={pair.imageUrl} onChange={(url) => updatePair(pair.id, "imageUrl", url)} label="picture" />
+              )}
+
               <Input
                 value={pair.word}
                 onChange={(e) => updatePair(pair.id, "word", e.target.value)}
-                placeholder="Word"
+                placeholder={gameMeta.type === "PICTURE_TO_WORD" ? "Answer word" : "Word"}
                 className={cn("text-sm font-heading font-semibold mb-1 h-8", fromBank && "border-green-300 bg-green-50/50")}
               />
               <Input

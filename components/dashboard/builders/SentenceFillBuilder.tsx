@@ -201,9 +201,9 @@ export function SentenceFillBuilder({ onChange, initial, onValidation, gameMeta,
                   {item.sentence.trim() || <span className="text-txt-secondary italic">Empty {labels.itemLabel}...</span>}
                 </span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 min-w-0 ml-2">
                 {item.correctAnswer.trim() && (
-                  <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
+                  <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200 truncate max-w-[80px] sm:max-w-[150px]" title={item.correctAnswer}>
                     ✓ {item.correctAnswer}
                   </span>
                 )}

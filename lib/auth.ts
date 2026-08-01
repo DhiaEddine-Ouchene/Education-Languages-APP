@@ -10,33 +10,34 @@ const isProd = process.env.NODE_ENV === "production";
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days (long-lived, single cookie)
+    maxAge: 7 * 24 * 60 * 60, // 7 days — shorter = smaller cookie
   },
   jwt: {
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: 7 * 24 * 60 * 60,
   },
   cookies: {
     sessionToken: {
-      name: "ep.session-token", // Simple name, no __Secure- prefix to avoid proxy issues
+      // Shorter names = smaller headers
+      name: isProd ? "__Secure-ep.s" : "ep.s",
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
         secure: isProd,
-        maxAge: 30 * 24 * 60 * 60,
+        maxAge: 7 * 24 * 60 * 60,
       },
     },
     callbackUrl: {
-      name: "ep.callback-url",
+      name: isProd ? "__Secure-ep.cb" : "ep.cb",
       options: {
         sameSite: "lax",
         path: "/",
         secure: isProd,
-        maxAge: 30 * 24 * 60 * 60,
+        maxAge: 60 * 5, // 5 min — only needed during auth flow
       },
     },
     csrfToken: {
-      name: "ep.csrf-token",
+      name: isProd ? "__Host-ep.csrf" : "ep.csrf",
       options: {
         httpOnly: true,
         sameSite: "lax",
@@ -49,14 +50,20 @@ export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
-      credentials: { email: { label: "Email", type: "email" }, password: { label: "Password", type: "password" } },
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const user = await prisma.user.findUnique({ where: { email: credentials.email.toLowerCase() } });
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email.toLowerCase() },
+        });
         if (!user?.password) return null;
         const valid = await compare(credentials.password, user.password);
         if (!valid) return null;
         if (!user.isVerified) throw new Error("UNVERIFIED");
+        // Return only what we need — minimal
         return { id: user.id, email: user.email, name: user.name, image: user.image, role: user.role };
       },
     }),
@@ -68,9 +75,11 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google" && user.email) {
-        const existing = await prisma.user.findUnique({ where: { email: user.email.toLowerCase() } });
+        const existing = await prisma.user.findUnique({
+          where: { email: user.email.toLowerCase() },
+        });
         if (!existing) {
-          await prisma.user.create({
+          const created = await prisma.user.create({
             data: {
               email: user.email.toLowerCase(),
               name: user.name ?? "User",
@@ -80,29 +89,46 @@ export const authOptions: NextAuthOptions = {
               educatorProfile: { create: { creatorType: "Teacher" } },
             },
           });
+          user.id = created.id;
+          (user as any).role = "EDUCATOR";
         } else {
           if (!existing.isVerified) {
             await prisma.user.update({ where: { id: existing.id }, data: { isVerified: true } });
           }
+          user.id = existing.id;
+          (user as any).role = existing.role;
         }
       }
       return true;
     },
+
     async jwt({ token, user }) {
+      // CRITICAL: Keep JWT payload as small as possible to avoid 494 header-too-large.
+      // Only store id and role in the cookie. name/image come from DB in session callback.
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
-        token.picture = user.image;
-        token.name = user.name;
+        token.role = (user as any).role ?? "EDUCATOR";
       }
+      // Remove any bloated fields NextAuth might add
+      delete (token as any).picture;
+      delete (token as any).name;
+      delete (token as any).image;
       return token;
     },
+
     async session({ session, token }) {
       if (session.user && token.id) {
-        session.user.id = token.id;
+        session.user.id = token.id as string;
         session.user.role = token.role as "SUPER_ADMIN" | "EDUCATOR" | "STUDENT";
-        session.user.image = (token.picture as string) ?? null;
-        session.user.name = (token.name as string) ?? null;
+        // Fetch name & image from DB (NOT stored in cookie to keep headers small)
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { name: true, image: true },
+        });
+        if (dbUser) {
+          session.user.name = dbUser.name;
+          session.user.image = dbUser.image;
+        }
       }
       return session;
     },

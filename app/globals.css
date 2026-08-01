@@ -17,6 +17,11 @@
   --border: #E5E7EB;
 }
 
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background:
     radial-gradient(circle at top left, rgba(127, 119, 221, 0.12), transparent 32rem),
@@ -24,6 +29,17 @@ body {
     var(--background);
   color: var(--text-primary);
   font-family: var(--font-body), sans-serif;
+}
+
+/* Ensure all containers respect the viewport width on small screens */
+#__next, main, section {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img, video, canvas, svg, iframe {
+  max-width: 100%;
+  height: auto;
 }
 
 h1, h2, h3, h4, h5, h6 {

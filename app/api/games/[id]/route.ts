@@ -8,9 +8,11 @@ const schema = z.object({
   type: z.enum([
     "FLASHCARD", "FILL_BLANK", "DRAG_DROP", "QUIZ", "DICTATION", "MEMORY", "SPEED_ROUND", "STORY",
     "SYNONYM_ANTONYM", "FILL_GAP_WORD", "WORD_MEANING_MATCH", "SITUATION_DIALOGUE_FILL",
-    "WORD_IN_CONTEXT", "WORD_SCRAMBLE", "ODD_ONE_OUT",
+    "WORD_IN_CONTEXT", "WORD_SCRAMBLE", "ODD_ONE_OUT", "CATEGORY_SORT",
     "SENTENCE_BUILDER", "ERROR_SPOTTING", "FILL_BLANK_GRAMMAR", "VERB_CONJUGATION", "MULTIPLE_CHOICE_GRAMMAR",
+    "TRANSFORMATION",
     "LISTEN_FILL_WORD", "LISTEN_FILL_SENTENCE", "SPEAK_FILL_WORD", "SPEAK_FILL_SENTENCE",
+    "WRITING_RUBRIC", "SPEAKING",
     "CROSSWORD", "COLLOCATION_BUILDER", "FLASHCARD_3D", "MINIMAL_PAIR", "PICTURE_TO_WORD",
   ]),
   vocabularySetId: z.string().min(1).optional().nullable(),
@@ -233,6 +235,92 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             prompt: (bd.prompt as string) || "",
             wordBank: bd.wordBank ? JSON.parse(JSON.stringify(bd.wordBank)) : null,
             template: (bd.template as string) || null,
+          },
+        });
+      }
+
+      // Ported engines — store rich content in settings JSON
+      const existingSettings = (game.settings as Record<string, any>) || {};
+      if (type === "CATEGORY_SORT") {
+        await prisma.game.update({
+          where: { id: game.id },
+          data: {
+            settings: {
+              ...existingSettings,
+              sortCategories: (bd.sortCategories as string[]) || [],
+              sortItems: (bd.sortItems as any[]) || [],
+            },
+          },
+        });
+      }
+
+      if (type === "TRANSFORMATION") {
+        await prisma.game.update({
+          where: { id: game.id },
+          data: {
+            settings: {
+              ...existingSettings,
+              transformationItems: ((bd.transformationItems as any[]) || []).map((t: any) => ({
+                instruction: t.instruction || "",
+                prompt: t.prompt || "",
+                answers: t.answers || [],
+              })),
+            },
+          },
+        });
+      }
+
+      if (type === "WRITING_RUBRIC") {
+        await prisma.game.update({
+          where: { id: game.id },
+          data: {
+            settings: {
+              ...existingSettings,
+              writingData: {
+                prompt: (bd.prompt as string) || "",
+                wordBank: (bd.wordBank as string[]) || [],
+                starter: (bd.starter as string) || "",
+                note: (bd.note as string) || "",
+                teacherReview: !!bd.teacherReview,
+                rules: (bd.rules as any[]) || [],
+              },
+            },
+          },
+        });
+      }
+
+      if (type === "SPEAKING") {
+        await prisma.game.update({
+          where: { id: game.id },
+          data: {
+            settings: {
+              ...existingSettings,
+              speakingItems: (bd.speakingItems as any[]) || [],
+            },
+          },
+        });
+      }
+
+      if (type === "SITUATION_DIALOGUE_FILL") {
+        await prisma.game.update({
+          where: { id: game.id },
+          data: {
+            settings: {
+              ...existingSettings,
+              dialogueItems: (bd.dialogueItems as any[]) || [],
+            },
+          },
+        });
+      }
+
+      if (type === "ODD_ONE_OUT") {
+        await prisma.game.update({
+          where: { id: game.id },
+          data: {
+            settings: {
+              ...existingSettings,
+              oddOneOutItems: (bd.oddOneOutItems as any[]) || [],
+            },
           },
         });
       }

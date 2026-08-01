@@ -239,6 +239,21 @@ export const GAME_TYPES: GameTypeMeta[] = [
     vocabContentType: "words",
     configFields: [],
   },
+  {
+    type: "CATEGORY_SORT",
+    title: "Category Sort",
+    description: "Sort words into the right category buckets",
+    category: "vocabulary",
+    emoji: "🗂️",
+    objectives: ["Categorization", "Vocabulary Organization"],
+    difficulty: 1,
+    estimatedTime: "8 mins",
+    popular: true,
+    teacherTip: "Provide words and category buckets. Students drop each word into its correct bucket with instant feedback.",
+    example: "Words: 'spoon, passport, stapler' → Buckets: Kitchen, Travel, Office",
+    vocabContentType: "words",
+    configFields: [],
+  },
 
   // ─── GRAMMAR ───
   {
@@ -342,6 +357,20 @@ export const GAME_TYPES: GameTypeMeta[] = [
     vocabContentType: "sentences",
     configFields: ["optionsCount"],
   },
+  {
+    type: "TRANSFORMATION",
+    title: "Sentence Transformation",
+    description: "Rewrite sentences as instructed (negative, past, question…)",
+    category: "grammar",
+    emoji: "🔄",
+    objectives: ["Sentence Structure", "Grammar Application"],
+    difficulty: 2,
+    estimatedTime: "10 mins",
+    teacherTip: "Give a sentence and an instruction (make negative / change to past / make a question). Accept a few correct variants.",
+    example: "'She likes coffee.' → Make negative → 'She doesn't like coffee.'",
+    vocabContentType: "sentences",
+    configFields: [],
+  },
 
   // ─── LISTENING ───
   {
@@ -415,6 +444,20 @@ export const GAME_TYPES: GameTypeMeta[] = [
     vocabContentType: "words",
     configFields: [],
   },
+  {
+    type: "SPEAKING",
+    title: "Speaking Practice",
+    description: "Repeat, read aloud, or respond using your microphone",
+    category: "listening",
+    emoji: "🎙️",
+    objectives: ["Pronunciation", "Oral Fluency"],
+    difficulty: 2,
+    estimatedTime: "10 mins",
+    teacherTip: "Mic-based speaking with speech recognition. Use modes: repeat, read-aloud, speak-the-gap, roleplay (keywords) or describe (teacher review).",
+    example: "Audio prompt: 'Nice to meet you.' → Student repeats aloud and gets a fluency score.",
+    vocabContentType: "sentences",
+    configFields: ["audioSource"],
+  },
 
   // ─── WRITING ───
   {
@@ -431,6 +474,20 @@ export const GAME_TYPES: GameTypeMeta[] = [
     example: "Prompt: 'Write about your last vacation. Include where you went, who with, and what you did.'",
     vocabContentType: "sentences",
     configFields: ["storyPrompt"],
+  },
+  {
+    type: "WRITING_RUBRIC",
+    title: "Writing with Rubric",
+    description: "Guided writing with a live rubric checklist",
+    category: "writing",
+    emoji: "✍️",
+    objectives: ["Creative Writing", "Self-Assessment"],
+    difficulty: 2,
+    estimatedTime: "15 mins",
+    teacherTip: "Set a prompt, optional word bank, and a rubric of checkable rules (min words, must include, etc.). Students see the checklist tick as they write.",
+    example: "Prompt: 'Describe your last holiday.' + Rules: at least 3 sentences, use 3 of: visited, delicious, beautiful.",
+    vocabContentType: "sentences",
+    configFields: [],
   },
   {
     type: "FILL_BLANK",

@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, TrendingUp, Users, User } from "lucide-react";
+import { Home, TrendingUp, Users, User, Gamepad2 } from "lucide-react";
 
 const links = [
   { href: "/learn", label: "Home", icon: Home },
+  { href: "/play", label: "Games", icon: Gamepad2 },
   { href: "/learn/progress", label: "Progress", icon: TrendingUp },
   { href: "/learn/classes", label: "Classes", icon: Users },
   { href: "/learn/profile", label: "Profile", icon: User },

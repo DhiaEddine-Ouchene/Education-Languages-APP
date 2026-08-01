@@ -81,6 +81,33 @@ export type GameItem = {
 
   // WORD_SCRAMBLE
   hint?: string;
+
+  // ── Ported-engine optional fields (Language Games) ──
+  answer?: string;
+  task?: string;
+  instruction?: string;
+
+  // CATEGORY_SORT
+  sortCategories?: string[];
+  sortItems?: { word: string; category: string }[];
+
+  // TRANSFORMATION / dictation
+  taskPrompt?: string;
+  answers?: string[];
+  acceptedAnswers?: string[];
+
+  // WRITING_RUBRIC
+  starter?: string;
+  note?: string;
+  teacherReview?: boolean;
+  rubric?: { label?: string; op: string; a?: string; b?: string }[];
+
+  // SPEAKING
+  mode?: string;
+  display?: string;
+  target?: string;
+  keywords?: string[];
+  audioText?: string;
 };
 
 export type GameSettings = {

@@ -1,10 +1,12 @@
 "use client";
 import { useMemo, useState } from "react";
-import { GameProgressBar } from "./GameProgressBar";
 import { type GameProps, shuffle } from "./types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+// Legacy fill-the-blank component. The active game layer is the ported engines
+// (components/games/engines/FolderGame.tsx); this file is kept self-contained for
+// compatibility and does not depend on the deleted shared shell modules.
 export function FillBlankGame({ items, settings, onComplete }: GameProps) {
   const deck = useMemo(() => (settings.shuffle ? shuffle(items) : items), [items, settings.shuffle]);
   const [idx, setIdx] = useState(0);
@@ -35,7 +37,6 @@ export function FillBlankGame({ items, settings, onComplete }: GameProps) {
 
   return (
     <div className="max-w-md mx-auto space-y-6">
-      <GameProgressBar current={idx} total={deck.length} />
       <p className="font-heading font-semibold text-xl text-center">{sentence}</p>
       <div className="grid grid-cols-2 gap-3">
         {options.map((w) => (

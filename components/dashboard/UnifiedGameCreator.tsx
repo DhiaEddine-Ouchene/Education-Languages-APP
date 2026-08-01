@@ -200,6 +200,65 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
         imageUrl: null,
       }));
     }
+    // CATEGORY_SORT
+    if (builderData.sortCategories && Array.isArray(builderData.sortCategories)) {
+      return [{
+        id: "preview-sort",
+        word: "Sort",
+        sortCategories: builderData.sortCategories as string[],
+        sortItems: (builderData.sortItems as any[]) || [],
+        audioUrl: null, imageUrl: null, exampleSentence: null,
+      }];
+    }
+    // TRANSFORMATION
+    if (builderData.transformationItems && Array.isArray(builderData.transformationItems)) {
+      return (builderData.transformationItems as any[]).map((t: any, i: number) => ({
+        id: `preview-${i}`,
+        word: t.prompt || "",
+        taskPrompt: t.prompt || "",
+        instruction: t.instruction || "",
+        answers: t.answers || [],
+        audioUrl: null, imageUrl: null, exampleSentence: null,
+      }));
+    }
+    // WRITING_RUBRIC
+    if (builderData.rules && Array.isArray(builderData.rules)) {
+      return [{
+        id: "preview-writing",
+        word: builderData.prompt || "",
+        writingPrompt: builderData.prompt || "",
+        wordBank: (builderData.wordBank as string[]) || [],
+        starter: builderData.starter || "",
+        note: builderData.note || "",
+        teacherReview: !!builderData.teacherReview,
+        rubric: builderData.rules as any[],
+        audioUrl: null, imageUrl: null, exampleSentence: null,
+      }];
+    }
+    // SITUATION_DIALOGUE_FILL
+    if (builderData.dialogueItems && Array.isArray(builderData.dialogueItems)) {
+      return (builderData.dialogueItems as any[]).map((d: any, i: number) => ({
+        id: `preview-${i}`,
+        word: d.answer || "",
+        translation: d.scenario || "",
+        lines: d.lines || [],
+        audioUrl: null, imageUrl: null, exampleSentence: null,
+      }));
+    }
+    // SPEAKING
+    if (builderData.speakingItems && Array.isArray(builderData.speakingItems)) {
+      return (builderData.speakingItems as any[]).map((s: any, i: number) => ({
+        id: `preview-${i}`,
+        word: s.display || s.target || "",
+        mode: s.mode || "",
+        display: s.display || "",
+        target: s.target || "",
+        keywords: s.keywords || [],
+        note: s.note || "",
+        task: s.task || "",
+        audioUrl: null, imageUrl: null, exampleSentence: null,
+      }));
+    }
     return [];
   }, [builderData]);
 
@@ -287,9 +346,11 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
     if (!selectedTemplate) return;
     if (title.trim().length < 2) { toast("error", "Please enter a game title"); return; }
 
-    // Validate: either builder data exists or vocabulary set has items
-    const hasBuilderContent = builderData && Object.keys(builderData).length > 0;
-    const hasVocab = finalWords.length >= 2 || vocabMode === "existing";
+    // Validate: either builder data exists or the word bank has items
+    const hasBuilderContent =
+      builderValid ||
+      (!!builderData && Object.values(builderData).some((v) => (Array.isArray(v) ? v.length > 0 : !!v)));
+    const hasVocab = wordBankWords.length >= 2 || !!wordBankId;
     if (!hasBuilderContent && !hasVocab) {
       toast("error", "Please add game content using the builder or a vocabulary set");
       return;
@@ -298,14 +359,14 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
     setSaving(true);
     try {
       let vocabSetId: string | undefined;
-      if (vocabMode === "ai" && vocabWords.length > 0) {
+      if (!wordBankId && wordBankWords.length > 0) {
         const vocabRes = await fetch("/api/vocabulary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: `${title} - Vocabulary`,
             language,
-            items: vocabWords.map((w) => ({
+            items: wordBankWords.map((w) => ({
               word: w.word,
               translation: w.translation,
               exampleSentence: w.exampleSentence || "",
@@ -315,8 +376,8 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
         if (!vocabRes.ok) throw new Error("Failed to create vocabulary set");
         const vocabData = await vocabRes.json();
         vocabSetId = vocabData.id;
-      } else if (vocabMode === "existing") {
-        vocabSetId = selectedSetId;
+      } else if (wordBankId) {
+        vocabSetId = wordBankId;
       }
 
       const gameRes = await fetch("/api/games", {
@@ -329,7 +390,7 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
           settings: {
             ...settings,
             ...gameConfig,
-            items: finalWords.map((w) => ({
+            items: wordBankWords.map((w) => ({
               word: w.word,
               translation: w.translation,
               exampleSentence: w.exampleSentence || "",
@@ -428,13 +489,13 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
         }} />
 
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <button onClick={goBack} className="p-2 rounded-xl hover:bg-border/50 transition-colors">
+        <div className="flex items-start md:items-center gap-3">
+          <button onClick={goBack} className="p-2 rounded-xl hover:bg-border/50 transition-colors shrink-0 mt-1 md:mt-0">
             <ArrowLeft className="w-5 h-5 text-txt-secondary" />
           </button>
           <div>
-            <h1 className="font-heading font-bold text-2xl text-txt">Available {catMeta.title} Games</h1>
-            <p className="text-sm text-txt-secondary">
+            <h1 className="font-heading font-bold text-xl md:text-2xl text-txt leading-tight">Available {catMeta.title} Games</h1>
+            <p className="text-xs md:text-sm text-txt-secondary mt-1 md:mt-0">
               Select the activity that best fits your lesson plan
             </p>
           </div>
@@ -494,28 +555,32 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
       }} />
 
       {/* Back + Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={goBack} className="p-2 rounded-xl hover:bg-border/50 transition-colors">
+      <div className="flex flex-wrap items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3 flex-1 min-w-[240px]">
+          <button onClick={goBack} className="p-2 rounded-xl hover:bg-border/50 transition-colors shrink-0">
             <ArrowLeft className="w-5 h-5 text-txt-secondary" />
           </button>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">{currentGameType?.emoji}</span>
-            <div>
-              <h1 className="font-heading font-bold text-2xl text-txt">{currentGameType?.title}</h1>
-              <p className="text-sm text-txt-secondary">{currentGameType?.description}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+            <span className="text-2xl hidden sm:block shrink-0">{currentGameType?.emoji}</span>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-xl md:text-2xl text-txt leading-tight flex items-center gap-2 truncate">
+                <span className="sm:hidden shrink-0">{currentGameType?.emoji}</span>
+                <span className="truncate">{currentGameType?.title}</span>
+              </h1>
+              <p className="text-xs md:text-sm text-txt-secondary mt-1 md:mt-0 truncate">{currentGameType?.description}</p>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
           <Button
             variant="outline"
+            className="flex-1 sm:flex-none"
             onClick={() => setShowBuilderPreview(true)}
             disabled={previewItems.length < 2}
           >
             <PlayCircle className="w-4 h-4" /> Preview
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button className="flex-1 sm:flex-none" onClick={handleSave} disabled={saving}>
             <Save className="w-4 h-4" /> {saving ? "Saving..." : "Create Game"}
           </Button>
         </div>
@@ -523,7 +588,7 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
         {/* Left: Word Bank */}
-        <div className="lg:sticky lg:top-24 self-start h-[calc(100vh-180px)]">
+        <div className="lg:sticky lg:top-24 self-start">
           <WordBank
             words={wordBankWords}
             onWordsChange={setWordBankWords}
@@ -620,15 +685,16 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
           <SettingsPanel settings={settings} setSettings={setSettings} currentGameType={currentGameType} />
 
           {/* Bottom save */}
-          <div className="flex items-center gap-3 justify-end pt-2">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end pt-2">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => setShowBuilderPreview(true)}
               disabled={previewItems.length < 2}
             >
               <PlayCircle className="w-4 h-4" /> Preview Game
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button className="w-full sm:w-auto" onClick={handleSave} disabled={saving}>
               <Save className="w-4 h-4" /> {saving ? "Creating..." : "Create Game"}
             </Button>
           </div>
@@ -793,20 +859,21 @@ function GameSelectCard({
   const Icon = ICON_MAP[catMeta.icon] || BookOpen;
 
   return (
-    <div className="bg-card border border-border/60 rounded-2xl overflow-hidden flex flex-col md:flex-row gap-5 p-5 transition-all hover:shadow-md hover:-translate-y-0.5 duration-200">
-      {/* Visual area — game screenshot */}
+    <div className="bg-card border border-border/60 rounded-2xl overflow-hidden flex flex-col gap-4 p-5 transition-all hover:shadow-md hover:-translate-y-0.5 duration-200 md:flex-row md:gap-5">
+      {/* Visual area — game screenshot (hidden on mobile to save space) */}
       <GamePreviewImage
         type={game.type}
         title={game.title}
-        className="md:w-52 flex-shrink-0 rounded-xl"
+        className="hidden md:block md:w-52 flex-shrink-0 rounded-xl"
       />
 
       {/* Content */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex justify-between items-start mb-2">
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Title + badge row */}
+        <div className="flex flex-wrap items-start gap-2 mb-2">
           <h3 className="font-heading font-semibold text-base text-txt">{game.title}</h3>
           {game.popular && (
-            <span className="bg-primary/10 text-primary text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+            <span className="bg-primary/10 text-primary text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0">
               Most Popular
             </span>
           )}
@@ -831,18 +898,18 @@ function GameSelectCard({
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="mt-auto flex items-center gap-3">
+        {/* Actions — full width on mobile, inline on desktop */}
+        <div className="mt-auto flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           <button
             onClick={onPreview}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-primary text-sm font-medium hover:bg-primary/5 rounded-lg transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 text-primary text-sm font-medium hover:bg-primary/5 rounded-lg border border-primary/20 sm:border-transparent transition-colors"
           >
             <Eye className="w-4 h-4" />
             Preview Game
           </button>
           <button
             onClick={onSelect}
-            className="ml-auto bg-primary text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md hover:bg-primary-dark transition-all flex items-center gap-2"
+            className="sm:ml-auto bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:shadow-md hover:bg-primary-dark transition-all flex items-center justify-center gap-2"
           >
             Select and Continue
             <ChevronRight className="w-4 h-4" />

@@ -150,3 +150,48 @@ export function adaptGeneratedGame(
       return fallback.map((i) => ({ ...i }));
   }
 }
+
+/**
+ * Builds player-ready items for the ported-engine game types whose rich content
+ * lives in `game.settings` (rather than a vocabulary set). Falls back to the
+ * existing generated/vocab path for all other types.
+ */
+export function adaptPlayItems(
+  gameType: string,
+  settings: Record<string, any>,
+  fallback: VocabItem[]
+): GameItem[] {
+  const s = settings || {};
+  switch (gameType) {
+    case "CATEGORY_SORT": {
+      const sortItems = s.sortItems || [];
+      return sortItems.length
+        ? [withId(0, { word: "Sort", sortCategories: s.sortCategories || [], sortItems }) ]
+        : fallback.map((i) => ({ ...i }));
+    }
+    case "TRANSFORMATION": {
+      const t = s.transformationItems || [];
+      return t.length
+        ? t.map((it: any, i: number) =>
+            withId(i, { taskPrompt: it.prompt, instruction: it.instruction, answers: it.answers, word: it.prompt })
+          )
+        : fallback.map((i) => ({ ...i }));
+    }
+    case "WRITING_RUBRIC": {
+      const w = s.writingData || {};
+      return w.prompt
+        ? [withId(0, { writingPrompt: w.prompt, wordBank: w.wordBank, starter: w.starter, note: w.note, teacherReview: w.teacherReview, rubric: w.rules, word: w.prompt })]
+        : fallback.map((i) => ({ ...i }));
+    }
+    case "SPEAKING": {
+      const sp = s.speakingItems || [];
+      return sp.length
+        ? sp.map((it: any, i: number) =>
+            withId(i, { word: it.display || it.target || "", mode: it.mode, display: it.display, target: it.target, keywords: it.keywords, note: it.note, task: it.task, audioText: it.audioText })
+          )
+        : fallback.map((i) => ({ ...i }));
+    }
+    default:
+      return fallback.map((i) => ({ ...i }));
+  }
+}

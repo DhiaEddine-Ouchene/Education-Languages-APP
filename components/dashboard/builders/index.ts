@@ -23,6 +23,11 @@ const StoryPromptBuilder = React.lazy(() => import("./StoryPromptBuilder").then(
 const SentenceFillBuilder = React.lazy(() => import("./SentenceFillBuilder").then(m => ({ default: m.SentenceFillBuilder })));
 const SynonymAntonymBuilder = React.lazy(() => import("./SynonymAntonymBuilder").then(m => ({ default: m.SynonymAntonymBuilder })));
 const OddOneOutBuilder = React.lazy(() => import("./OddOneOutBuilder").then(m => ({ default: m.OddOneOutBuilder })));
+const CategorySortBuilder = React.lazy(() => import("./CategorySortBuilder").then(m => ({ default: m.CategorySortBuilder })));
+const TransformationBuilder = React.lazy(() => import("./TransformationBuilder").then(m => ({ default: m.TransformationBuilder })));
+const WritingBuilder = React.lazy(() => import("./WritingBuilder").then(m => ({ default: m.WritingBuilder })));
+const SpeakingBuilder = React.lazy(() => import("./SpeakingBuilder").then(m => ({ default: m.SpeakingBuilder })));
+const DialogueBuilder = React.lazy(() => import("./DialogueBuilder").then(m => ({ default: m.DialogueBuilder })));
 
 // Games that use the standard word-pair builder (word + translation)
 export const PAIR_BUILDER_TYPES = [
@@ -52,6 +57,11 @@ export const BUILDER_REGISTRY: Record<string, BuilderComponent> = {
   STORY: StoryPromptBuilder,
   SYNONYM_ANTONYM: SynonymAntonymBuilder,
   ODD_ONE_OUT: OddOneOutBuilder,
+  CATEGORY_SORT: CategorySortBuilder,
+  TRANSFORMATION: TransformationBuilder,
+  WRITING_RUBRIC: WritingBuilder,
+  SPEAKING: SpeakingBuilder,
+  SITUATION_DIALOGUE_FILL: DialogueBuilder,
 };
 
 export function getBuilderForGameType(type: string): BuilderComponent | null {
