@@ -107,24 +107,16 @@ model User {
   progress         StudentProgress[]
   xp               StudentXP?
   badges           StudentBadge[]
-  purchases        MarketplacePurchase[]
 }
 
 model EducatorProfile {
   id                   String   @id @default(cuid())
   userId               String   @unique
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  brandName            String?
-  brandLogo            String?
-  primaryColor         String   @default("#7F77DD")
-  accentColor          String   @default("#1D9E75")
-  customDomain         String?  @unique
-  domainVerified       Boolean  @default(false)
   creatorType          String? // Teacher | Content Creator | Both
   subscriptionPlan     Plan     @default(FREE)
   lemonSqueezyCustomerId     String?
   lemonSqueezySubscriptionId String?
-  monthlyRevenue           Float    @default(0)
   aiGenerationsThisMonth   Int      @default(0)
   aiGenerationsResetAt     DateTime?
   createdAt                DateTime @default(now())
@@ -143,18 +135,13 @@ model Course {
   language      String
   level         CourseLevel
   coverImage    String?
-  price         Float       @default(0)
   isPublished   Boolean     @default(false)
-  isMarketplace Boolean     @default(false)
-  approved      Boolean     @default(false)
-  rejectReason  String?
   educatorId    String
   educator      EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   lessons   Lesson[]
-  purchases MarketplacePurchase[]
 }
 
 model Lesson {
@@ -226,10 +213,6 @@ model Game {
   exerciseSet     ExerciseSet? @relation(fields: [exerciseSetId], references: [id])
   settings        Json     @default("{}")
   isPublished     Boolean  @default(false)
-  isMarketplace   Boolean  @default(false)
-  approved        Boolean  @default(false)
-  rejectReason    String?
-  price           Float    @default(0)
   createdAt       DateTime @default(now())
 
   // AI generation tracking
@@ -241,7 +224,6 @@ model Game {
 
   assignments   Assignment[]
   progress      StudentProgress[]
-  purchases     MarketplacePurchase[]
 
   // Type-specific game data (one per game, set by the game type)
   flashcardData        FlashcardData?
@@ -401,19 +383,6 @@ model StudentBadge {
   earnedAt  DateTime @default(now())
 
   @@unique([studentId, badgeId])
-}
-
-model MarketplacePurchase {
-  id              String   @id @default(cuid())
-  buyerId         String
-  buyer           User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  courseId        String?
-  course          Course?  @relation(fields: [courseId], references: [id])
-  gameId          String?
-  game            Game?    @relation(fields: [gameId], references: [id])
-  amount          Float
-  lemonSqueezyOrderId String?
-  createdAt       DateTime @default(now())
 }
 
 model Subscription {

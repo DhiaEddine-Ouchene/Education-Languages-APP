@@ -30,7 +30,7 @@ const plans = [
     popular: true,
     icon: Zap,
     description: "For active teachers & tutors",
-    features: ["Unlimited classes", "Unlimited students", "Unlimited AI games", "All game types", "PDF → game import (up to 10 pages)", "Full class analytics", "White-label branding"],
+    features: ["Unlimited classes", "Unlimited students", "Unlimited AI games", "All game types", "PDF → game import (up to 10 pages)", "Full class analytics"],
     cta: "Upgrade to Pro",
     color: "border-primary/40",
   },
@@ -51,7 +51,6 @@ const plans = [
 const faqs = [
   { q: "Can I try EduPlay for free?", a: "Yes. The Free plan lets you create content and run one class with up to 20 students before upgrading." },
   { q: "How does the AI generation limit work?", a: "Free users get 15 AI-generated games or vocabulary sets per month. Pro and Ultimate users get unlimited AI generation." },
-  { q: "What does white-label mean?", a: "On Pro and Ultimate plans, your students see your brand name, logo, and colors instead of EduPlay, optionally on your own domain." },
   { q: "Can I cancel anytime?", a: "Yes, you can cancel from the billing page. Your plan stays active until the end of the billing period — no questions asked." },
   { q: "What payment methods are accepted?", a: "We use Lemon Squeezy for secure payment processing. All major credit and debit cards are accepted." },
   { q: "Is there a student limit?", a: "Free plans are limited to ~20 students per class. Pro and Ultimate plans have no student limits." },
@@ -200,7 +199,6 @@ export default function PricingPage() {
                     ["Game types", "Core 2–3", "All types", "All types"],
                     ["Class analytics", "Basic", "Full", "Full + export"],
                     ["Co-teacher seats", "—", "—", "Up to 3"],
-                    ["White-label branding", "—", "✓", "✓"],
                     ["Priority support", "—", "—", "✓"],
                     ["Early access", "—", "—", "✓"],
                   ].map(([feature, free, pro, ultimate], i) => (

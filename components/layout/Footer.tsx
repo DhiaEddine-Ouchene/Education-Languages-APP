@@ -9,14 +9,13 @@ export function Footer() {
           <div className="flex items-center gap-2 font-heading font-bold text-primary mb-2">
             <Gamepad2 className="h-5 w-5" /> EduPlay
           </div>
-          <p className="text-txt-secondary">Build and sell interactive language learning games.</p>
+          <p className="text-txt-secondary">Build interactive language learning games.</p>
         </div>
         <div>
           <p className="font-semibold mb-2">Product</p>
           <ul className="space-y-1 text-txt-secondary">
             <li><Link href="/#features">Features</Link></li>
             <li><Link href="/pricing">Pricing</Link></li>
-            <li><Link href="/marketplace">Marketplace</Link></li>
           </ul>
         </div>
         <div>

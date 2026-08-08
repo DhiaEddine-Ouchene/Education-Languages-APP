@@ -51,7 +51,7 @@ export function GamePreviewModal({ isOpen, onClose, gameType, gameTitle, customI
 
   if (!isOpen || !mounted) return null;
 
-  const previewItems = customItems && customItems.length >= 2 ? customItems : DEMO_ITEMS;
+  const previewItems = customItems && customItems.length > 0 ? customItems : DEMO_ITEMS;
 
   const modalContent = (
     <div

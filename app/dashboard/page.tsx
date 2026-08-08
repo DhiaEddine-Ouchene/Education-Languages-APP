@@ -6,8 +6,8 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { formatCurrency, formatDate, cn } from "@/lib/utils";
-import { Users, School, Gamepad2, DollarSign, BookOpen, BarChart3, Palette, Plus, ArrowRight, Sparkles, TrendingUp } from "lucide-react";
+import { formatDate, cn } from "@/lib/utils";
+import { Users, School, Gamepad2, BookOpen, BarChart3, Plus, ArrowRight, Sparkles, TrendingUp } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +34,6 @@ export default async function DashboardPage() {
     { href: "/dashboard/games/new", label: "Create Game", description: "AI-powered game builder", icon: Gamepad2, color: "text-primary", bg: "bg-primary/10" },
     { href: "/dashboard/classes/new", label: "New Class", description: "Invite students with code", icon: School, color: "text-accent", bg: "bg-accent/10" },
     { href: "/dashboard/analytics", label: "Analytics", description: "Track student performance", icon: BarChart3, color: "text-amber-600", bg: "bg-amber-100" },
-    { href: "/dashboard/branding", label: "Branding", description: "Customize your look", icon: Palette, color: "text-purple-600", bg: "bg-purple-100" },
   ];
 
   return (
@@ -60,11 +59,10 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard icon={Users} value={students.length} label="Total Students" />
         <StatCard icon={School} value={classes.length} label="Active Classes" />
         <StatCard icon={Gamepad2} value={`${gamesPublished}/${totalGames}`} label="Games Published" />
-        <StatCard icon={DollarSign} value={formatCurrency(profile.monthlyRevenue)} label="Monthly Revenue" />
       </div>
 
       {/* Quick Actions */}

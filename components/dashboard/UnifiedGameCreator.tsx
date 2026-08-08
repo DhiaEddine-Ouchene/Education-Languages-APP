@@ -24,14 +24,14 @@ import {
   type GameTypeMeta,
 } from "@/lib/game-type-metadata";
 import {
-  BookOpen, PenTool, Headphones, Edit3,
+  BookOpen, PenTool, Headphones, Edit3, Mic,
   ArrowLeft, Save, Settings, Timer, Lightbulb,
   Shuffle, Volume2, CheckCircle2, ChevronRight,
   Sparkles, Eye, Check, Lightbulb as LightbulbIcon, PlayCircle,
 } from "lucide-react";
 
 // ── Icon map ──
-const ICON_MAP: Record<string, React.ElementType> = { BookOpen, PenTool, Headphones, Edit3 };
+const ICON_MAP: Record<string, React.ElementType> = { BookOpen, PenTool, Headphones, Edit3, Mic };
 
 type ExistingSet = {
   id: string;
@@ -399,8 +399,6 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
           // Builder-specific data for the relational models
           builderData: hasBuilderContent ? builderData : undefined,
           isPublished: settings.isPublished,
-          isMarketplace: false,
-          price: 0,
         }),
       });
 

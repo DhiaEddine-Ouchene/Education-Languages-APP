@@ -14,7 +14,6 @@ import {
   PlayCircle,
   Save,
   Settings,
-  Sparkles,
   ChevronDown,
   BookOpen,
   Timer,
@@ -69,8 +68,6 @@ type Props = {
     vocabularySetId: string;
     settings: Record<string, unknown>;
     isPublished: boolean;
-    isMarketplace: boolean;
-    price: number;
   };
 };
 
@@ -83,8 +80,6 @@ export function GameBuilder({ sets, initial }: Props) {
   const [type, setType] = useState<GameType>((initial?.type as GameType) ?? "FLASHCARD");
   const [setId, setSetId] = useState(initial?.vocabularySetId ?? sets[0]?.id ?? "");
   const [isPublished, setIsPublished] = useState(initial?.isPublished ?? false);
-  const [isMarketplace, setIsMarketplace] = useState(initial?.isMarketplace ?? false);
-  const [price, setPrice] = useState(initial?.price ?? 0);
   const [showTypeSelector, setShowTypeSelector] = useState(false);
   const s = (initial?.settings ?? {}) as Record<string, unknown>;
   const [settings, setSettings] = useState<GameSettings>({
@@ -116,7 +111,7 @@ export function GameBuilder({ sets, initial }: Props) {
       const res = await fetch(initial ? `/api/games/${initial.id}` : "/api/games", {
         method: initial ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, type, vocabularySetId: setId, settings, isPublished, isMarketplace, price: Number(price) }),
+        body: JSON.stringify({ title, type, vocabularySetId: setId, settings, isPublished }),
       });
       if (!res.ok) { toast("error", "Failed to save game"); return; }
       toast("success", initial ? "Game updated" : "Game created");
@@ -413,29 +408,6 @@ export function GameBuilder({ sets, initial }: Props) {
                     <CheckCircle2 className="w-3.5 h-3.5 text-txt-secondary group-hover:text-green-500 transition-colors" />
                     <span className="text-txt group-hover:text-txt transition-colors">Published</span>
                   </label>
-                  <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={isMarketplace}
-                      onChange={(e) => setIsMarketplace(e.target.checked)}
-                      className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4"
-                    />
-                    <Sparkles className="w-3.5 h-3.5 text-txt-secondary group-hover:text-amber-500 transition-colors" />
-                    <span className="text-txt group-hover:text-txt transition-colors">List on marketplace</span>
-                  </label>
-                  {isMarketplace && (
-                    <div className="animate-fade-in">
-                      <Label className="text-xs font-medium text-txt-secondary">Price (USD)</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={price}
-                        onChange={(e) => setPrice(Number(e.target.value))}
-                        className="mt-1"
-                      />
-                    </div>
-                  )}
                 </div>
               </div>
             </CardContent>

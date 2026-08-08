@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GamePlayer } from "@/components/games/GamePlayer";
-import { adaptPlayItems } from "@/lib/adapt-generated-game";
+import { adaptPlayItems, mergeGameContent } from "@/lib/adapt-generated-game";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +15,15 @@ export default async function GamePlayPage({ params }: { params: { id: string } 
     include: {
       vocabularySet: { include: { items: true } },
       flashcardData: { include: { pairs: true } },
+      quizData: { include: { questions: true } },
+      crosswordData: true,
+      verbConjugationData: true,
+      storyData: true,
     },
   });
   if (!game) notFound();
+
+  const settings = mergeGameContent((game.settings ?? {}) as Record<string, any>, game);
 
   // For builder-created picture games, carry the uploaded images (stored on the
   // game's flashcard pairs) onto the play items so Picture-to-Word shows them.
@@ -56,10 +62,10 @@ export default async function GamePlayPage({ params }: { params: { id: string } 
       type={game.type as any}
       items={adaptPlayItems(
         game.type as string,
-        (game.settings ?? {}) as Record<string, any>,
+        settings,
         (pairItems ?? vocabItems)
       )}
-      settings={(game.settings ?? {}) as Record<string, unknown>}
+      settings={settings}
     />
   );
 }

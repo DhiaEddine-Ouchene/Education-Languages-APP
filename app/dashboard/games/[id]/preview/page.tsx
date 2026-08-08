@@ -3,7 +3,7 @@ import Link from "next/link";
 import { auth, getEducatorProfile } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GamePlayer } from "@/components/games/GamePlayer";
-import { adaptPlayItems } from "@/lib/adapt-generated-game";
+import { adaptPlayItems, mergeGameContent } from "@/lib/adapt-generated-game";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +19,15 @@ export default async function PreviewGamePage({ params }: { params: { id: string
     include: {
       vocabularySet: { include: { items: true } },
       flashcardData: { include: { pairs: true } },
+      quizData: { include: { questions: true } },
+      crosswordData: true,
+      verbConjugationData: true,
+      storyData: true,
     },
   });
   if (!game) notFound();
+
+  const settings = mergeGameContent((game.settings ?? {}) as Record<string, any>, game);
 
   const pairItems =
     game.flashcardData?.pairs?.length
@@ -46,8 +52,8 @@ export default async function PreviewGamePage({ params }: { params: { id: string
         gameId={game.id}
         title={game.title}
         type={game.type as any}
-        items={adaptPlayItems(game.type as string, (game.settings ?? {}) as Record<string, any>, pairItems)}
-        settings={(game.settings ?? {}) as Record<string, unknown>}
+        items={adaptPlayItems(game.type as string, settings, pairItems)}
+        settings={settings}
         previewMode
       />
     </div>

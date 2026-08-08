@@ -9,9 +9,7 @@ const schema = z.object({
   language: z.string().min(2),
   level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]),
   coverImage: z.string().optional().nullable(),
-  price: z.number().min(0).default(0),
   isPublished: z.boolean().default(false),
-  isMarketplace: z.boolean().default(false),
   lessons: z.array(z.object({ title: z.string(), type: z.string(), content: z.string(), order: z.number() })).default([]),
 });
 

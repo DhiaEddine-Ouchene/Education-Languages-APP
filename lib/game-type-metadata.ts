@@ -1,7 +1,7 @@
 // ── Centralized Game Type Metadata ──
 // Single source of truth for all game types, categories, and their properties.
 
-export type GameCategory = "vocabulary" | "grammar" | "listening" | "writing";
+export type GameCategory = "vocabulary" | "grammar" | "listening" | "writing" | "speaking";
 export type VocabContentType = "words" | "phrases" | "sentences" | "grammar";
 
 export interface GameTypeMeta {
@@ -60,6 +60,15 @@ export const CATEGORY_META: Record<
     bgColor: "bg-rose-50",
     borderColor: "border-rose-200",
     gradient: "from-rose-500 to-rose-600",
+  },
+  speaking: {
+    title: "Speaking",
+    subtitle: "Pronunciation, fluency, and speaking practice",
+    icon: "Mic",
+    color: "text-pink-600",
+    bgColor: "bg-pink-50",
+    borderColor: "border-pink-200",
+    gradient: "from-pink-500 to-pink-600",
   },
 };
 
@@ -251,6 +260,21 @@ export const GAME_TYPES: GameTypeMeta[] = [
     popular: true,
     teacherTip: "Provide words and category buckets. Students drop each word into its correct bucket with instant feedback.",
     example: "Words: 'spoon, passport, stapler' → Buckets: Kitchen, Travel, Office",
+    vocabContentType: "words",
+    configFields: [],
+  },
+  {
+    type: "MEMORY",
+    title: "Memory Match",
+    description: "Flip cards to find matching word pairs",
+    category: "vocabulary",
+    emoji: "🃏",
+    objectives: ["Memory Recall", "Word Recognition"],
+    difficulty: 1,
+    estimatedTime: "10 mins",
+    popular: true,
+    teacherTip: "Cards face down. Students flip two at a time to find matching pairs (word ↔ translation). Tracks match count and time.",
+    example: "Pairs: 'happy ↔ glad' | 'big ↔ large' → flip to match",
     vocabContentType: "words",
     configFields: [],
   },
@@ -448,7 +472,7 @@ export const GAME_TYPES: GameTypeMeta[] = [
     type: "SPEAKING",
     title: "Speaking Practice",
     description: "Repeat, read aloud, or respond using your microphone",
-    category: "listening",
+    category: "speaking",
     emoji: "🎙️",
     objectives: ["Pronunciation", "Oral Fluency"],
     difficulty: 2,
@@ -507,7 +531,7 @@ export const GAME_TYPES: GameTypeMeta[] = [
     type: "SPEAK_FILL_WORD",
     title: "Speak & Fill Word",
     description: "Listen to audio and speak the missing word",
-    category: "listening",
+    category: "speaking",
     emoji: "🎙️",
     objectives: ["Pronunciation", "Oral Fluency"],
     difficulty: 2,
@@ -521,7 +545,7 @@ export const GAME_TYPES: GameTypeMeta[] = [
     type: "SPEAK_FILL_SENTENCE",
     title: "Speak & Complete",
     description: "Listen and speak the complete sentence",
-    category: "listening",
+    category: "speaking",
     emoji: "🗣️",
     objectives: ["Oral Fluency", "Sentence Memory"],
     difficulty: 3,
@@ -561,6 +585,7 @@ export const POSTER_THEMES: Record<string, { bg: string; overlay: string; iconCo
   grammar: { bg: "bg-emerald-100", overlay: "from-emerald-600/80 to-emerald-400/0", iconColor: "text-emerald-600" },
   listening: { bg: "bg-purple-100", overlay: "from-purple-600/80 to-purple-400/0", iconColor: "text-purple-600" },
   writing: { bg: "bg-rose-100", overlay: "from-rose-600/80 to-rose-400/0", iconColor: "text-rose-600" },
+  speaking: { bg: "bg-pink-100", overlay: "from-pink-600/80 to-pink-400/0", iconColor: "text-pink-600" },
 };
 
 // ── Vocab content type labels (shown in the UI) ──

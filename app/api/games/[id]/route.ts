@@ -18,8 +18,6 @@ const schema = z.object({
   vocabularySetId: z.string().min(1).optional().nullable(),
   settings: z.record(z.unknown()).default({}),
   isPublished: z.boolean().default(false),
-  isMarketplace: z.boolean().default(false),
-  price: z.number().min(0).default(0),
   builderData: z.record(z.unknown()).optional(),
 });
 
@@ -59,8 +57,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         vocabularySetId: body.data.vocabularySetId || null,
         settings: body.data.settings as object,
         isPublished: body.data.isPublished,
-        isMarketplace: body.data.isMarketplace,
-        price: body.data.price,
       },
     });
 

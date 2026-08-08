@@ -95,8 +95,6 @@ export function NewGameTabs({ sets }: Props) {
           type: template.type,
           settings: { difficulty: "medium", timer: 30, hints: true, shuffle: true },
           isPublished: false,
-          isMarketplace: false,
-          price: 0,
         }),
       });
       if (!res.ok) {

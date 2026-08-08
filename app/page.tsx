@@ -3,12 +3,10 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Gamepad2, Palette, Store, BarChart3, Users, Zap, Star } from "lucide-react";
+import { Gamepad2, BarChart3, Users, Zap, Star } from "lucide-react";
 
 const features = [
   { icon: Gamepad2, title: "8 Game Types", desc: "Flashcards, quizzes, dictation, memory, speed rounds and more." },
-  { icon: Palette, title: "White-Label Branding", desc: "Your name, logo, colors, and even your own custom domain." },
-  { icon: Store, title: "Marketplace", desc: "Sell your courses and games. Keep 75% of every sale." },
   { icon: BarChart3, title: "Deep Analytics", desc: "Track engagement, most-missed words, and student progress." },
   { icon: Users, title: "Class Management", desc: "Invite codes, assignments, leaderboards, and live sessions." },
   { icon: Zap, title: "Gamification", desc: "XP, levels, streaks, and badges keep students coming back." },
@@ -17,12 +15,12 @@ const features = [
 const steps = [
   { n: "1", title: "Create content", desc: "Add vocabulary sets and build interactive games in minutes." },
   { n: "2", title: "Invite students", desc: "Create classes with invite codes and assign games with due dates." },
-  { n: "3", title: "Grow and earn", desc: "Track progress, sell on the marketplace, and build your brand." },
+  { n: "3", title: "Track progress", desc: "Follow engagement, most-missed words, and student progress over time." },
 ];
 
 const testimonials = [
   { quote: "My students beg for homework now. The streak system is magic.", name: "Ana M., Spanish teacher" },
-  { quote: "I white-labeled the app and sell my French courses under my own brand.", name: "Luc D., content creator" },
+  { quote: "Analytics show me exactly which words to review before every lesson.", name: "Luc D., content creator" },
   { quote: "Setup took one afternoon. Analytics show me exactly which words to review.", name: "Sofia K., school director" },
 ];
 
@@ -35,14 +33,13 @@ export default function LandingPage() {
         <section className="max-w-6xl mx-auto px-4 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h1 className="font-heading font-bold text-4xl md:text-5xl leading-tight mb-4">
-              Build and sell <span className="text-primary">language learning games</span> under your own brand
+              Build <span className="text-primary">language learning games</span> your students will love
             </h1>
             <p className="text-txt-secondary text-lg mb-6">
-              EduPlay is the white-label platform for educators and creators. Create interactive courses, gamify learning, and get paid.
+              EduPlay helps educators and creators build interactive courses and gamify learning in minutes.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/auth/register"><Button size="lg">Get started free</Button></Link>
-              <Link href="/marketplace"><Button size="lg" variant="outline">Browse marketplace</Button></Link>
             </div>
           </div>
           <div className="relative">
@@ -64,7 +61,7 @@ export default function LandingPage() {
 
         {/* Features */}
         <section id="features" className="max-w-6xl mx-auto px-4 py-16">
-          <h2 className="font-heading font-bold text-3xl text-center mb-10">Everything you need to teach and earn</h2>
+          <h2 className="font-heading font-bold text-3xl text-center mb-10">Everything you need to teach</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {features.map((f) => (
               <Card key={f.title}>

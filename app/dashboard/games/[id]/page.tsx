@@ -32,8 +32,6 @@ export default async function EditGamePage({ params }: { params: { id: string } 
           vocabularySetId: game.vocabularySetId ?? "",
           settings: (game.settings ?? {}) as Record<string, unknown>,
           isPublished: game.isPublished,
-          isMarketplace: game.isMarketplace,
-          price: Number(game.price),
         }}
       />
     </div>

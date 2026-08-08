@@ -81,16 +81,10 @@ export const sendBadgeEarned = (to: string, badgeName: string) =>
 
 // Educator emails
 export const sendWelcomeEducator = (to: string, name: string) =>
-  sendMail(to, "Welcome to EduPlay!", layout(`Welcome, ${name}!`, `Onboarding checklist:<ol><li>Create a vocabulary set</li><li>Build your first game</li><li>Create a class and invite students</li><li>Customize your brand</li></ol>`));
+  sendMail(to, "Welcome to EduPlay!", layout(`Welcome, ${name}!`, `Onboarding checklist:<ol><li>Create a vocabulary set</li><li>Build your first game</li><li>Create a class and invite students</li></ol>`));
 
 export const sendFirstStudentJoined = (to: string, className: string, studentName: string) =>
   sendMail(to, "Your first student joined!", layout("First student 🎓", `<b>${studentName}</b> joined your class <b>${className}</b>.`));
 
 export const sendRenewalReminder = (to: string, plan: string, renewDate: Date) =>
   sendMail(to, "Subscription renewal reminder", layout("Renewal coming up", `Your <b>${plan}</b> plan renews on <b>${renewDate.toDateString()}</b>.`));
-
-export const sendSaleNotification = (to: string, itemTitle: string, amount: number) =>
-  sendMail(to, "You made a sale! 💰", layout("Marketplace sale", `<b>${itemTitle}</b> was purchased for <b>$${amount.toFixed(2)}</b>. You keep 75%.`));
-
-export const sendEarningsSummary = (to: string, total: number, month: string) =>
-  sendMail(to, `Your ${month} earnings summary`, layout("Monthly earnings", `You earned <b>$${total.toFixed(2)}</b> in ${month}. Great work!`));

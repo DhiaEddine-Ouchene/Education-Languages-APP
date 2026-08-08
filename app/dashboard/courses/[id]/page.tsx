@@ -24,8 +24,8 @@ export default async function EditCoursePage({ params }: { params: { id: string 
         games={games}
         initial={{
           id: course.id, title: course.title, description: course.description, language: course.language,
-          level: course.level, coverImage: course.coverImage, price: course.price,
-          isPublished: course.isPublished, isMarketplace: course.isMarketplace,
+          level: course.level, coverImage: course.coverImage,
+          isPublished: course.isPublished,
           lessons: course.lessons.map((l) => ({ id: l.id, title: l.title, type: l.type, content: l.content })),
         }}
       />

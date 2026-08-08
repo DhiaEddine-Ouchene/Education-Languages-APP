@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ArrowRight, BookOpen, PenTool, Headphones, Edit3 } from "lucide-react";
+import { ArrowRight, BookOpen, PenTool, Headphones, Edit3, Mic } from "lucide-react";
 
-export type GameCategory = "vocabulary" | "grammar" | "listening" | "writing";
+export type GameCategory = "vocabulary" | "grammar" | "listening" | "writing" | "speaking";
 
 export type GameTemplate = {
   id: string;
@@ -44,6 +44,13 @@ const CATEGORIES: Record<GameCategory, { title: string; desc: string; icon: any;
     color: "text-red-600",
     bg: "bg-red-100",
   },
+  speaking: {
+    title: "Speaking",
+    desc: "Pronunciation, fluency, and speaking practice.",
+    icon: Mic,
+    color: "text-pink-600",
+    bg: "bg-pink-100",
+  },
 };
 
 const GAMES_DATA: Record<GameCategory, GameTemplate[]> = {
@@ -58,6 +65,7 @@ const GAMES_DATA: Record<GameCategory, GameTemplate[]> = {
     { id: "vocab_3d", type: "FLASHCARD_3D", title: "3D Word Matcher", description: "Match words with their translations in an interactive 3D card game.", difficulty: 1, timeEstimate: "8 mins" },
     { id: "vocab_collocation", type: "COLLOCATION_BUILDER", title: "Collocation Builder", description: "Build natural word combinations by matching collocations.", difficulty: 2, timeEstimate: "12 mins" },
     { id: "vocab_crossword", type: "CROSSWORD", title: "Vocabulary Crossword", description: "Solve a crossword puzzle using clues from your vocabulary list.", difficulty: 3, timeEstimate: "20 mins" },
+    { id: "vocab_memory", type: "MEMORY", title: "Memory Match", description: "Flip cards to find matching word and translation pairs.", difficulty: 1, timeEstimate: "10 mins" },
   ],
   grammar: [
     { id: "gram_sentence", type: "SENTENCE_BUILDER", title: "Sentence Builder", description: "Assemble the correct sentence structure from scrambled words.", difficulty: 1, timeEstimate: "8 mins" },
@@ -79,7 +87,11 @@ const GAMES_DATA: Record<GameCategory, GameTemplate[]> = {
     { id: "write_paragraph", type: "STORY", title: "Guided Paragraph", description: "Write a structured paragraph following guided prompts and templates.", difficulty: 2, timeEstimate: "25 mins" },
     { id: "write_rewrite", type: "FILL_BLANK", title: "Rewrite & Correct", description: "Rewrite sentences to fix errors and improve clarity.", difficulty: 3, timeEstimate: "15 mins" },
     { id: "write_complete", type: "FILL_GAP_WORD", title: "Sentence Completion", description: "Complete partial sentences with appropriate words and phrases.", difficulty: 1, timeEstimate: "10 mins" },
-    { id: "write_expand", type: "SPEAK_FILL_SENTENCE", title: "Sentence Expansion", description: "Expand simple sentences by adding adjectives, adverbs, and clauses.", difficulty: 2, timeEstimate: "12 mins" },
+  ],
+  speaking: [
+    { id: "speak_practice", type: "SPEAKING", title: "Speaking Practice", description: "Repeat, read aloud, or respond using your microphone.", difficulty: 2, timeEstimate: "10 mins" },
+    { id: "speak_fill_word", type: "SPEAK_FILL_WORD", title: "Speak & Fill Word", description: "Listen to audio and speak the missing word.", difficulty: 2, timeEstimate: "10 mins" },
+    { id: "speak_fill_sentence", type: "SPEAK_FILL_SENTENCE", title: "Speak & Complete", description: "Listen and speak the complete sentence aloud.", difficulty: 3, timeEstimate: "12 mins" },
   ],
 };
 

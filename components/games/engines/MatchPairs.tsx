@@ -9,34 +9,34 @@ export default function MatchPairs({ game, onComplete }: { game: FolderGame; onC
   const rounds = game.data.rounds || [];
   const g = useGame(rounds.length, onComplete);
   const r = rounds[g.i] || {};
-  const pairs = r.pairs || [];
-  const map = Object.fromEntries(pairs);
-  const left = pairs.map((p: any) => p[0]);
-  const right = useMemo(() => shuffle(pairs.map((p: any) => p[1])), [g.i]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pairs = r.pairs || []; // [[left, right], ...]
+  const left = pairs.map((p: any, pi: number) => ({ label: p[0], i: pi }));
+  const right = useMemo(() => shuffle(pairs.map((p: any, pi: number) => ({ label: p[1], i: pi }))), [g.i]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [selL, setSelL] = useState<string | null>(null);
-  const [matched, setMatched] = useState<Set<string>>(new Set());
+  // Match by PAIR INDEX, not by string value, so duplicate right-side labels
+  // (e.g. two words sharing a translation) can't lock the board forever.
+  const [selL, setSelL] = useState<number | null>(null);
+  const [matched, setMatched] = useState<Set<number>>(new Set());
   const [mistakes, setMistakes] = useState(0);
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, setFlash] = useState<number | null>(null);
 
-  function tapLeft(w: string) {
-    if (g.feedback || matched.has(w)) return;
-    setSelL(w);
+  function tapLeft(i: number) {
+    if (g.feedback || matched.has(i)) return;
+    setSelL(i);
   }
-  function tapRight(def: string) {
-    if (g.feedback || !selL || matched.has(def)) return;
-    if (map[selL] === def) {
+  function tapRight(item: { label: string; i: number }) {
+    if (g.feedback || selL === null || matched.has(item.i)) return;
+    if (selL === item.i) {
       const m = new Set(matched);
-      m.add(selL);
-      m.add(def);
+      m.add(item.i);
       setMatched(m);
       setSelL(null);
-      if (m.size === pairs.length * 2) {
+      if (m.size === pairs.length) {
         g.submit(mistakes === 0, mistakes === 0 ? "Perfect matching! 🎯" : `All matched, with ${mistakes} mistake${mistakes === 1 ? "" : "s"}.`);
       }
     } else {
       setMistakes((x) => x + 1);
-      setFlash(def);
+      setFlash(item.i);
       setTimeout(() => setFlash(null), 400);
     }
   }
@@ -53,16 +53,16 @@ export default function MatchPairs({ game, onComplete }: { game: FolderGame; onC
         <div className="tag">{game.data.task || "Match the pairs"}</div>
         <div className="pairs">
           <div className="pair-col">
-            {left.map((w: string) => (
-              <button key={w} className={"pair-item" + (matched.has(w) ? " done" : selL === w ? " sel" : "")} onClick={() => tapLeft(w)}>
-                {w}
+            {left.map((w: { label: string; i: number }) => (
+              <button key={w.i} className={"pair-item" + (matched.has(w.i) ? " done" : selL === w.i ? " sel" : "")} onClick={() => tapLeft(w.i)}>
+                {w.label}
               </button>
             ))}
           </div>
           <div className="pair-col">
-            {right.map((d: string) => (
-              <button key={d} className={"pair-item" + (matched.has(d) ? " done" : flash === d ? " no" : "")} onClick={() => tapRight(d)}>
-                {d}
+            {right.map((d: { label: string; i: number }) => (
+              <button key={d.i} className={"pair-item" + (matched.has(d.i) ? " done" : flash === d.i ? " no" : "")} onClick={() => tapRight(d)}>
+                {d.label}
               </button>
             ))}
           </div>

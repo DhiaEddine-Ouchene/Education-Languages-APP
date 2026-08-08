@@ -176,10 +176,12 @@ function tapwordData(items: GameItem[], _s: Record<string, any>) {
   };
 }
 
-function orderData(items: GameItem[], _s: Record<string, any>) {
+function orderData(items: GameItem[], _s: Record<string, any>, type?: string) {
+  // WORD_SCRAMBLE unscrambles a single word → use letter chips, not whole-word chips
   return {
+    mode: type === "WORD_SCRAMBLE" ? "letters" : "words",
     rounds: items.map((it: any) => ({
-      hint: it.hint || "Put the words in order",
+      hint: it.hint || (type === "WORD_SCRAMBLE" ? "Unscramble the letters" : "Put the words in order"),
       answer: it.answer || it.word || it.correctSentence || "",
     })),
   };
@@ -203,7 +205,7 @@ export function buildFolderGame(
     fillblank: fillblankData(items, s),
     texttask: texttaskData(items, s),
     tapword: tapwordData(items, s),
-    order: orderData(items, s),
+    order: orderData(items, s, type),
     match: matchData(items, s),
     sort: s.sortItems && s.sortItems.length
       ? { rounds: [{ categories: s.sortCategories || [], items: s.sortItems.map((i: any) => ({ word: i.word, cat: i.category || i.cat })) }] }

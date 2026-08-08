@@ -1,8 +1,8 @@
 You are a senior full-stack developer and UI/UX designer. 
 Build a complete, responsive, production-ready web application 
-called "EduPlay" — a white-label SaaS platform for language 
-learning, targeted at educators and content creators who want 
-to build and sell interactive language learning games and courses.
+called "EduPlay" — a SaaS platform for language 
+learning, targeted at educators who want 
+to build interactive language learning games and courses.
 
 ================================================================
 TECH STACK
@@ -23,7 +23,7 @@ Backend:
 - Prisma ORM
 - PostgreSQL database
 - NextAuth.js (authentication)
-- Stripe (subscriptions + marketplace payments)
+- Lemon Squeezy (subscriptions)
 - AWS S3 or Cloudinary (media uploads)
 - Resend or Nodemailer (emails)
 
@@ -44,15 +44,14 @@ User {
 }
 
 EducatorProfile {
-  id, userId, brandName, brandLogo, primaryColor, 
-  accentColor, customDomain, subscriptionPlan 
-  (FREE | STARTER | PRO | SCHOOL), stripeCustomerId, 
-  stripeSubscriptionId, monthlyRevenue, createdAt
+  id, userId, creatorType, subscriptionPlan 
+  (FREE | PRO | ULTIMATE), lemonSqueezyCustomerId, 
+  lemonSqueezySubscriptionId, createdAt
 }
 
 Course {
   id, title, description, language, level (A1-C2), 
-  coverImage, price, isPublished, isMarketplace, 
+  coverImage, isPublished, 
   educatorId, createdAt, updatedAt
 }
 
@@ -74,7 +73,7 @@ Game {
   (FLASHCARD | FILL_BLANK | DRAG_DROP | QUIZ | 
   DICTATION | MEMORY | SPEED_ROUND | STORY), 
   vocabularySetId, settings (JSON), isPublished, 
-  price, createdAt
+  createdAt
 }
 
 Class {
@@ -106,11 +105,6 @@ Badge {
 
 StudentBadge {
   id, studentId, badgeId, earnedAt
-}
-
-MarketplacePurchase {
-  id, buyerId, courseId, gameId, amount, 
-  stripePaymentId, createdAt
 }
 
 Subscription {
@@ -191,7 +185,7 @@ PAGES AND ROUTES STRUCTURE
 PUBLIC ROUTES:
 
 / — Landing page
-  - Navbar: logo, Features, Pricing, Marketplace, 
+  - Navbar: logo, Features, Pricing, 
     Login, Get Started
   - Hero: headline, subtitle, CTA buttons, 
     app mockup floating card right side
@@ -203,21 +197,12 @@ PUBLIC ROUTES:
   - Footer: links, social, copyright
 
 /pricing — Full pricing page
-  - Starter $19/mo: 50 students, basic games, 
-    your branding
-  - Pro $49/mo: unlimited students, white-label, 
-    custom domain, all games, analytics
-  - School $199/mo: multi-teacher, LMS ready, 
-    priority support
-  - Annual toggle: 20% off
+  - Free: basic features, limited students
+  - Pro $12/mo: unlimited classes & students, all game types, 
+    full analytics
+  - Ultimate $22/mo: co-teacher seats, export, priority support
+  - Annual toggle: save ~30%
   - FAQ accordion below cards
-
-/marketplace — Public browse
-  - Filter bar: language, type, price, level
-  - Course and game cards grid
-  - Each card: cover, title, creator, rating, 
-    price, students count
-  - Featured / editor picks row at top
 
 /auth/login — Login page
   - Email + password form
@@ -236,10 +221,10 @@ EDUCATOR ROUTES (/dashboard):
 /dashboard — Main dashboard
   - Welcome header with name and date
   - Stats row: Total Students, Active Classes, 
-    Games Published, Monthly Revenue
+    Games Published
   - My classes list with quick actions
-  - Quick action cards: Create Course, Build Game, 
-    View Reports, Customize Brand
+  - Quick action cards: Create Game, New Class, 
+    View Analytics
   - Recent activity feed
 
 /dashboard/courses — Course list
@@ -307,23 +292,6 @@ EDUCATOR ROUTES (/dashboard):
   - Student engagement rate per game (bar chart)
   - Time spent per student (line chart)
   - Export to CSV and PDF buttons
-
-/dashboard/marketplace — Educator marketplace tab
-  - My published content tab: 
-    list of published courses/games, 
-    sales count, revenue per item
-  - Browse tab: same as public marketplace
-  - Earnings summary: total revenue, 
-    pending payout, Stripe Connect status
-
-/dashboard/branding — White-label settings
-  - Two-column layout:
-    Left form: app name, tagline, logo upload, 
-    primary color picker, accent color picker, 
-    custom domain input + verify button
-  - Right: live phone frame preview updating 
-    in real time as settings change
-  - Save button
 
 /dashboard/settings — Account settings
   - Profile info, password change, 
@@ -424,7 +392,6 @@ ADMIN ROUTES (/admin):
   - Platform stats: total users, 
     MRR, active subscriptions, churn rate
   - Recent signups table
-  - Revenue chart (30 days line chart)
 
 /admin/users — All users table
   - Filter by role, plan, date
@@ -437,13 +404,7 @@ ADMIN ROUTES (/admin):
   - MRR breakdown by plan
   - Failed payments list
 
-/admin/marketplace — Marketplace moderation
-  - Pending approval queue
-  - Approved and rejected content lists
-  - Approve/reject with reason
-
 /admin/settings — Platform configuration
-  - Revenue share percentage setter
   - Promo code creator
   - Email template editor
 
@@ -468,9 +429,6 @@ UI components (extend shadcn/ui):
 - <StreakBadge /> — flame icon, days count
 - <SkillsRadar /> — recharts radar chart
 - <ActivityHeatmap /> — calendar grid component
-- <ColorPicker /> — hex input + visual picker
-- <LogoUpload /> — drag drop with preview
-- <PhonePreview /> — branded phone frame mockup
 - <LiveSessionBanner /> — real-time class game launcher
 - <ConfettiOverlay /> — canvas confetti on win
 - <LevelUpModal /> — full screen level celebration
@@ -537,80 +495,38 @@ POST   /api/progress — save game result
 GET    /api/progress/[studentId]/xp
 GET    /api/progress/[studentId]/badges
 
-Branding:
-GET    /api/branding
-PUT    /api/branding
-POST   /api/branding/domain/verify
-
 Billing:
 GET    /api/billing/plans
 POST   /api/billing/subscribe
 POST   /api/billing/cancel
 GET    /api/billing/history
-POST   /api/billing/webhook — Stripe webhook
-
-Marketplace:
-GET    /api/marketplace
-GET    /api/marketplace/[id]
-POST   /api/marketplace/purchase
-GET    /api/marketplace/my-sales
+POST   /api/billing/webhook — Lemon Squeezy webhook
 
 Admin:
 GET    /api/admin/stats
 GET    /api/admin/users
 PUT    /api/admin/users/[id]
 GET    /api/admin/subscriptions
-GET    /api/admin/marketplace/pending
-POST   /api/admin/marketplace/[id]/approve
-POST   /api/admin/marketplace/[id]/reject
 
 Upload:
 POST   /api/upload/image
 POST   /api/upload/audio
 
 ================================================================
-STRIPE INTEGRATION
+LEMON SQUEEZY INTEGRATION
 ================================================================
 
 Subscription plans:
-- price_starter: $19/month or $182/year
-- price_pro: $49/month or $470/year
-- price_school: $199/month or $1910/year
-
-Marketplace:
-- Use Stripe Connect for creator payouts
-- Platform takes 25% revenue share
-- Creators keep 75%
-- Monthly automatic payout via Stripe Connect
+- FREE: $0/month
+- PRO: $12/month or $99/year
+- ULTIMATE: $22/month or $179/year
 
 Webhooks to handle:
-- customer.subscription.created
-- customer.subscription.updated
-- customer.subscription.deleted
-- invoice.payment_failed
-- payment_intent.succeeded
-
-================================================================
-WHITE-LABEL ENGINE
-================================================================
-
-Each educator has their own brand applied to the 
-student-facing /learn/* routes.
-
-When a student visits /learn, load their class's 
-educator branding:
-- Replace app name with brandName
-- Replace logo with brandLogo
-- Apply primaryColor and accentColor as CSS variables
-- If customDomain is set and verified, 
-  serve the app on that domain via middleware
-
-In middleware.ts:
-- Detect custom domain from request headers
-- Load educator branding from database by domain
-- Inject branding as CSS custom properties
-- Student never sees "EduPlay" brand if educator 
-  has white-label active
+- subscription_created
+- subscription_updated
+- subscription_cancelled
+- subscription_expired
+- order_created
 
 ================================================================
 EMAIL NOTIFICATIONS
@@ -629,8 +545,6 @@ To educators:
 - Welcome + onboarding checklist
 - First student joined your class
 - Subscription renewal reminder
-- Marketplace sale notification
-- Monthly earnings summary
 
 ================================================================
 GAMIFICATION LOGIC
@@ -673,7 +587,6 @@ FOLDER STRUCTURE
 /app
   /page.tsx — landing
   /pricing/page.tsx
-  /marketplace/page.tsx
   /auth/login/page.tsx
   /auth/register/page.tsx
   /dashboard/layout.tsx
@@ -689,8 +602,6 @@ FOLDER STRUCTURE
   /dashboard/classes/new/page.tsx
   /dashboard/classes/[id]/page.tsx
   /dashboard/analytics/page.tsx
-  /dashboard/marketplace/page.tsx
-  /dashboard/branding/page.tsx
   /dashboard/settings/page.tsx
   /dashboard/billing/page.tsx
   /learn/layout.tsx
@@ -703,7 +614,6 @@ FOLDER STRUCTURE
   /admin/page.tsx
   /admin/users/page.tsx
   /admin/subscriptions/page.tsx
-  /admin/marketplace/page.tsx
   /admin/settings/page.tsx
   /api/[all routes listed above]
 
@@ -719,11 +629,10 @@ FOLDER STRUCTURE
 /lib
   /prisma.ts
   /auth.ts
-  /stripe.ts
+  /lemonsqueezy.ts
   /upload.ts
   /mail.ts
   /xp.ts
-  /branding.ts
 
 /prisma
   /schema.prisma

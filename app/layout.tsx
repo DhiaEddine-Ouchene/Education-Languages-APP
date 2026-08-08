@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ["latin"], weight: ["400", "500"], variable: "--f
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-heading" });
 
 export const metadata: Metadata = {
-  title: "EduPlay — Build and sell interactive language learning games",
-  description: "White-label SaaS platform for language learning games and courses.",
+  title: "EduPlay — Interactive language learning games",
+  description: "SaaS platform for interactive language learning games and courses.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

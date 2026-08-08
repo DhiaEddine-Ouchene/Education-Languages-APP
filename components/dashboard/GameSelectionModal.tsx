@@ -17,11 +17,12 @@ import {
   Loader2,
   Zap,
   Check,
+  Mic,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 
-export type GameCategoryKey = "vocabulary" | "grammar" | "listening" | "writing";
+export type GameCategoryKey = "vocabulary" | "grammar" | "listening" | "writing" | "speaking";
 
 export interface GameDefinition {
   id: string;
@@ -263,6 +264,43 @@ export const CATEGORIES: Record<
       },
     ],
   },
+  speaking: {
+    title: "Speaking Games",
+    subtitle: "Pronunciation, fluency, and speaking practice.",
+    icon: Mic,
+    color: "text-pink-600 dark:text-pink-400",
+    bgColor: "bg-pink-50 dark:bg-pink-950/40",
+    borderColor: "border-pink-200 dark:border-pink-800",
+    items: [
+      {
+        id: "speaking_practice",
+        type: "SPEAKING",
+        title: "Speaking Practice",
+        desc: "Repeat, read aloud, or respond using your microphone.",
+        diff: 2,
+        time: "10 mins",
+        anex: "SPEAKING",
+      },
+      {
+        id: "speak_fill_word",
+        type: "SPEAK_FILL_WORD",
+        title: "Speak & Fill Word",
+        desc: "Listen to audio and speak the missing word.",
+        diff: 2,
+        time: "10 mins",
+        anex: "SPEAKING",
+      },
+      {
+        id: "speak_fill_sentence",
+        type: "SPEAK_FILL_SENTENCE",
+        title: "Speak & Complete",
+        desc: "Listen and speak the complete sentence aloud.",
+        diff: 3,
+        time: "12 mins",
+        anex: "SPEAKING",
+      },
+    ],
+  },
 };
 
 interface GameSelectionModalProps {
@@ -325,6 +363,7 @@ export function GameSelectionModal({
           grammar: "GRAMMAR",
           listening: "LISTENING_WRITING",
           writing: "LISTENING_WRITING",
+          speaking: "SPEAKING",
         };
 
         const anex = anexMap[activeCategory];

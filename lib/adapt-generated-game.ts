@@ -156,6 +156,39 @@ export function adaptGeneratedGame(
  * lives in `game.settings` (rather than a vocabulary set). Falls back to the
  * existing generated/vocab path for all other types.
  */
+/**
+ * Merges type-table AI content (quizData / crosswordData / storyData) into the
+ * game's `settings` so the FolderGame engine can render it. AI generation stores
+ * QUIZ/MULTIPLE_CHOICE_GRAMMAR/ERROR_SPOTTING/WORD_IN_CONTEXT in `quizData`,
+ * CROSSWORD in `crosswordData`, and STORY in `storyData` — none of which live in
+ * the plain vocabulary items, so without this the player saw "Add content to play".
+ */
+export function mergeGameContent(
+  settings: Record<string, any>,
+  game: {
+    quizData?: { questions?: { prompt: string; options: unknown; correctAnswer: string; explanation?: string | null }[] } | null;
+    crosswordData?: { words?: unknown } | null;
+    storyData?: { prompt?: string | null; wordBank?: unknown } | null;
+  }
+): Record<string, any> {
+  const s = { ...(settings || {}) };
+  if (game.quizData?.questions?.length) {
+    s.questions = game.quizData.questions.map((q) => ({
+      prompt: q.prompt,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation ?? "",
+    }));
+  }
+  if (Array.isArray(game.crosswordData?.words) && game.crosswordData!.words.length) {
+    s.crosswordWords = game.crosswordData.words;
+  }
+  if (game.storyData?.prompt) {
+    s.writingData = { prompt: game.storyData.prompt, wordBank: game.storyData.wordBank || [], rules: [] };
+  }
+  return s;
+}
+
 export function adaptPlayItems(
   gameType: string,
   settings: Record<string, any>,

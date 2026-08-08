@@ -19,6 +19,7 @@ export function useGame(total: number, onComplete?: (correct: number, total: num
     setFeedback({ correct, explain });
   }
   function next() {
+    if (done) return; // guard against double-fire (e.g. result-screen Finish re-invoking next)
     setFeedback(null);
     if (i + 1 >= total) {
       setDone(true);

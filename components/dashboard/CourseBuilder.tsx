@@ -24,7 +24,7 @@ type Props = {
   games: GameOption[];
   initial?: {
     id: string; title: string; description: string; language: string; level: string;
-    coverImage: string | null; price: number; isPublished: boolean; isMarketplace: boolean;
+    coverImage: string | null; isPublished: boolean;
     lessons: LessonInput[];
   };
 };
@@ -42,9 +42,7 @@ export function CourseBuilder({ games, initial }: Props) {
     language: initial?.language ?? "Spanish",
     level: initial?.level ?? "A1",
     coverImage: initial?.coverImage ?? "",
-    price: initial?.price ?? 0,
     isPublished: initial?.isPublished ?? false,
-    isMarketplace: initial?.isMarketplace ?? false,
   });
   const [lessons, setLessons] = useState<LessonInput[]>(initial?.lessons?.filter((l) => l.type !== "game") ?? []);
   const [attachedGames, setAttachedGames] = useState<string[]>(
@@ -144,7 +142,7 @@ export function CourseBuilder({ games, initial }: Props) {
       const res = await fetch(initial ? `/api/courses/${initial.id}` : "/api/courses", {
         method: initial ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, price: Number(form.price), lessons: allLessons }),
+        body: JSON.stringify({ ...form, lessons: allLessons }),
       });
       if (!res.ok) { toast("error", "Failed to save course"); return; }
       toast("success", initial ? "Course updated" : "Course created");
@@ -268,9 +266,7 @@ export function CourseBuilder({ games, initial }: Props) {
         </>)}
 
         {step === 3 && (<>
-          <div><Label>Price (USD, 0 = free)</Label><Input type="number" min={0} step="0.01" value={form.price} onChange={(e) => set("price", e.target.value)} /></div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.isPublished} onChange={(e) => set("isPublished", e.target.checked)} /> Publish course</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.isMarketplace} onChange={(e) => set("isMarketplace", e.target.checked)} /> List on marketplace (requires admin approval)</label>
         </>)}
       </CardContent></Card>
 

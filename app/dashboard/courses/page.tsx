@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { formatCurrency } from "@/lib/utils";
 import { Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -44,10 +43,9 @@ export default async function CoursesPage({ searchParams }: { searchParams: { q?
                 <CardContent className="pt-3">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge variant={c.isPublished ? "accent" : "outline"}>{c.isPublished ? "Published" : "Draft"}</Badge>
-                    {c.isMarketplace && <Badge>Marketplace</Badge>}
                   </div>
                   <h3 className="font-heading font-semibold">{c.title}</h3>
-                  <p className="text-xs text-txt-secondary">{c.language} · {c.level} · {c._count.lessons} lessons · {c.price > 0 ? formatCurrency(c.price) : "Free"}</p>
+                  <p className="text-xs text-txt-secondary">{c.language} · {c.level} · {c._count.lessons} lessons</p>
                 </CardContent>
               </Card>
             </Link>

@@ -81,6 +81,26 @@ const gameLabels: Record<string, string> = {
   SPEAKING: "Speaking Practice",
 };
 
+// Some AI game types store their content in `settings` (SENTENCE_FILL / audio /
+// category-sort / transformation / writing / speaking) rather than in vocabulary
+// items. The player should NOT show "Add content to play" when that content exists.
+function hasSettingsContent(settings: GameSettings | Record<string, unknown>): boolean {
+  const s = settings as Record<string, any>;
+  const d = s?.data;
+  return Boolean(
+    s?.questions?.length ||
+      s?.dialogueItems?.length ||
+      s?.sentenceItems?.length ||
+      s?.oddOneOutItems?.length ||
+      s?.sortItems?.length ||
+      s?.speakingItems?.length ||
+      s?.transformationItems?.length ||
+      s?.crosswordWords?.length ||
+      s?.writingData?.prompt ||
+      (d && (d.rounds?.length || d.pairs?.length || d.entries?.length || d.prompt || d.rules))
+  );
+}
+
 export function GamePlayer({ gameId, title, type, items, settings, previewMode = false }: Props) {
   const [result, setResult] = useState<(Result & { score: number; timeTaken: number }) | null>(null);
   const [showLevelUp, setShowLevelUp] = useState(false);
@@ -126,7 +146,7 @@ export function GamePlayer({ gameId, title, type, items, settings, previewMode =
     setRound((r) => r + 1);
   };
 
-  if (items.length === 0) {
+  if (items.length === 0 && !hasSettingsContent(settings)) {
     return (
       <div className="mx-auto max-w-xl rounded-card border border-dashed border-border bg-card p-8 text-center shadow-card">
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-pill bg-primary-light text-2xl">🎮</div>

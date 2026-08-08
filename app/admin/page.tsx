@@ -5,7 +5,6 @@ import { PLAN_MRR } from "@/lib/lemonsqueezy";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RevenueChart } from "@/components/admin/RevenueChart";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Users, DollarSign, Receipt, TrendingDown } from "lucide-react";
 
@@ -16,29 +15,17 @@ export default async function AdminPage() {
   if (!session || session.user.role !== "SUPER_ADMIN") redirect("/");
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const [totalUsers, profiles, activeSubs, cancelledRecent, totalSubs, recentSignups, purchases] = await Promise.all([
+  const [totalUsers, profiles, activeSubs, cancelledRecent, totalSubs, recentSignups] = await Promise.all([
     prisma.user.count(),
     prisma.educatorProfile.findMany({ select: { subscriptionPlan: true } }),
     prisma.subscription.count({ where: { status: "ACTIVE" } }),
     prisma.subscription.count({ where: { status: "CANCELLED", createdAt: { gte: thirtyDaysAgo } } }),
     prisma.subscription.count(),
     prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 8, select: { id: true, name: true, email: true, role: true, createdAt: true } }),
-    prisma.marketplacePurchase.findMany({ where: { createdAt: { gte: thirtyDaysAgo } } }),
   ]);
 
   const mrr = profiles.reduce((s, p) => s + (PLAN_MRR[p.subscriptionPlan] ?? 0), 0);
   const churn = totalSubs > 0 ? Math.round((cancelledRecent / totalSubs) * 100) : 0;
-
-  const revenue: { day: string; amount: number }[] = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = d.toDateString();
-    revenue.push({
-      day: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      amount: purchases.filter((p) => p.createdAt.toDateString() === key).reduce((s, p) => s + p.amount, 0),
-    });
-  }
 
   return (
     <div className="space-y-6">
@@ -49,10 +36,6 @@ export default async function AdminPage() {
         <StatCard icon={Receipt} value={activeSubs} label="Active subscriptions" />
         <StatCard icon={TrendingDown} value={`${churn}%`} label="Churn (30d)" />
       </div>
-      <Card>
-        <CardHeader><CardTitle>Marketplace revenue (30 days)</CardTitle></CardHeader>
-        <CardContent className="h-64"><RevenueChart data={revenue} /></CardContent>
-      </Card>
       <Card>
         <CardHeader><CardTitle>Recent signups</CardTitle></CardHeader>
         <CardContent>

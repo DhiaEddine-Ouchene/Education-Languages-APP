@@ -3,14 +3,6 @@ import { getToken } from "next-auth/jwt";
 
 export async function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
-  const host = (req.headers.get("host") ?? "").toLowerCase();
-  const appDomain = (process.env.NEXT_PUBLIC_APP_DOMAIN ?? "localhost:3000").toLowerCase();
-
-  // White-label: detect custom domain
-  if (host && host !== appDomain) {
-    requestHeaders.set("x-brand-domain", host);
-  }
-
   const { pathname } = req.nextUrl;
   const isProtected = ["/dashboard", "/learn", "/admin"].some((p) => pathname.startsWith(p));
 

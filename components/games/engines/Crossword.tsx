@@ -52,7 +52,13 @@ export default function Crossword({ game, onComplete }: { game: FolderGame; onCo
       else if (v !== ch) bad.push(k);
     }
     setWrong(new Set(bad));
-    if (bad.length === 0 && filled) g.submit(true, "Crossword complete! 🧩");
+    if (bad.length === 0 && filled) {
+      g.submit(true, "Crossword complete! 🧩");
+    } else if (bad.length > 0) {
+      g.submit(false, `${bad.length} wrong. Fix them, or press Finish to move on.`);
+    } else {
+      g.submit(false, "Some cells are empty. Fill every cell, or press Finish to move on.");
+    }
   }
   function reset() {
     setVals({});

@@ -29,7 +29,7 @@ export default async function StudentClassesPage() {
             <Card key={m.id}><CardContent className="pt-4">
               <h3 className="font-heading font-semibold">{m.class.name}</h3>
               <p className="text-xs text-txt-secondary">
-                {m.class.language} · {m.class.level} · taught by {m.class.educator.brandName ?? m.class.educator.user.name}
+                {m.class.language} · {m.class.level} · taught by {m.class.educator.user.name}
               </p>
               <p className="text-xs text-txt-secondary mt-1">{m.class._count.members} students · joined {formatDate(m.joinedAt)}</p>
             </CardContent></Card>
