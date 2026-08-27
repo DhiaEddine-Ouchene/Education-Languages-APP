@@ -100,7 +100,6 @@ export async function POST(req: Request) {
           educatorId: educator.id,
           title: `${targetLanguage} ${level} – ${gameType.replace(/_/g, " ")}`,
           type: gameType as any,
-          vocabularySetId: result.wordSetId || null,
           settings: { generated: result.data } as object,
           isPublished: false,
           generationStatus: "ready",

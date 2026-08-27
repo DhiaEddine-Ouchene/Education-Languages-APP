@@ -84,7 +84,6 @@ ALLOWED GAME TYPES:
 - ODD_ONE_OUT
 - SENTENCE_BUILDER
 - ERROR_SPOTTING
-- FILL_BLANK_GRAMMAR
 - VERB_CONJUGATION
 - MULTIPLE_CHOICE_GRAMMAR
 - LISTEN_FILL_WORD
@@ -153,7 +152,6 @@ export const grammarItemSchema = z.object({
   gameType: z.enum([
     "SENTENCE_BUILDER",
     "ERROR_SPOTTING",
-    "FILL_BLANK_GRAMMAR",
     "VERB_CONJUGATION",
     "MULTIPLE_CHOICE_GRAMMAR",
   ]),
@@ -250,8 +248,8 @@ ${params.lessonContent}
 """
 
 Identify the ${targetCount} most useful grammar points actually present or implied in this lesson (e.g. a verb tense used, a sentence structure, a common error at this level) and build one exercise item per point. Vary the gameType across the set rather than repeating one. For each item return:
-- gameType: one of SENTENCE_BUILDER, ERROR_SPOTTING, FILL_BLANK_GRAMMAR, VERB_CONJUGATION, MULTIPLE_CHOICE_GRAMMAR
-- prompt: the sentence or instruction shown to the student. Use "___" for a blank in FILL_BLANK_GRAMMAR, show the flawed sentence in ERROR_SPOTTING, show scrambled/unordered words in SENTENCE_BUILDER, show the sentence with the question in MULTIPLE_CHOICE_GRAMMAR
+- gameType: one of SENTENCE_BUILDER, ERROR_SPOTTING, VERB_CONJUGATION, MULTIPLE_CHOICE_GRAMMAR
+- prompt: the sentence or instruction shown to the student. show the flawed sentence in ERROR_SPOTTING, show scrambled/unordered words in SENTENCE_BUILDER, show the sentence with the question in MULTIPLE_CHOICE_GRAMMAR
 - correctAnswer: the correct word, sentence, or corrected version
 - distractors: 2-4 wrong options (only needed for MULTIPLE_CHOICE_GRAMMAR and ERROR_SPOTTING style hints; empty array otherwise)
 - rule: a short, student-friendly explanation of the grammar rule behind this item, in plain language

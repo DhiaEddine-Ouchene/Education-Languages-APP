@@ -7,15 +7,15 @@ const schema = z.object({
   title: z.string().min(3),
   type: z.enum([
     "FLASHCARD", "FILL_BLANK", "DRAG_DROP", "QUIZ", "DICTATION", "MEMORY", "SPEED_ROUND", "STORY",
-    "SYNONYM_ANTONYM", "FILL_GAP_WORD", "WORD_MEANING_MATCH", "SITUATION_DIALOGUE_FILL",
-    "WORD_IN_CONTEXT", "WORD_SCRAMBLE", "ODD_ONE_OUT", "CATEGORY_SORT",
-    "SENTENCE_BUILDER", "ERROR_SPOTTING", "FILL_BLANK_GRAMMAR", "VERB_CONJUGATION", "MULTIPLE_CHOICE_GRAMMAR",
+    "SYNONYM_ANTONYM", "FILL_GAP_WORD", "SITUATION_DIALOGUE_FILL",
+    "WORD_SCRAMBLE", "CATEGORY_SORT",
+    "WORD_MEANING_MATCH", "WORD_IN_CONTEXT", "ODD_ONE_OUT", "COLLOCATION_BUILDER",
+    "SENTENCE_BUILDER", "ERROR_SPOTTING", "VERB_CONJUGATION", "MULTIPLE_CHOICE_GRAMMAR",
     "TRANSFORMATION",
     "LISTEN_FILL_WORD", "LISTEN_FILL_SENTENCE", "SPEAK_FILL_WORD", "SPEAK_FILL_SENTENCE",
     "WRITING_RUBRIC", "SPEAKING",
-    "CROSSWORD", "COLLOCATION_BUILDER", "FLASHCARD_3D", "MINIMAL_PAIR", "PICTURE_TO_WORD",
+    "CROSSWORD", "FLASHCARD_3D", "MINIMAL_PAIR", "PICTURE_TO_WORD",
   ]),
-  vocabularySetId: z.string().min(1).optional().nullable(),
   settings: z.record(z.unknown()).default({}),
   isPublished: z.boolean().default(false),
   builderData: z.record(z.unknown()).optional(),
@@ -27,7 +27,6 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const game = await prisma.game.findFirst({
     where: { id: params.id, educatorId: profile!.id },
     include: {
-      vocabularySet: { include: { items: true } },
       flashcardData: { include: { pairs: { orderBy: { order: "asc" } } } },
       quizData: { include: { questions: { orderBy: { order: "asc" } } } },
       crosswordData: true,
@@ -54,7 +53,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       data: {
         title: body.data.title,
         type: body.data.type as any,
-        vocabularySetId: body.data.vocabularySetId || null,
         settings: body.data.settings as object,
         isPublished: body.data.isPublished,
       },
@@ -66,7 +64,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       const type = body.data.type;
 
       // Flashcard-type games (word pairs)
-      if (["FLASHCARD","WORD_SCRAMBLE","PICTURE_TO_WORD","COLLOCATION_BUILDER","FLASHCARD_3D","ODD_ONE_OUT","MEMORY","WORD_MEANING_MATCH","MINIMAL_PAIR","SPEED_ROUND"].includes(type)) {
+      if (["FLASHCARD","WORD_SCRAMBLE","PICTURE_TO_WORD","FLASHCARD_3D","MEMORY","MINIMAL_PAIR","SPEED_ROUND"].includes(type)) {
         const pairs = (bd.pairs as any[]) || [];
         if (pairs.length > 0) {
           const existingFc = await prisma.flashcardData.findUnique({ where: { gameId: game.id } });
@@ -125,7 +123,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       }
 
       // Sentence-fill-type games
-      if (["FILL_GAP_WORD","FILL_BLANK","FILL_BLANK_GRAMMAR","DRAG_DROP","SITUATION_DIALOGUE_FILL","SENTENCE_BUILDER","LISTEN_FILL_WORD","LISTEN_FILL_SENTENCE","SPEAK_FILL_WORD","SPEAK_FILL_SENTENCE","DICTATION"].includes(type)) {
+      if (["FILL_GAP_WORD","FILL_BLANK","DRAG_DROP","SITUATION_DIALOGUE_FILL","SENTENCE_BUILDER","LISTEN_FILL_WORD","LISTEN_FILL_SENTENCE","SPEAK_FILL_WORD","SPEAK_FILL_SENTENCE","DICTATION"].includes(type)) {
         const sentenceItems = (bd.sentenceItems as any[]) || [];
         if (sentenceItems.length > 0) {
           const existingSettings = (game.settings as Record<string, any>) || {};
@@ -147,7 +145,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       }
 
       // Quiz-type games
-      if (["QUIZ","MULTIPLE_CHOICE_GRAMMAR","ERROR_SPOTTING","WORD_IN_CONTEXT"].includes(type)) {
+      if (["QUIZ","MULTIPLE_CHOICE_GRAMMAR","ERROR_SPOTTING"].includes(type)) {
         const questions = (bd.questions as any[]) || [];
         if (questions.length > 0) {
           const existingQuiz = await prisma.quizData.findUnique({ where: { gameId: game.id } });
@@ -309,17 +307,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         });
       }
 
-      if (type === "ODD_ONE_OUT") {
-        await prisma.game.update({
-          where: { id: game.id },
-          data: {
-            settings: {
-              ...existingSettings,
-              oddOneOutItems: (bd.oddOneOutItems as any[]) || [],
-            },
-          },
-        });
-      }
     }
 
     const updatedGame = await prisma.game.findUnique({

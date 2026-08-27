@@ -143,23 +143,40 @@ export function mapAiResponseToBuilderData(gameType: string, aiData: any): Recor
         });
       });
     } else if (gameType === "SITUATION_DIALOGUE_FILL" && rawItems.length > 0) {
-      // Dialogue structure: { scenario, lines:[{speaker,text,isBlank}], blanks:[{lineIndex,correctAnswer,distractors}] }
+      // Dialogue structure: { scenario, lines:[{speaker,text,isBlank,role}], blanks:[{lineIndex,correctAnswer,distractors}] }
       // Emit the shape DialogueBuilder reads: dialogueItems.
       const dialogueItems = rawItems.map((dialogue: any) => {
         const lines: any[] = Array.isArray(dialogue.lines) ? dialogue.lines : [];
         const topBlanks: any[] = Array.isArray(dialogue.blanks) ? dialogue.blanks : [];
 
-        // Resolve blanks (top-level preferred; fall back to lines[].blanks / isBlank)
+        // The learner's side ("you") is determined by the speaker's ROLE, never by
+        // which line happens to hold the blank. This keeps the other character
+        // (waiter, taxi driver, etc.) always speaking full, normal lines, and only
+        // the learner's own turn ever contains a gap to fill.
+        // Prefer an explicit role tag; otherwise fall back to the classic alternating
+        // convention where the learner is the 2nd, 4th, 6th... speaker (index 1, 3, 5…).
+        const isYouLine = (line: any, i: number) => {
+          if (line.role === "you" || line.role === "learner" || line.role === "student") return true;
+          if (line.role === "other" || line.role === "npc") return false;
+          return i % 2 === 1;
+        };
+
+        // Resolve blanks (top-level preferred; fall back to lines[].blanks / isBlank),
+        // but only ever accept a blank that lands on the learner's ("you") line.
         const resolved: { answer: string; options: string[]; lineIndex: number }[] = [];
         topBlanks.forEach((b: any) => {
+          const lineIndex = typeof b.lineIndex === "number" ? b.lineIndex : 0;
+          const line = lines[lineIndex];
+          if (line && !isYouLine(line, lineIndex)) return; // skip blanks on the other speaker's line
           resolved.push({
             answer: b.correctAnswer || "",
             options: (b.distractors || b.options || []).slice(0, 3),
-            lineIndex: typeof b.lineIndex === "number" ? b.lineIndex : 0,
+            lineIndex,
           });
         });
         if (!resolved.length) {
           lines.forEach((line: any, i: number) => {
+            if (!isYouLine(line, i)) return;
             if (Array.isArray(line.blanks) && line.blanks.length) {
               line.blanks.forEach((b: any) =>
                 resolved.push({ answer: b.correctAnswer || "", options: (b.distractors || b.options || []).slice(0, 3), lineIndex: i })
@@ -169,17 +186,26 @@ export function mapAiResponseToBuilderData(gameType: string, aiData: any): Recor
             }
           });
         }
+        // Last resort: if nothing resolved (e.g. AI marked isBlank on the wrong
+        // speaker only), force the blank onto the learner's last line so the
+        // exercise still asks the learner to speak, not the other character.
+        if (!resolved.length && lines.length > 1) {
+          const fallbackIndex = lines.length - (lines.length % 2 === 0 ? 1 : 2);
+          const line = lines[fallbackIndex];
+          if (line) resolved.push({ answer: line.text || "", options: [], lineIndex: fallbackIndex });
+        }
 
-        const blankIndexes = new Set(resolved.map((r) => r.lineIndex));
+        const blankLineIndex = resolved[0]?.lineIndex ?? -1;
         return {
           scenario: dialogue.scenario || "",
           lines: lines.map((line: any, i: number) => ({
-            name: line.speaker || (blankIndexes.has(i) ? "You" : "Speaker"),
-            s: blankIndexes.has(i) ? "B" : "A",
+            name: line.speaker || (isYouLine(line, i) ? "You" : "Speaker"),
+            s: isYouLine(line, i) ? "B" : "A",
             text: line.text || line.text_target || "",
           })),
           answer: resolved[0]?.answer || "",
           options: resolved[0]?.options || [],
+          answerLineIndex: blankLineIndex,
         };
       });
       return { dialogueItems };
@@ -189,12 +215,12 @@ export function mapAiResponseToBuilderData(gameType: string, aiData: any): Recor
         let correctAnswer = item.correctAnswer || "";
         let distractors: string[] = [];
 
-        if (gameType === "FILL_BLANK_GRAMMAR") {
-          correctAnswer = item.correctConjugation || correctAnswer;
-          if (item.baseVerb) distractors.push(item.baseVerb);
-        } else if (gameType === "FILL_BLANK") {
+        if (gameType === "FILL_BLANK") {
           sentence = item.flawedSentence_target || item.flawedSentence || sentence;
           correctAnswer = item.guideline_target || item.guideline || correctAnswer || "Improve this sentence";
+        } else if (gameType === "FILL_BLANK_GRAMMAR") {
+          sentence = item.sentenceWithBlank || item.sentenceWithBlank_target || sentence;
+          correctAnswer = item.correctWord || item.correctWord_target || correctAnswer;
         } else if (["DICTATION", "SENTENCE_BUILDER", "LISTEN_FILL_SENTENCE", "SPEAK_FILL_SENTENCE"].includes(gameType)) {
           if (!correctAnswer) correctAnswer = sentence;
         }
@@ -217,7 +243,64 @@ export function mapAiResponseToBuilderData(gameType: string, aiData: any): Recor
     return { sentenceItems };
   }
 
-  // 7. PAIR_BUILDER_TYPES (DEFAULT)
+  // 7. SPEAKING — mic rounds
+  if (gameType === "SPEAKING") {
+    const rawItems = Array.isArray(aiData.items) ? aiData.items : (Array.isArray(aiData) ? aiData : []);
+    const speakingItems = rawItems.map((item: any, i: number) => ({
+      id: item.id || `sp-${i}-${Math.random().toString(36).slice(2, 6)}`,
+      mode: item.mode || "repeat",
+      task: item.task || "",
+      display: item.display || "",
+      target: item.target || "",
+      keywords: Array.isArray(item.keywords) ? item.keywords : [],
+      note: item.note || "",
+      audioText: item.audioText || "",
+      image: item.image || "",
+    }));
+    return { speakingItems };
+  }
+
+  // 8. CATEGORY_SORT — categories + items
+  if (gameType === "CATEGORY_SORT") {
+    const rawItems = Array.isArray(aiData.items) ? aiData.items : (Array.isArray(aiData) ? aiData : []);
+    const sortCategories = rawItems.map((c: any) => c.category || "").filter(Boolean);
+    const sortItems = rawItems.flatMap((c: any) =>
+      (Array.isArray(c.words) ? c.words : []).map((w: string) => ({ word: w, category: c.category || "" }))
+    );
+    return { sortCategories, sortItems };
+  }
+
+  // 9. TRANSFORMATION — instruction + prompt + answers
+  if (gameType === "TRANSFORMATION") {
+    const rawItems = Array.isArray(aiData.items) ? aiData.items : (Array.isArray(aiData) ? aiData : []);
+    const transformationItems = rawItems.map((item: any, i: number) => ({
+      id: item.id || `tf-${i}-${Math.random().toString(36).slice(2, 6)}`,
+      instruction: item.instruction || "",
+      prompt: item.prompt || "",
+      answers: Array.isArray(item.answers) ? item.answers.filter(Boolean) : [item.answer || ""],
+    }));
+    return { transformationItems };
+  }
+
+  // 10. WRITING_RUBRIC — prompt + word bank + starter + a sensible default rubric rule
+  if (gameType === "WRITING_RUBRIC") {
+    const rawItems = Array.isArray(aiData.items) ? aiData.items : (Array.isArray(aiData) ? aiData : []);
+    const first = rawItems[0] || {};
+    const wordBank = Array.isArray(first.wordBank) ? first.wordBank : [];
+    const rules = wordBank.length
+      ? [{ op: "includes", a: wordBank.join(", "), b: String(wordBank.length) }]
+      : [{ op: "minWords", a: "80", b: "" }];
+    return {
+      prompt: first.prompt || first.prompt_target || "",
+      wordBank,
+      starter: first.starter || "",
+      note: "",
+      teacherReview: true,
+      rules,
+    };
+  }
+
+  // 11. PAIR_BUILDER_TYPES (DEFAULT)
   const rawItems = Array.isArray(aiData.items) ? aiData.items : (Array.isArray(aiData) ? aiData : []);
   const pairs = rawItems.map((item: any, i: number) => {
     let word = item.word || item.word_target || "";

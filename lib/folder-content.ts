@@ -69,12 +69,6 @@ export const GAMES: FolderGameContent[] = [
     { answer: "school", hint: "Where students learn 🏫" },
     { answer: "orange", hint: "A fruit and a colour 🍊" },
   ] } },
-  { id: "odd-one-out", cat: "vocabulary", emoji: "🎯", title: "Odd One Out", desc: "Find the word that doesn't belong", engine: "mcq", data: { rounds: [
-    { sub: "Which word does NOT belong?", options: ["apple", "banana", "cherry", "spoon"], answer: "spoon", explain: "The others are fruits; a spoon is cutlery." },
-    { sub: "Which word does NOT belong?", options: ["dog", "cat", "horse", "table"], answer: "table", explain: "The others are animals; a table is furniture." },
-    { sub: "Which word does NOT belong?", options: ["run", "jump", "swim", "chair"], answer: "chair", explain: "The others are verbs of movement; 'chair' is a noun." },
-    { sub: "Which word does NOT belong?", options: ["red", "blue", "green", "loud"], answer: "loud", explain: "The others are colours; 'loud' describes sound." },
-  ] } },
   { id: "picture-word", cat: "vocabulary", emoji: "🖼️", title: "Picture to Word", desc: "Name what you see", engine: "mcq", data: { rounds: [
     { sub: "What do you see?", image: "🐘", options: ["elephant", "mouse", "giraffe", "lion"], answer: "elephant" },
     { sub: "What do you see?", image: "🌧️", options: ["rain", "sun", "snow", "wind"], answer: "rain" },
@@ -85,12 +79,6 @@ export const GAMES: FolderGameContent[] = [
       { word: "spoon", cat: "Kitchen" }, { word: "passport", cat: "Travel" }, { word: "stapler", cat: "Office" },
       { word: "oven", cat: "Kitchen" }, { word: "suitcase", cat: "Travel" }, { word: "keyboard", cat: "Office" },
     ] },
-  ] } },
-  { id: "collocation", cat: "vocabulary", emoji: "🤝", title: "Collocation Builder", desc: "Pick the natural word pair", engine: "mcq", data: { rounds: [
-    { sub: "Complete the phrase", prompt: "___ a decision", options: ["make", "do", "run", "say"], answer: "make", explain: "We say 'make a decision', not 'do a decision'." },
-    { sub: "Complete the phrase", prompt: "___ your homework", options: ["do", "make", "take", "give"], answer: "do", explain: "We say 'do homework', not 'make homework'." },
-    { sub: "Complete the phrase", prompt: "___ a photo", options: ["take", "do", "catch", "put"], answer: "take", explain: "We say 'take a photo'." },
-    { sub: "Complete the phrase", prompt: "___ attention", options: ["pay", "spend", "make", "give?"], answer: "pay", explain: "We say 'pay attention'." },
   ] } },
   { id: "crossword", cat: "vocabulary", emoji: "🧩", title: "Travel Crossword", desc: "End-of-unit vocabulary review", engine: "crossword", data: { entries: [
     { word: "TICKET", clue: "You need this to board a train or plane.", row: 0, col: 0, dir: "across" },

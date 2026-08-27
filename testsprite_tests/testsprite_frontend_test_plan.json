@@ -1,0 +1,1861 @@
+[
+  {
+    "id": "TC001",
+    "title": "Register a new account and verify email",
+    "description": "This verifies a new user can create an account, complete email verification, and reach an active signed-in state.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the registration email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the registration password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the verification code field with a valid code"
+      },
+      {
+        "type": "action",
+        "description": "Submit the verification form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a signed-in account state is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user can access the authenticated area"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Log in with valid credentials",
+    "description": "This verifies a registered user can sign in successfully and reach the authenticated experience.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a signed-in account state is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the authenticated area is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Student joins a class by code",
+    "description": "This test verifies that a student can join a class using a valid code and becomes part of the class roster.",
+    "category": "Classes and Student Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the class join page"
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid class code"
+      },
+      {
+        "type": "action",
+        "description": "Submit the join request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the student is shown as joined to the class"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the class membership or roster is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Stay signed in after reopening the app",
+    "description": "This verifies a logged-in user remains authenticated after a browser restart and can continue using the app without signing in again.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user remains signed in"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the authenticated area is still available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Subscribe to a paid plan",
+    "description": "This verifies a teacher can start a subscription from the available billing plans.",
+    "category": "Billing and Subscriptions",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the billing plans page"
+      },
+      {
+        "type": "action",
+        "description": "Select a paid plan"
+      },
+      {
+        "type": "action",
+        "description": "Start the subscription"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a subscription initiation confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Recover access with a password reset",
+    "description": "This verifies a user can request a reset code, confirm it, and set a new password to regain access.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password reset email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Request a password reset code"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the reset code field with a valid code"
+      },
+      {
+        "type": "action",
+        "description": "Submit the reset code confirmation"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the new password field with a valid new password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the password reset form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a password updated confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user can sign in with the new password"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Teacher creates a class and manages its details",
+    "description": "This test verifies that a teacher can create a class, open it, and update its class configuration successfully.",
+    "category": "Classes and Student Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the class management page"
+      },
+      {
+        "type": "action",
+        "description": "Create a new class with a unique name and settings"
+      },
+      {
+        "type": "action",
+        "description": "Open the newly created class"
+      },
+      {
+        "type": "action",
+        "description": "Update the class name or settings"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated class details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the class appears in the teacher's class list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Publish a game for student play",
+    "description": "This verifies a teacher can publish a game and make it available for student play or marketplace visibility.",
+    "category": "Game Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to an existing game from the game list"
+      },
+      {
+        "type": "action",
+        "description": "Publish the game"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game is marked as published"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game is available in student play views"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Cancel an active subscription",
+    "description": "This verifies a teacher can cancel an active subscription and see the updated billing status.",
+    "category": "Billing and Subscriptions",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the billing history page"
+      },
+      {
+        "type": "action",
+        "description": "Cancel the active subscription"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the subscription status shows as cancelled"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Teacher creates and manages a vocabulary set",
+    "description": "This test verifies that a teacher can create a vocabulary set, add items, view the full set, update it, and delete it successfully.",
+    "category": "Vocabulary Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the vocabulary management page"
+      },
+      {
+        "type": "action",
+        "description": "Create a new vocabulary set with a unique title and description"
+      },
+      {
+        "type": "action",
+        "description": "Add a new vocabulary item with a word, definition, and example"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the vocabulary set is displayed with its items"
+      },
+      {
+        "type": "action",
+        "description": "Update the vocabulary set title or description"
+      },
+      {
+        "type": "action",
+        "description": "Delete the vocabulary set"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the vocabulary set is no longer available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Teacher creates a course and publishes it",
+    "description": "This verifies a teacher can create a course, update it with complete content, and publish it for learners.",
+    "category": "Courses and Lessons",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the courses area"
+      },
+      {
+        "type": "action",
+        "description": "Create a new course with valid details"
+      },
+      {
+        "type": "action",
+        "description": "Update the course with complete content"
+      },
+      {
+        "type": "action",
+        "description": "Publish the course"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the published course is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the course is marked as available for learners"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Play a game as a visitor",
+    "description": "A visitor can open a public game and begin the student play flow.",
+    "category": "Educational Game Engines",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to a valid public game in the play view"
+      },
+      {
+        "type": "action",
+        "description": "Click the control to begin the game"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game play interface is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game can be started"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Create a game and save it to the library",
+    "description": "This verifies a teacher can create a new game and see it appear in their game list with saved details.",
+    "category": "Game Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the game creation area"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the required game details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the game creation form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new game appears in the game list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the saved game details are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Continue a game from start to finish",
+    "description": "A visitor can complete the full student play flow and reach the end state of the game.",
+    "category": "Educational Game Engines",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to a valid public game in the play view"
+      },
+      {
+        "type": "action",
+        "description": "Click the control to begin the game"
+      },
+      {
+        "type": "action",
+        "description": "Complete the required in-game responses"
+      },
+      {
+        "type": "action",
+        "description": "Submit the completed game"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a completion state is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game result is shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Buy a marketplace game",
+    "description": "This verifies a teacher can purchase an available marketplace game and add it to their library.",
+    "category": "Marketplace",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the marketplace page"
+      },
+      {
+        "type": "action",
+        "description": "Select an available published game"
+      },
+      {
+        "type": "action",
+        "description": "Purchase the selected game"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game is added to the user's library"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Preview a game as a teacher",
+    "description": "An authenticated teacher can open the learning preview for a game and inspect how it works before assigning it.",
+    "category": "Educational Game Engines",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to a valid game in the learn view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the teacher preview interface is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify game guidance or preview content is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Record game play progress",
+    "description": "This verifies a completed play session is saved so progress can be tracked later by the teacher.",
+    "category": "Game Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to an existing playable game"
+      },
+      {
+        "type": "action",
+        "description": "Complete the play flow"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify play progress is recorded"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the completed play session is visible in progress tracking"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Teacher assigns work to a class",
+    "description": "This test verifies that a teacher can assign valid work to a class and see the assignment appear in the class view.",
+    "category": "Classes and Student Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the class management page"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing class"
+      },
+      {
+        "type": "action",
+        "description": "Assign an existing game or lesson to the class"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new assignment is displayed in the class view"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "Update an existing game configuration",
+    "description": "This verifies a teacher can edit a saved game and see the updated configuration reflected in the game details.",
+    "category": "Game Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to an existing game from the game list"
+      },
+      {
+        "type": "action",
+        "description": "Update the game configuration"
+      },
+      {
+        "type": "action",
+        "description": "Save the game changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated game configuration is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game remains available in the library"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC020",
+    "title": "Block unauthenticated teacher preview access",
+    "description": "A visitor cannot open the teacher preview view for a game without signing in.",
+    "category": "Educational Game Engines",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to a valid game in the learn view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an authorization error is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the teacher preview interface is not displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC021",
+    "title": "Teacher reviews student progress and awards XP or a badge",
+    "description": "This test verifies that a teacher can open a student progress view and award XP or a badge successfully.",
+    "category": "Student Progress Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the progress management page"
+      },
+      {
+        "type": "action",
+        "description": "Open a student progress record"
+      },
+      {
+        "type": "action",
+        "description": "Award XP or assign a badge to the student"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the student's progress record is updated"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the awarded XP or badge is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC022",
+    "title": "Teacher updates an existing course",
+    "description": "This verifies a teacher can open a course and save updated details successfully.",
+    "category": "Courses and Lessons",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the courses area"
+      },
+      {
+        "type": "action",
+        "description": "Create a new course with valid details"
+      },
+      {
+        "type": "action",
+        "description": "Open the created course for editing"
+      },
+      {
+        "type": "action",
+        "description": "Update the course details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated course details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the course remains saved"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC023",
+    "title": "Delete an owned game",
+    "description": "This verifies a teacher can delete one of their games and no longer see it in the library or details view.",
+    "category": "Game Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to an existing game from the game list"
+      },
+      {
+        "type": "action",
+        "description": "Delete the game"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game no longer appears in the library"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the deleted game details are no longer accessible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC024",
+    "title": "Teacher reuses an existing vocabulary set",
+    "description": "This test verifies that a teacher can open the vocabulary list and select a saved set for reuse in later activities.",
+    "category": "Vocabulary Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the vocabulary management page"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing vocabulary set from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected vocabulary set details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the vocabulary items are available for reuse"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC025",
+    "title": "Browse marketplace listings",
+    "description": "This verifies a teacher can view the published marketplace catalog and find available games to browse.",
+    "category": "Marketplace",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the marketplace page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify marketplace listings are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC026",
+    "title": "Teacher updates an existing vocabulary set",
+    "description": "This test verifies that a teacher can edit an existing vocabulary set and see the changes reflected in the saved set.",
+    "category": "Vocabulary Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the vocabulary management page"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing vocabulary set from the list"
+      },
+      {
+        "type": "action",
+        "description": "Edit the vocabulary set title or description"
+      },
+      {
+        "type": "action",
+        "description": "Save the changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated vocabulary set details are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC027",
+    "title": "Review billing history",
+    "description": "This verifies a teacher can open their billing history and review prior billing events and records.",
+    "category": "Billing and Subscriptions",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the billing history page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify billing history records are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC028",
+    "title": "Prevent duplicate account creation",
+    "description": "This verifies the app prevents creating a second account with an email that is already registered.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the registration email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the registration password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a duplicate account validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no new account creation confirmation is shown"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC029",
+    "title": "Teacher sees the student progress overview",
+    "description": "This test verifies that a teacher can open the progress dashboard and view progress data for students in their classes.",
+    "category": "Student Progress Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the progress management page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify student progress data is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify individual student records are available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC030",
+    "title": "View sales history for a sold game",
+    "description": "This verifies a teacher seller can review marketplace sales history and see recorded revenue activity.",
+    "category": "Marketplace",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the seller sales page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify sales history records are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC031",
+    "title": "Teacher updates branding settings",
+    "description": "This verifies a teacher can change branding settings and see the updated values reflected in the branding area.",
+    "category": "Branding and Custom Domain",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the branding settings area"
+      },
+      {
+        "type": "action",
+        "description": "Update the branding details with valid values"
+      },
+      {
+        "type": "action",
+        "description": "Save the branding changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated branding settings are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC032",
+    "title": "Review admin usage statistics",
+    "description": "This verifies an admin can open platform statistics and review overall usage and growth metrics.",
+    "category": "Admin Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the admin stats page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify platform statistics are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC033",
+    "title": "Approve a pending marketplace listing",
+    "description": "This verifies an admin can review a pending marketplace submission and make it public.",
+    "category": "Marketplace",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the pending marketplace approvals page"
+      },
+      {
+        "type": "action",
+        "description": "Open a pending listing"
+      },
+      {
+        "type": "action",
+        "description": "Approve the listing"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the listing is approved and available in the marketplace"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC034",
+    "title": "Teacher uploads an image for lesson content",
+    "description": "This verifies a teacher can upload a valid image and use the returned media in lesson or game content.",
+    "category": "Media Upload",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the media upload area"
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid image file"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the image upload"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the uploaded image is available in the UI"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the media upload succeeds"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC035",
+    "title": "Teacher deletes a vocabulary set",
+    "description": "This test verifies that a teacher can delete an existing vocabulary set and that it is removed from access.",
+    "category": "Vocabulary Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the vocabulary management page"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing vocabulary set from the list"
+      },
+      {
+        "type": "action",
+        "description": "Delete the vocabulary set"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the vocabulary set is no longer available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC036",
+    "title": "Teacher uploads an audio file for activity content",
+    "description": "This verifies a teacher can upload a valid audio file and see it available for reuse in listening or speaking activities.",
+    "category": "Media Upload",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the media upload area"
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid audio file"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the audio upload"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the uploaded audio is available in the UI"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the media upload succeeds"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC037",
+    "title": "Resume play with in-game validation",
+    "description": "A visitor receives visible validation feedback when required game actions are left incomplete.",
+    "category": "Educational Game Engines",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to a valid public game in the play view"
+      },
+      {
+        "type": "action",
+        "description": "Click the control to begin the game"
+      },
+      {
+        "type": "action",
+        "description": "Try to submit the game without completing the required responses"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a validation message is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game remains in an active state"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC038",
+    "title": "Update a platform setting",
+    "description": "This verifies an admin can change a platform setting and see the saved configuration reflected in the UI.",
+    "category": "Admin Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the admin settings page"
+      },
+      {
+        "type": "action",
+        "description": "Change a platform setting"
+      },
+      {
+        "type": "action",
+        "description": "Save the setting change"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated setting is displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC039",
+    "title": "Teacher verifies a custom domain",
+    "description": "This verifies a teacher can submit domain details for verification and see the domain stored as approved or pending verification in the workspace.",
+    "category": "Branding and Custom Domain",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the custom domain settings area"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid domain details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the domain verification request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the domain verification result is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the custom domain status is stored in the UI"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC040",
+    "title": "Reject a pending marketplace listing",
+    "description": "This verifies an admin can reject a marketplace submission and keep it unpublished.",
+    "category": "Marketplace",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the pending marketplace approvals page"
+      },
+      {
+        "type": "action",
+        "description": "Open a pending listing"
+      },
+      {
+        "type": "action",
+        "description": "Reject the listing"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the listing is rejected and not publicly available"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC041",
+    "title": "Teacher sees validation when course details are incomplete",
+    "description": "This verifies missing required course fields prevent creation and the course is not added.",
+    "category": "Courses and Lessons",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the courses area"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new course"
+      },
+      {
+        "type": "action",
+        "description": "Leave a required course field empty"
+      },
+      {
+        "type": "action",
+        "description": "Submit the course form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a course validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no new course is created"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC042",
+    "title": "Handle an invalid game link",
+    "description": "A user who opens a missing game link sees a not found state instead of a playable game.",
+    "category": "Educational Game Engines",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to an invalid game link in the play view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a not found state is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the game play interface is not displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC043",
+    "title": "Teacher sees validation when adding an incomplete vocabulary item",
+    "description": "This test verifies that a teacher cannot add a vocabulary item when required word fields are missing and sees validation feedback instead.",
+    "category": "Vocabulary Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the vocabulary management page"
+      },
+      {
+        "type": "action",
+        "description": "Create a new vocabulary set with a unique title and description"
+      },
+      {
+        "type": "action",
+        "description": "Start adding a new vocabulary item without completing the required word fields"
+      },
+      {
+        "type": "action",
+        "description": "Submit the item form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the incomplete item is not added"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC044",
+    "title": "Teacher sees validation when joining a class with an invalid code",
+    "description": "This test verifies that an invalid class code is rejected and the user remains outside the class.",
+    "category": "Classes and Student Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the class join page"
+      },
+      {
+        "type": "action",
+        "description": "Enter an invalid class code"
+      },
+      {
+        "type": "action",
+        "description": "Submit the join request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a join code validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is not added to any class"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC045",
+    "title": "Teacher keeps branding settings unchanged when required data is missing",
+    "description": "This verifies missing required branding fields prevent an update and the previously saved branding remains in place.",
+    "category": "Branding and Custom Domain",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the branding settings area"
+      },
+      {
+        "type": "action",
+        "description": "Clear a required branding field"
+      },
+      {
+        "type": "action",
+        "description": "Save the branding changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a branding validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the existing branding settings remain displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC046",
+    "title": "Teacher sees validation when awarding progress to an invalid student",
+    "description": "This test verifies that progress cannot be awarded to an invalid student record and validation feedback is shown.",
+    "category": "Student Progress Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the progress management page"
+      },
+      {
+        "type": "action",
+        "description": "Open a student progress form for a non-existent or inaccessible student record"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to award XP to the student"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a progress validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no progress update is shown"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC047",
+    "title": "Teacher is blocked from uploading an unsupported image file",
+    "description": "This verifies unsupported image uploads are rejected and no new media item appears in the workspace.",
+    "category": "Media Upload",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login credentials with {{LOGIN_USER}} and {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the media upload area"
+      },
+      {
+        "type": "action",
+        "description": "Upload an unsupported image file type"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to confirm the upload"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a media validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no uploaded media item is added"
+      }
+    ],
+    "priority": "Low"
+  }
+]

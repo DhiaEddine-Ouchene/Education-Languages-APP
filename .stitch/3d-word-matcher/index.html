@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduPlay - Word Matcher</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&amp;family=Inter:wght@300..700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#004395",
+                    "on-error-container": "#93000a",
+                    "on-surface-variant": "#424754",
+                    "on-primary": "#ffffff",
+                    "tertiary": "#825100",
+                    "outline": "#727785",
+                    "on-secondary-fixed-variant": "#005236",
+                    "primary": "#3b82f6",
+                    "surface-tint": "#3b82f6",
+                    "surface-container-highest": "#d3e4fe",
+                    "surface-bright": "#f8f9ff",
+                    "error": "#ba1a1a",
+                    "surface": "#f8f9ff",
+                    "inverse-primary": "#adc6ff",
+                    "surface-dim": "#cbdbf5",
+                    "on-background": "#0b1c30",
+                    "on-tertiary-fixed-variant": "#653e00",
+                    "primary-fixed-dim": "#adc6ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "secondary-fixed": "#22c55e",
+                    "secondary": "#22c55e",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-container": "#00714d",
+                    "surface-variant": "#d3e4fe",
+                    "tertiary-fixed-dim": "#ffb95f",
+                    "on-primary-fixed": "#001a42",
+                    "background": "#f8f9ff",
+                    "surface-container-low": "#eff4ff",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed": "#ffddb8",
+                    "surface-container": "#e5eeff",
+                    "on-tertiary-container": "#fffbff",
+                    "on-secondary-fixed": "#002113",
+                    "primary-container": "#3b82f6",
+                    "on-surface": "#0b1c30",
+                    "on-tertiary-fixed": "#2a1700",
+                    "primary-fixed": "#d8e2ff",
+                    "inverse-surface": "#213145",
+                    "tertiary-container": "#a36700",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#22c55e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "8px",
+                    "container-max": "1200px",
+                    "margin-desktop": "40px",
+                    "margin-mobile": "16px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Quicksand"],
+                    "body-md": ["Inter"],
+                    "label-md": ["Inter"],
+                    "display-sm": ["Quicksand"],
+                    "display-lg": ["Quicksand"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "display-sm": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f8f9ff;
+            color: #0b1c30;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .game-card-container {
+            perspective: 1000px;
+        }
+
+        .game-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .game-card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .card-front {
+            background: #eff4ff;
+            border: 2px solid #d8e2ff;
+        }
+
+        .card-back {
+            background: #3b82f6;
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        /* Success/Matched State */
+        .card-back.matched {
+            background: #22c55e !important;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+        }
+
+        /* Active/Selected State (Optional variation) */
+        .card-back.active {
+            background: #3b82f6;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e5eeff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .btn-primary-3d {
+            transition: all 0.1s ease;
+            box-shadow: 0 4px 0px #1e40af;
+        }
+        .btn-primary-3d:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0px #1e40af;
+        }
+
+        .glow-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="bg-white border-b border-surface-container-high flex justify-between items-center w-full px-gutter py-4 max-w-container-max mx-auto sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary cursor-pointer hover:bg-surface-container-low p-2 rounded-full transition-all">arrow_back</span>
+<h1 class="font-display-sm text-display-sm font-bold text-primary">EduPlay</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="material-symbols-outlined p-2 hover:bg-surface-container-low rounded-full text-on-surface-variant transition-transform active:scale-95" data-icon="pause">pause</button>
+<button class="material-symbols-outlined p-2 hover:bg-surface-container-low rounded-full text-on-surface-variant transition-transform active:scale-95" data-icon="settings">settings</button>
+</div>
+</header>
+<main class="flex-grow w-full max-w-container-max mx-auto px-gutter py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Header Statistics Row -->
+<section class="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+<!-- Timer Card -->
+<div class="stat-card p-6 rounded-xl flex flex-col justify-center">
+<div class="flex items-center gap-2 text-on-surface-variant text-label-md font-label-md uppercase tracking-wider mb-2">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                Timer
+            </div>
+<div class="font-display-lg text-display-lg text-on-surface">00:45</div>
+</div>
+<!-- Current Score Card -->
+<div class="stat-card p-6 rounded-xl flex flex-col justify-center">
+<div class="flex items-center gap-2 text-on-surface-variant text-label-md font-label-md uppercase tracking-wider mb-2">
+<span class="material-symbols-outlined text-sm">stars</span>
+                Current Score
+            </div>
+<div class="font-display-lg text-display-lg text-on-surface">1,250</div>
+</div>
+<!-- High Score Card -->
+<div class="stat-card p-6 rounded-xl flex flex-col justify-center border-primary/20">
+<div class="flex items-center gap-2 text-primary text-label-md font-label-md uppercase tracking-wider mb-2">
+<span class="material-symbols-outlined text-sm">trophy</span>
+                High Score
+            </div>
+<div class="font-display-lg text-display-lg text-on-surface">5,000</div>
+</div>
+</section>
+<!-- Left: Game Grid (4x5) -->
+<section class="lg:col-span-8">
+<div class="grid grid-cols-4 md:grid-cols-5 gap-4 h-[600px]">
+<!-- Row 1 -->
+<div class="game-card-container">
+<div class="game-card-inner is-flipped h-full w-full">
+<div class="card-front"></div>
+<div class="card-back matched p-4 text-center">
+<span class="font-headline-lg text-sm md:text-lg font-bold">EPHEMERAL</span>
+</div>
+</div>
+</div>
+<div class="game-card-container">
+<div class="game-card-inner h-full w-full">
+<div class="card-front hover:bg-surface-container-highest/20 transition-colors"></div>
+<div class="card-back active"></div>
+</div>
+</div>
+<div class="game-card-container">
+<div class="game-card-inner h-full w-full">
+<div class="card-front hover:bg-surface-container-highest/20 transition-colors"></div>
+<div class="card-back active"></div>
+</div>
+</div>
+<div class="game-card-container">
+<div class="game-card-inner is-flipped h-full w-full">
+<div class="card-front"></div>
+<div class="card-back matched p-4 text-center">
+<span class="font-headline-lg text-sm md:text-lg font-bold">VIVID</span>
+</div>
+</div>
+</div>
+<div class="game-card-container">
+<div class="game-card-inner h-full w-full">
+<div class="card-front hover:bg-surface-container-highest/20 transition-colors"></div>
+<div class="card-back active"></div>
+</div>
+</div>
+<!-- Dynamic injection placeholder for remaining cards -->
+<script>
+                const gridParent = document.querySelector('.lg\\:col-span-8 .grid');
+                const words = [
+                    {word: "SHORT-LIVED", state: "matched", pos: 6},
+                    {word: "VIBRANT", state: "matched", pos: 15}
+                ];
+                
+                for (let i = 6; i <= 20; i++) {
+                    let cardHtml = `
+                        <div class="game-card-container">
+                            <div class="game-card-inner h-full w-full" onclick="this.classList.toggle('is-flipped')">
+                                <div class="card-front hover:bg-surface-container-highest/20 transition-colors"></div>
+                                <div class="card-back active flex flex-col gap-2">
+                                    <span class="material-symbols-outlined opacity-50">school</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    const wordMatch = words.find(w => w.pos === i);
+                    if (wordMatch) {
+                        cardHtml = `
+                            <div class="game-card-container">
+                                <div class="game-card-inner is-flipped h-full w-full">
+                                    <div class="card-front"></div>
+                                    <div class="card-back ${wordMatch.state} p-4 text-center">
+                                        <span class="font-headline-lg text-sm md:text-lg font-bold">${wordMatch.word}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    gridParent.insertAdjacentHTML('beforeend', cardHtml);
+                }
+            </script>
+</div>
+</section>
+<!-- Right: Side Panels -->
+<aside class="lg:col-span-4 flex flex-col gap-6">
+<!-- Level Progress -->
+<div class="stat-card p-6 rounded-2xl">
+<h3 class="font-headline-lg text-headline-lg mb-4 text-on-surface">Level 04</h3>
+<div class="w-full h-3 bg-surface-container-low rounded-full overflow-hidden mb-3">
+<div class="h-full bg-primary w-2/3 glow-pulse"></div>
+</div>
+<p class="text-on-surface-variant font-label-md text-label-md">Match 4 more pairs to reach the next level.</p>
+<div class="mt-6 flex flex-col gap-3">
+<button class="btn-primary-3d w-full bg-primary text-white py-4 rounded-xl font-headline-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">restart_alt</span>
+                    Restart Game
+                </button>
+<button class="w-full border border-outline-variant text-on-surface-variant py-3 rounded-xl font-label-md flex items-center justify-center gap-2 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">settings_suggest</span>
+                    Game Settings
+                </button>
+</div>
+</div>
+<!-- Combo Streak Indicator -->
+<div class="stat-card p-6 rounded-2xl border-secondary/30 relative overflow-hidden">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-full border-4 border-secondary flex items-center justify-center bg-secondary/10 shadow-[0_4px_12px_rgba(34,197,94,0.2)]">
+<span class="text-secondary text-headline-lg font-bold">x3</span>
+</div>
+<div>
+<div class="text-secondary font-bold uppercase tracking-widest text-[10px]">Combo Streak</div>
+<div class="text-on-surface font-headline-lg">Bonus points active!</div>
+<div class="text-secondary font-bold">+150 pts per match</div>
+</div>
+</div>
+</div>
+<!-- Match History Panel -->
+<div class="stat-card p-6 rounded-2xl flex-grow flex flex-col">
+<div class="flex items-center gap-2 text-primary font-bold text-label-md uppercase mb-4">
+<span class="material-symbols-outlined text-sm">history</span>
+                Match History
+            </div>
+<div class="space-y-4">
+<!-- Match Item -->
+<div class="p-3 rounded-lg bg-surface-container-low border-l-4 border-secondary">
+<div class="flex justify-between items-center mb-1">
+<span class="text-secondary font-bold text-sm">VIBRANT</span>
+<span class="material-symbols-outlined text-xs text-on-surface-variant/30">sync_alt</span>
+<span class="text-secondary font-bold text-sm">VIVID</span>
+</div>
+<p class="text-[11px] text-on-surface-variant italic leading-tight">Full of energy and enthusiasm; bright and striking in color.</p>
+</div>
+<!-- Match Item -->
+<div class="p-3 rounded-lg bg-surface-container-low border-l-4 border-primary">
+<div class="flex justify-between items-center mb-1">
+<span class="text-primary font-bold text-sm">EPHEMERAL</span>
+<span class="material-symbols-outlined text-xs text-on-surface-variant/30">sync_alt</span>
+<span class="text-primary font-bold text-sm">SHORT-LIVED</span>
+</div>
+<p class="text-[11px] text-on-surface-variant italic leading-tight">Lasting for a very short time; transitory; fleeting.</p>
+</div>
+<!-- Awaiting State -->
+<div class="p-4 rounded-lg border border-dashed border-outline-variant text-center">
+<span class="text-on-surface-variant/30 font-label-md text-xs tracking-widest uppercase">Awaiting Match...</span>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Bottom Navigation Bar -->
+<footer class="bg-white border-t border-outline-variant shadow-lg fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-margin-mobile py-4">
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-low rounded-xl cursor-pointer">
+<span class="material-symbols-outlined" data-icon="skip_next">skip_next</span>
+<span class="font-label-md text-label-md">Skip</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-primary text-white rounded-full px-8 py-3 shadow-md transition-all active:translate-y-0.5 active:shadow-sm cursor-pointer">
+<span class="material-symbols-outlined" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-md text-label-md">Check Match</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-low rounded-xl cursor-pointer">
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+<span class="font-label-md text-label-md">Next</span>
+</div>
+</footer>
+<!-- Global Scripts -->
+<script>
+    // Micro-interactions for buttons
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('mousedown', () => btn.classList.add('scale-95'));
+        btn.addEventListener('mouseup', () => btn.classList.remove('scale-95'));
+        btn.addEventListener('mouseleave', () => btn.classList.remove('scale-95'));
+    });
+</script>
+</body></html>

@@ -5,7 +5,7 @@
 // confirming nothing else imports from it.
 // ═══════════════════════════════════════════════════════════
 
-import Groq from "groq-sdk";
+import { completeJSON } from "./ai-complete";
 
 export interface GameGenerationResult {
   vocabularySet: {
@@ -23,10 +23,6 @@ export interface GameGenerationResult {
     settings: any;
   }[];
 }
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
 
 const SYSTEM_PROMPT = `
 You are an expert language teacher and curriculum designer. 
@@ -73,7 +69,6 @@ ALLOWED GAME TYPES:
 - ODD_ONE_OUT
 - SENTENCE_BUILDER
 - ERROR_SPOTTING
-- FILL_BLANK_GRAMMAR
 - VERB_CONJUGATION
 - MULTIPLE_CHOICE_GRAMMAR
 - LISTEN_FILL_WORD
@@ -103,31 +98,21 @@ Remember to follow the JSON structure exactly.
 `;
 
   try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
+    const { text: responseText } = await completeJSON(
+      [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: prompt },
       ],
-      model: "llama-3.3-70b-versatile", // Use Groq's current fast 70B model
-      temperature: 0.3,
-      response_format: { type: "json_object" }, // Enforce JSON mode
-    });
-
-    const responseText = chatCompletion.choices[0]?.message?.content;
+      { temperature: 0.3 }
+    );
     if (!responseText) {
-      throw new Error("No response from Groq.");
+      throw new Error("No response from AI.");
     }
 
     const parsed = JSON.parse(responseText);
     return parsed as GameGenerationResult;
   } catch (err: any) {
-    console.error("Failed to parse Groq response:", err);
+    console.error("Failed to parse AI response:", err);
     throw new Error(err.message || "AI generated invalid response format.");
   }
 }
@@ -155,7 +140,6 @@ export const grammarItemSchema = z.object({
   gameType: z.enum([
     "SENTENCE_BUILDER",
     "ERROR_SPOTTING",
-    "FILL_BLANK_GRAMMAR",
     "VERB_CONJUGATION",
     "MULTIPLE_CHOICE_GRAMMAR",
   ]),
@@ -184,21 +168,17 @@ function targetItemCount(lessonContent: string, wordsPerItem: number, min: numbe
 }
 
 async function callGroq<T>(prompt: string, schema: z.ZodTypeAny): Promise<T[]> {
-  const chatCompletion = await groq.chat.completions.create({
-    messages: [{ role: "user", content: prompt }],
-    model: "llama-3.3-70b-versatile",
-    temperature: 0.3,
-    response_format: { type: "json_object" },
-  });
-
-  const responseText = chatCompletion.choices[0]?.message?.content;
-  if (!responseText) throw new Error("Groq returned no content");
+  const { text: responseText } = await completeJSON(
+    [{ role: "user", content: prompt }],
+    { temperature: 0.3 }
+  );
+  if (!responseText) throw new Error("AI returned no content");
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(responseText);
   } catch {
-    throw new Error("Groq response was not valid JSON");
+    throw new Error("AI response was not valid JSON");
   }
 
   const validated = schema.safeParse(parsed);
@@ -258,8 +238,8 @@ ${params.lessonContent}
 """
 
 Identify the ${targetCount} most useful grammar points actually present or implied in this lesson (e.g. a verb tense used, a sentence structure, a common error at this level) and build one exercise item per point. Vary the gameType across the set rather than repeating one. For each item return:
-- gameType: one of SENTENCE_BUILDER, ERROR_SPOTTING, FILL_BLANK_GRAMMAR, VERB_CONJUGATION, MULTIPLE_CHOICE_GRAMMAR
-- prompt: the sentence or instruction shown to the student. Use "___" for a blank in FILL_BLANK_GRAMMAR, show the flawed sentence in ERROR_SPOTTING, show scrambled/unordered words in SENTENCE_BUILDER, show the sentence with the question in MULTIPLE_CHOICE_GRAMMAR
+- gameType: one of SENTENCE_BUILDER, ERROR_SPOTTING, VERB_CONJUGATION, MULTIPLE_CHOICE_GRAMMAR
+- prompt: the sentence or instruction shown to the student. show the flawed sentence in ERROR_SPOTTING, show scrambled/unordered words in SENTENCE_BUILDER, show the sentence with the question in MULTIPLE_CHOICE_GRAMMAR
 - correctAnswer: the correct word, sentence, or corrected version
 - distractors: 2-4 wrong options (only needed for MULTIPLE_CHOICE_GRAMMAR and ERROR_SPOTTING style hints; empty array otherwise)
 - rule: a short, student-friendly explanation of the grammar rule behind this item, in plain language

@@ -47,6 +47,16 @@ export default function MatchPairs({ game, onComplete }: { game: FolderGame; onC
     setFlash(null);
   }
 
+  if (rounds.length === 0 || pairs.length === 0) {
+    return (
+      <GameShell index={0} total={0} score={0} feedback={null} done={false} onNext={() => { reset(); g.next(); }}>
+        <div className="card center">
+          <p className="note">No matching pairs have been added to this game yet.</p>
+        </div>
+      </GameShell>
+    );
+  }
+
   return (
     <GameShell index={g.i} total={rounds.length} score={g.score} feedback={g.feedback} done={g.done} onNext={() => { reset(); g.next(); }}>
       <div className="card center">

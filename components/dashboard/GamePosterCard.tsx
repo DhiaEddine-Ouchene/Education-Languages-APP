@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { type GameTypeMeta, CATEGORY_META, POSTER_THEMES } from "@/lib/game-type-metadata";
-import { GamePreviewImage } from "@/components/dashboard/GamePreviewImage";
+import { GamePoster } from "@/components/dashboard/GamePoster";
 import {
   BookOpen, PenTool, Headphones, Edit3,
 } from "lucide-react";
@@ -34,7 +34,7 @@ export function GamePosterCard({ game, onClick }: Props) {
             "group-hover:-translate-y-3 group-hover:scale-[1.02] group-hover:shadow-xl",
           )}
         >
-          <GamePreviewImage
+          <GamePoster
             type={game.type}
             title={game.title}
             className="w-full rounded-none"

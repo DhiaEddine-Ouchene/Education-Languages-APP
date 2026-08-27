@@ -150,15 +150,28 @@ async function checkBadges(params: {
     if (b) earned.push(b);
   }
 
-  // Words learned: distinct vocab items across played games
+  // Words learned: count the game's own content across played games
   const played = await prisma.studentProgress.findMany({
     where: { studentId },
-    select: { game: { select: { vocabularySetId: true } } },
+    select: { game: { select: { settings: true, flashcardData: { include: { pairs: true } } } } },
     distinct: ["gameId"],
   });
-  const setIds = Array.from(new Set(played.map((p) => p.game.vocabularySetId).filter((id): id is string => Boolean(id))));
-  const wordCount = await prisma.vocabularyItem.count({ where: { setId: { in: setIds } } });
-  if (wordCount >= 100) {
+  const seenWords = new Set<string>();
+  for (const p of played) {
+    const s = (p.game.settings as Record<string, any>) || {};
+    const content = s.pairs || s.sentenceItems || s.synonymItems || [];
+    for (const it of content as any[]) {
+      const w = (it.word || "").trim();
+      if (w) seenWords.add(w.toLowerCase());
+    }
+    if (p.game.flashcardData?.pairs) {
+      for (const pair of p.game.flashcardData.pairs) {
+        const w = (pair.word || "").trim();
+        if (w) seenWords.add(w.toLowerCase());
+      }
+    }
+  }
+  if (seenWords.size >= 100) {
     const b = await grantBadge(studentId, defs["words_100"]);
     if (b) earned.push(b);
   }

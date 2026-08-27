@@ -24,17 +24,17 @@ export function folderEngineForType(type: string): string {
     SPEED_ROUND: "mcq",
     QUIZ: "mcq",
     MULTIPLE_CHOICE_GRAMMAR: "mcq",
-    FLASHCARD: "mcq",
-    FLASHCARD_3D: "mcq",
+    FLASHCARD: "flashcard",
+    FLASHCARD_3D: "flashcard",
     FILL_BLANK_GRAMMAR: "fillblank",
     SITUATION_DIALOGUE_FILL: "fillblank",
     VERB_CONJUGATION: "fillblank",
     FILL_GAP_WORD: "fillblank",
     LISTEN_FILL_WORD: "fillblank",
-    SPEAK_FILL_WORD: "fillblank",
+    SPEAK_FILL_WORD: "speaking",
     DICTATION: "texttask",
     LISTEN_FILL_SENTENCE: "texttask",
-    SPEAK_FILL_SENTENCE: "texttask",
+    SPEAK_FILL_SENTENCE: "speaking",
     TRANSFORMATION: "texttask",
     ERROR_SPOTTING: "tapword",
     WORD_SCRAMBLE: "order",
@@ -194,6 +194,30 @@ function matchData(items: GameItem[], _s: Record<string, any>) {
   };
 }
 
+function flashcardData(items: GameItem[], s: Record<string, any>) {
+  // Teacher-authored cards win; otherwise derive one card per vocabulary item.
+  if (Array.isArray(s.flashcards) && s.flashcards.length) {
+    return {
+      task: s.flashcardTask || "Study these words",
+      cards: s.flashcards.map((c: any) => ({
+        front: c.front || c.word || "",
+        back: c.back || c.translation || "",
+        hint: c.hint || undefined,
+        example: c.example || undefined,
+      })),
+    };
+  }
+  return {
+    task: "Study these words",
+    cards: items.map((it: any) => ({
+      front: it.word || "",
+      back: it.translation || it.word || "",
+      hint: it.partOfSpeech || undefined,
+      example: it.exampleSentence || undefined,
+    })),
+  };
+}
+
 export function buildFolderGame(
   type: string,
   settings: Record<string, any>,
@@ -202,6 +226,7 @@ export function buildFolderGame(
   const s = settings || {};
   const derived: Record<string, any> = {
     mcq: mcqData(items, s, type),
+    flashcard: flashcardData(items, s),
     fillblank: fillblankData(items, s),
     texttask: texttaskData(items, s),
     tapword: tapwordData(items, s),
@@ -210,14 +235,27 @@ export function buildFolderGame(
     sort: s.sortItems && s.sortItems.length
       ? { rounds: [{ categories: s.sortCategories || [], items: s.sortItems.map((i: any) => ({ word: i.word, cat: i.category || i.cat })) }] }
       : undefined,
-    memory: items.length ? { pairs: items.map((it) => [it.word, it.translation || it.word]) } : undefined,
+    // Memory pairs are inherently bilingual: [word (target lang), translation
+    // (native lang)]. `defs` carries the example sentence (context in the target
+    // lang) keyed by the word, so the Match History & Definitions strip has real
+    // content even on an instant, no-AI fill.
+    memory: items.length
+      ? {
+          pairs: items.map((it) => [it.word, it.translation || it.word]),
+          defs: Object.fromEntries(
+            items
+              .filter((it) => it.exampleSentence || it.translation)
+              .map((it) => [it.word, it.exampleSentence || `${it.word} — ${it.translation}`])
+          ),
+        }
+      : undefined,
     crossword: { entries: s.crosswordWords || [] },
     writing: s.writingData || { prompt: items[0]?.word || "", wordBank: [], rules: [] },
     speaking: s.speakingItems ? { rounds: s.speakingItems } : undefined,
   };
 
   // Prefer explicitly stored folder-style data (from builders)
-  const data = s.data && (s.data.rounds || s.data.pairs || s.data.entries || s.data.prompt || s.data.rules)
+  const data = s.data && (s.data.rounds || s.data.pairs || s.data.entries || s.data.prompt || s.data.rules || s.data.cards)
     ? s.data
     : derived[folderEngineForType(type)] || { rounds: [] };
 

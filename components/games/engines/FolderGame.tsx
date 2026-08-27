@@ -1,5 +1,6 @@
 "use client";
 import Mcq from "./Mcq";
+import Flashcard from "./Flashcard";
 import FillBlank from "./FillBlank";
 import TextTask from "./TextTask";
 import MatchPairs from "./MatchPairs";
@@ -15,6 +16,7 @@ import type { FolderGame as FG } from "./types";
 /** Faithful port of the folder's Game.jsx engine mapper. */
 const ENGINES: Record<string, any> = {
   mcq: Mcq,
+  flashcard: Flashcard,
   fillblank: FillBlank,
   texttask: TextTask,
   match: MatchPairs,
@@ -27,8 +29,8 @@ const ENGINES: Record<string, any> = {
   speaking: Speaking,
 };
 
-export default function FolderGame({ game, onComplete }: { game: FG; onComplete: (c: number, t: number) => void }) {
+export default function FolderGame({ game, onComplete, student }: { game: FG; onComplete: (c: number, t: number) => void; student?: { name: string; image?: string | null } }) {
   const Engine = ENGINES[game.engine];
   if (!Engine) return <div className="fg card">Unknown game engine.</div>;
-  return <Engine key={game.id} game={game} onComplete={onComplete} />;
+  return <Engine key={game.id} game={game} onComplete={onComplete} student={student} />;
 }

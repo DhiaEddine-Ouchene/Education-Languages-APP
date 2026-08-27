@@ -11,8 +11,9 @@ export default function OrderChips({ game, onComplete }: { game: FolderGame; onC
   const g = useGame(rounds.length, onComplete);
   const r = rounds[g.i] || {};
   const letters = game.data.mode === "letters";
-  const source = r.fragments || (letters ? r.answer.toUpperCase().split("") : r.answer.split(" "));
-  const target = r.fragments ? r.fragments.join(" ") : letters ? r.answer.toUpperCase() : r.answer;
+  const safeAnswer = r.answer || "";
+  const source = r.fragments || (letters ? safeAnswer.toUpperCase().split("") : safeAnswer.split(" "));
+  const target = r.fragments ? r.fragments.join(" ") : letters ? safeAnswer.toUpperCase() : safeAnswer;
 
   const chips = useMemo(() => {
     let s = shuffle(source.map((t: string, k: number) => ({ t, k })));
@@ -31,6 +32,16 @@ export default function OrderChips({ game, onComplete }: { game: FolderGame; onC
   function next() {
     setPlaced([]);
     g.next();
+  }
+
+  if (rounds.length === 0) {
+    return (
+      <GameShell index={0} total={0} score={0} feedback={null} done={false} onNext={next}>
+        <div className="card center">
+          <p className="note">No rounds have been added to this game yet.</p>
+        </div>
+      </GameShell>
+    );
   }
 
   return (

@@ -7,14 +7,25 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { Sparkles, Database, BookOpen, Loader2, X, Plus, Save } from "lucide-react";
 
-export type ChipData = { 
-  id: string; 
-  word: string; 
+export type ChipData = {
+  id: string;
+  word: string;
   translation: string;
   exampleSentence?: string;
 };
 
-type ExistingSet = { id: string; name: string; items: { id: string; word: string; translation: string; exampleSentence?: string }[] };
+export type ExistingSet = { id: string; name: string; items: { id?: string; word: string; translation: string; exampleSentence?: string }[] };
+
+// Content-aware wording so the UI matches what a game actually needs
+// (single words, phrases, full sentences, or grammar items) instead of always
+// saying "words" — the teacher fetches sentences and phrases too, not just words.
+const CONTENT_NOUN: Record<string, { plural: string; one: string }> = {
+  words: { plural: "Words", one: "word" },
+  phrases: { plural: "Phrases", one: "phrase" },
+  sentences: { plural: "Sentences", one: "sentence" },
+  grammar: { plural: "Items", one: "item" },
+};
+const nounFor = (ct?: string) => CONTENT_NOUN[ct || "words"] ?? CONTENT_NOUN.words;
 
 type Props = {
   words: ChipData[];
@@ -58,7 +69,7 @@ export function WordBank({
       const res = await fetch("/api/ai/vocabulary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: topic.trim(), language, targetLanguage, level, count: wordCount }),
+        body: JSON.stringify({ topic: topic.trim(), language, targetLanguage, level, count: wordCount, contentType }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed");
@@ -112,7 +123,7 @@ export function WordBank({
     
     setSavingSet(true);
     try {
-      const vocabRes = await fetch("/api/vocabulary", {
+      const vocabRes = await fetch("/api/word-sets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -120,6 +131,7 @@ export function WordBank({
           language,
           nativeLanguage: targetLanguage,
           level,
+          contentType,
           sourceType: mode === "ai" ? "AI_TOPIC" : "MANUAL",
           items: words.map((w) => ({
             word: w.word,
@@ -128,10 +140,9 @@ export function WordBank({
           })),
         }),
       });
-      if (!vocabRes.ok) throw new Error("Failed to create vocabulary set");
-      
-      const vocabData = await vocabRes.json();
-      
+      const vocabData = await vocabRes.json().catch(() => ({}));
+      if (!vocabRes.ok) throw new Error(vocabData?.error || "Failed to save set");
+
       toast("success", "Set saved successfully!");
       setShowSaveSet(false);
       setSetName("");
@@ -192,7 +203,7 @@ export function WordBank({
           </div>
           <Button onClick={generateWithAI} disabled={generating || !topic.trim()} size="sm" className="w-full text-xs h-8 mt-1">
             {generating ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
-            {generating ? "Generating..." : "Generate Words"}
+            {generating ? "Generating..." : `Generate ${nounFor(contentType).plural}`}
           </Button>
         </div>
       )}
@@ -200,28 +211,34 @@ export function WordBank({
       {/* Existing Sets Panel */}
       {mode === "existing" && existingSets && (
         <div className="p-3 border-b border-border/30">
-          <select
-            value={selectedSetId}
-            onChange={(e) => loadExistingSet(e.target.value)}
-            className="w-full h-8 text-xs rounded-lg border border-border bg-card px-2 focus:outline-none focus:ring-2 focus:ring-primary/30"
-          >
-            <option value="">Select a vocabulary set...</option>
-            {existingSets.map((s) => (
-              <option key={s.id} value={s.id}>{s.name} ({s.items.length} words)</option>
-            ))}
-          </select>
+          {existingSets.length === 0 ? (
+            <p className="text-[11px] text-txt-secondary text-center py-1.5">
+              No saved sets yet. Build a list, then use “Save this list as a reusable set”.
+            </p>
+          ) : (
+            <select
+              value={selectedSetId}
+              onChange={(e) => loadExistingSet(e.target.value)}
+              className="w-full h-8 text-xs rounded-lg border border-border bg-card px-2 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              <option value="">Select a saved set...</option>
+              {existingSets.map((s) => (
+                <option key={s.id} value={s.id}>{s.name} ({s.items.length} items)</option>
+              ))}
+            </select>
+          )}
         </div>
       )}
 
       {/* Manual Add Panel */}
       {mode === "manual" && (
         <div className="p-3 space-y-2 border-b border-border/30">
-          <Input value={manualWord} onChange={(e) => setManualWord(e.target.value)} placeholder="Word..." className="text-xs h-8" />
+          <Input value={manualWord} onChange={(e) => setManualWord(e.target.value)} placeholder={`${nounFor(contentType).one.charAt(0).toUpperCase() + nounFor(contentType).one.slice(1)}...`} className="text-xs h-8" />
           <Input value={manualTranslation} onChange={(e) => setManualTranslation(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addManualWord(); } }}
             placeholder="Translation/Synonym..." className="text-xs h-8" />
           <Button onClick={addManualWord} disabled={!manualWord.trim() || !manualTranslation.trim()} size="sm" className="w-full text-xs h-8">
-            <Plus className="w-3 h-3 mr-1" /> Add Word
+            <Plus className="w-3 h-3 mr-1" /> Add {nounFor(contentType).one.charAt(0).toUpperCase() + nounFor(contentType).one.slice(1)}
           </Button>
         </div>
       )}
@@ -256,7 +273,7 @@ export function WordBank({
         {words.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center text-txt-secondary">
             <BookOpen className="w-8 h-8 mb-2 opacity-40" />
-            <p className="text-xs font-medium">No words yet</p>
+            <p className="text-xs font-medium">No {nounFor(contentType).plural.toLowerCase()} yet</p>
             <p className="text-[10px] mt-0.5">Generate, select a set, or add manually</p>
           </div>
         ) : (

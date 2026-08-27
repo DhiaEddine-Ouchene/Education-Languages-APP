@@ -220,7 +220,7 @@ export function adaptPlayItems(
       const sp = s.speakingItems || [];
       return sp.length
         ? sp.map((it: any, i: number) =>
-            withId(i, { word: it.display || it.target || "", mode: it.mode, display: it.display, target: it.target, keywords: it.keywords, note: it.note, task: it.task, audioText: it.audioText })
+            withId(i, { word: it.display || it.target || it.audioText || "", mode: it.mode, display: it.display, target: it.target, keywords: it.keywords, note: it.note, task: it.task, audioText: it.audioText, image: it.image })
           )
         : fallback.map((i) => ({ ...i }));
     }

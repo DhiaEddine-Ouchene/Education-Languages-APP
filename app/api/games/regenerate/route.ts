@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { generateGame } from "@/lib/generate-game";
 
 // Types that map to dedicated Prisma tables (not WordPairs / settings JSON)
-const QUIZ_TYPES = ["QUIZ","MULTIPLE_CHOICE_GRAMMAR","ERROR_SPOTTING","WORD_IN_CONTEXT"];
-const SENTENCE_FILL_TYPES = ["FILL_BLANK","FILL_GAP_WORD","FILL_BLANK_GRAMMAR","DRAG_DROP","SITUATION_DIALOGUE_FILL","SENTENCE_BUILDER","LISTEN_FILL_WORD","LISTEN_FILL_SENTENCE","SPEAK_FILL_WORD","SPEAK_FILL_SENTENCE","DICTATION"];
+const QUIZ_TYPES = ["QUIZ","MULTIPLE_CHOICE_GRAMMAR","ERROR_SPOTTING"];
+const SENTENCE_FILL_TYPES = ["FILL_BLANK","FILL_GAP_WORD","DRAG_DROP","SITUATION_DIALOGUE_FILL","SENTENCE_BUILDER","LISTEN_FILL_WORD","LISTEN_FILL_SENTENCE","SPEAK_FILL_WORD","SPEAK_FILL_SENTENCE","DICTATION"];
 
 export async function POST(req: Request) {
   const { error, profile } = await requireEducator();
@@ -28,15 +28,12 @@ export async function POST(req: Request) {
     const result = await generateGame(type, sourceContent, count || 8, {
       targetLang: targetLang || "English",
       nativeLang: nativeLang || "English",
-      educatorId: profile!.id,
-      wordSetId: game.vocabularySetId || undefined,
       instructions,
     });
 
     if (result.status === "ready") {
       // Store current data as previous before overwriting
       const currentData: Record<string, unknown> = {};
-      if (game.vocabularySetId) currentData.vocabularySetId = game.vocabularySetId;
       if (game.settings) currentData.settings = game.settings;
 
       const updateData: Record<string, unknown> = {
@@ -46,11 +43,6 @@ export async function POST(req: Request) {
         version: currentVersion + 1,
         previousData: currentData,
       };
-
-      // ── WORD_PAIR: link/re-link vocabulary set ──
-      if (result.wordSetId) {
-        updateData.vocabularySetId = result.wordSetId;
-      }
 
       // ── QUIZ types: persist into QuizData ──
       if (QUIZ_TYPES.includes(type)) {
@@ -135,7 +127,7 @@ export async function POST(req: Request) {
 
       await prisma.game.update({ where: { id: gameId }, data: updateData as any });
 
-      return NextResponse.json({ success: true, data: result.data, wordSetId: result.wordSetId });
+      return NextResponse.json({ success: true, data: result.data });
     } else {
       // Save the raw output for review
       await prisma.game.update({

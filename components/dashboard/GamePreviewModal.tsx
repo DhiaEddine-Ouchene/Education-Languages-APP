@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { GamePlayer } from "@/components/games/GamePlayer";
 import { getGameTypeMeta } from "@/lib/game-type-metadata";
 import { getGameGuide } from "@/lib/game-guides";
+import { exampleEngineData, hasEngineContent } from "@/lib/builder-schemas";
 import { X, Eye, PlayCircle, Lightbulb, Target, BookOpen, ListChecks, ClipboardCheck, GraduationCap } from "lucide-react";
 import type { GameItem } from "@/components/games/types";
 
@@ -52,6 +53,24 @@ export function GamePreviewModal({ isOpen, onClose, gameType, gameTitle, customI
   if (!isOpen || !mounted) return null;
 
   const previewItems = customItems && customItems.length > 0 ? customItems : DEMO_ITEMS;
+
+  // Always show a working concept example. If the caller supplied real engine
+  // data (e.g. the teacher is mid-build), preview that; otherwise auto-load the
+  // curated example for THIS game type so the preview is never empty or wrong
+  // (crossword with no grid, category-sort with 0 rounds, dialogue mismatches, …).
+  const suppliedData = (settings as any)?.data;
+  const effectiveData = hasEngineContent(gameType, suppliedData)
+    ? suppliedData
+    : exampleEngineData(gameType);
+  const previewSettings = {
+    difficulty: "medium",
+    timer: 30,
+    hints: true,
+    audioAutoplay: false,
+    shuffle: false,
+    ...(settings ?? {}),
+    data: effectiveData,
+  };
 
   const modalContent = (
     <div
@@ -246,7 +265,7 @@ export function GamePreviewModal({ isOpen, onClose, gameType, gameTitle, customI
                 title={gameTitle}
                 type={gameType}
                 items={previewItems}
-                settings={{ difficulty: "medium", timer: 30, hints: true, audioAutoplay: false, shuffle: false, ...(settings ?? {}) }}
+                settings={previewSettings}
                 previewMode={true}
               />
             </div>

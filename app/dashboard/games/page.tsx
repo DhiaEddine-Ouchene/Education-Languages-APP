@@ -14,7 +14,6 @@ export default async function GamesPage() {
   const games = await prisma.game.findMany({
     where: { educatorId: profile.id },
     include: {
-      vocabularySet: { select: { name: true } },
       _count: { select: { progress: true } },
     },
     orderBy: { createdAt: "desc" },

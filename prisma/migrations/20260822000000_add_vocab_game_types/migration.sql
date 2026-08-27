@@ -1,0 +1,5 @@
+-- Additional vocabulary game types ported from the languages-games reference
+ALTER TYPE "GameType" ADD VALUE IF NOT EXISTS 'WORD_MEANING_MATCH';
+ALTER TYPE "GameType" ADD VALUE IF NOT EXISTS 'WORD_IN_CONTEXT';
+ALTER TYPE "GameType" ADD VALUE IF NOT EXISTS 'ODD_ONE_OUT';
+ALTER TYPE "GameType" ADD VALUE IF NOT EXISTS 'COLLOCATION_BUILDER';

@@ -15,7 +15,6 @@ import {
   Save,
   Settings,
   ChevronDown,
-  BookOpen,
   Timer,
   Lightbulb,
   Shuffle,
@@ -25,6 +24,10 @@ import {
 } from "lucide-react";
 import { GamePlayer } from "@/components/games/GamePlayer";
 import type { GameItem, GameSettings } from "@/components/games/types";
+import { buildFolderGame } from "@/lib/folder-game-data";
+import { SchemaBuilder } from "@/components/dashboard/builders/SchemaBuilder";
+import { getGameTypeMeta } from "@/lib/game-type-metadata";
+import { hasEngineContent } from "@/lib/builder-schemas";
 
 const GAME_TYPES = [
   // Classic
@@ -39,15 +42,11 @@ const GAME_TYPES = [
   // Vocabulary
   { key: "SYNONYM_ANTONYM", label: "Synonym/Antonym", emoji: "🔤", description: "Match words with similar meanings" },
   { key: "FILL_GAP_WORD", label: "Fill gap (word)", emoji: "📝", description: "Complete sentences with vocabulary" },
-  { key: "WORD_MEANING_MATCH", label: "Word meaning", emoji: "🔍", description: "Match words to definitions" },
   { key: "SITUATION_DIALOGUE_FILL", label: "Dialogue fill", emoji: "💬", description: "Complete conversations" },
-  { key: "WORD_IN_CONTEXT", label: "Word in context", emoji: "📄", description: "Choose the right word for the context" },
   { key: "WORD_SCRAMBLE", label: "Word scramble", emoji: "🔀", description: "Unscramble letters to form words" },
-  { key: "ODD_ONE_OUT", label: "Odd one out", emoji: "🎯", description: "Find the word that doesn't belong" },
   // Grammar
   { key: "SENTENCE_BUILDER", label: "Sentence builder", emoji: "🏗️", description: "Arrange words into correct sentences" },
   { key: "ERROR_SPOTTING", label: "Error spotting", emoji: "🔎", description: "Find grammar mistakes" },
-  { key: "FILL_BLANK_GRAMMAR", label: "Fill blank (grammar)", emoji: "✍️", description: "Complete with correct grammar" },
   { key: "VERB_CONJUGATION", label: "Verb conjugation", emoji: "🔄", description: "Conjugate verbs in different tenses" },
   { key: "MULTIPLE_CHOICE_GRAMMAR", label: "MC grammar", emoji: "☑️", description: "Choose the grammatically correct option" },
   // Listening & Speaking
@@ -58,60 +57,107 @@ const GAME_TYPES = [
 ] as const;
 
 type GameType = (typeof GAME_TYPES)[number]["key"];
-type VocabSet = { id: string; name: string; items: { id: string; word: string; translation: string; audioUrl?: string | null; imageUrl?: string | null; exampleSentence?: string | null }[] };
+type FlashPair = { word: string; translation: string; exampleSentence?: string | null; audioUrl?: string | null; imageUrl?: string | null };
 type Props = {
-  sets: VocabSet[];
   initial?: {
     id: string;
     title: string;
     type: string;
-    vocabularySetId: string;
     settings: Record<string, unknown>;
+    flashcardPairs?: FlashPair[];
     isPublished: boolean;
   };
 };
 
-export function GameBuilder({ sets, initial }: Props) {
+// Build preview items from the game's own content (settings + flashcard pairs).
+function itemsFromContent(settings: Record<string, any>, flashcardPairs?: FlashPair[]): GameItem[] {
+  const out: GameItem[] = [];
+  if (flashcardPairs?.length) {
+    flashcardPairs.forEach((p, idx) => out.push({
+      id: `pair-${idx}`, word: p.word, translation: p.translation,
+      audioUrl: p.audioUrl ?? null, imageUrl: p.imageUrl ?? null, exampleSentence: p.exampleSentence ?? null,
+    }));
+  }
+  if (Array.isArray(settings.pairs)) {
+    settings.pairs.forEach((p: any, idx: number) => out.push({
+      id: `spair-${idx}`, word: p.word || "", translation: p.translation || "",
+      audioUrl: null, imageUrl: null, exampleSentence: p.exampleSentence || null,
+    }));
+  }
+  if (Array.isArray(settings.sentenceItems)) {
+    settings.sentenceItems.forEach((s: any, idx: number) => out.push({
+      id: `ssf-${idx}`, word: s.correctAnswer || "", translation: s.sentence || "",
+      audioUrl: null, imageUrl: null, exampleSentence: s.sentence || null,
+    }));
+  }
+  if (Array.isArray(settings.speakingItems)) {
+    settings.speakingItems.forEach((s: any, idx: number) => out.push({
+      id: `sspk-${idx}`, word: s.display || s.target || s.audioText || "",
+      mode: s.mode || "", display: s.display || "", target: s.target || "",
+      keywords: s.keywords || [], note: s.note || "", task: s.task || "",
+      audioUrl: null, imageUrl: null, exampleSentence: null,
+    } as GameItem));
+  }
+  return out;
+}
+
+export function GameBuilder({ initial }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"build" | "try">("build");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [type, setType] = useState<GameType>((initial?.type as GameType) ?? "FLASHCARD");
-  const [setId, setSetId] = useState(initial?.vocabularySetId ?? sets[0]?.id ?? "");
   const [isPublished, setIsPublished] = useState(initial?.isPublished ?? false);
   const [showTypeSelector, setShowTypeSelector] = useState(false);
-  const s = (initial?.settings ?? {}) as Record<string, unknown>;
-  const [settings, setSettings] = useState<GameSettings>({
+  const s = (initial?.settings ?? {}) as Record<string, any>;
+  // Preserve the game's rich content (speakingItems, sentenceItems, sortItems,
+  // writingData, …) alongside the base play settings so the editor's "Try"
+  // preview actually represents the game instead of dropping it.
+  const [settings, setSettings] = useState<GameSettings & Record<string, any>>({
     difficulty: (s.difficulty as string) ?? "medium",
     timer: (s.timer as number) ?? 30,
     hints: (s.hints as boolean) ?? true,
     audioAutoplay: (s.audioAutoplay as boolean) ?? false,
     shuffle: (s.shuffle as boolean) ?? true,
+    ...s,
   });
-  const selectedSet = sets.find((x) => x.id === setId);
-  const preview = selectedSet?.items[0];
-  const previewItems = useMemo<GameItem[]>(() => (selectedSet?.items ?? []).map((item) => ({
-    id: item.id,
-    word: item.word,
-    translation: item.translation,
-    audioUrl: item.audioUrl ?? null,
-    imageUrl: item.imageUrl ?? null,
-    exampleSentence: item.exampleSentence ?? null,
-  })), [selectedSet]);
+  const previewItems = useMemo<GameItem[]>(
+    () => itemsFromContent({ ...s, ...settings }, initial?.flashcardPairs),
+    [s, settings, initial?.flashcardPairs]
+  );
+
+  // ── Content editor (SchemaBuilder) ──
+  // Seed engine-ready `data`: prefer stored `settings.data`; otherwise migrate the
+  // game's legacy content (settings keys / flashcard pairs) into engine data using
+  // the very same derivation the player uses — so pre-existing games open editable.
+  const seedEngineData = (t: string): Record<string, unknown> => {
+    const merged = { ...s, ...settings };
+    if (merged.data && hasEngineContent(t, merged.data as Record<string, unknown>)) {
+      return merged.data as Record<string, unknown>;
+    }
+    try {
+      return (buildFolderGame(t, merged, previewItems).data as Record<string, unknown>) || {};
+    } catch {
+      return {};
+    }
+  };
+  const [builderData, setBuilderData] = useState<Record<string, unknown>>(() => seedEngineData(initial?.type ?? "FLASHCARD"));
+  const [builderValid, setBuilderValid] = useState(false);
+  const [builderKey, setBuilderKey] = useState(0);
+  const editorMeta = getGameTypeMeta(type);
 
   const currentGameType = GAME_TYPES.find((t) => t.key === type);
 
   const save = async () => {
     if (title.trim().length < 3) return setError("Title must be at least 3 characters");
-    if (!setId) return setError("Select a vocabulary set");
     setError("");
     setSaving(true);
     try {
       const res = await fetch(initial ? `/api/games/${initial.id}` : "/api/games", {
         method: initial ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, type, vocabularySetId: setId, settings, isPublished }),
+        body: JSON.stringify({ title, type, settings: { ...settings, data: builderData }, isPublished }),
       });
       if (!res.ok) { toast("error", "Failed to save game"); return; }
       toast("success", initial ? "Game updated" : "Game created");
@@ -119,21 +165,6 @@ export function GameBuilder({ sets, initial }: Props) {
       router.refresh();
     } finally { setSaving(false); }
   };
-
-  if (sets.length === 0) {
-    return (
-      <Card className="border-dashed border-2">
-        <CardContent className="py-16 text-center">
-          <BookOpen className="w-12 h-12 mx-auto text-txt-secondary mb-4" />
-          <h3 className="font-heading font-semibold text-lg mb-2">No vocabulary sets yet</h3>
-          <p className="text-txt-secondary text-sm mb-4">You need a vocabulary set before creating a game.</p>
-          <Link href="/dashboard/vocabulary">
-            <Button>Create a vocabulary set</Button>
-          </Link>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -152,18 +183,10 @@ export function GameBuilder({ sets, initial }: Props) {
               <FieldError message={error} />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant={mode === "build" ? "primary" : "outline"}
-                size="sm"
-                onClick={() => setMode("build")}
-              >
+              <Button variant={mode === "build" ? "primary" : "outline"} size="sm" onClick={() => setMode("build")}>
                 <Settings className="h-4 w-4" /> Builder
               </Button>
-              <Button
-                variant={mode === "try" ? "accent" : "outline"}
-                size="sm"
-                onClick={() => setMode("try")}
-              >
+              <Button variant={mode === "try" ? "accent" : "outline"} size="sm" onClick={() => setMode("try")}>
                 <PlayCircle className="h-4 w-4" /> Try
               </Button>
               <Button onClick={save} disabled={saving} size="sm">
@@ -189,7 +212,7 @@ export function GameBuilder({ sets, initial }: Props) {
             title={title.trim() || "Untitled game preview"}
             type={type}
             items={previewItems}
-            settings={settings}
+            settings={{ ...settings, data: builderData }}
             previewMode
           />
           <div className="mt-4 text-center">
@@ -200,51 +223,9 @@ export function GameBuilder({ sets, initial }: Props) {
         </div>
       ) : (
         /* ──────── Builder Mode ──────── */
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
 
-          {/* ── Left: Vocabulary Set ── */}
-          <Card className="shadow-sm border-border/60">
-            <CardContent className="pt-5 space-y-4">
-              <div>
-                <Label className="text-xs font-semibold text-txt-secondary uppercase tracking-wider">
-                  Vocabulary set
-                </Label>
-                <Select value={setId} onChange={(e) => setSetId(e.target.value)} className="mt-1">
-                  {sets.map((x) => (
-                    <option key={x.id} value={x.id}>{x.name}</option>
-                  ))}
-                </Select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-txt-secondary uppercase tracking-wider">
-                    Words ({selectedSet?.items.length ?? 0})
-                  </span>
-                </div>
-                <ul className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
-                  {selectedSet?.items.map((i) => (
-                    <li
-                      key={i.id}
-                      className="group flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm hover:border-primary/30 hover:bg-primary/[0.02] transition-colors"
-                    >
-                      <span className="font-medium text-txt">{i.word}</span>
-                      <span className="text-xs text-txt-secondary text-right truncate max-w-[120px]">
-                        {i.translation}
-                      </span>
-                    </li>
-                  ))}
-                  {selectedSet?.items.length === 0 && (
-                    <li className="text-xs text-txt-secondary text-center py-8">
-                      This set has no words yet.
-                    </li>
-                  )}
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ── Center: Game Experience (Redesigned) ── */}
+          {/* ── Center: Game Experience ── */}
           <Card className="shadow-sm border-border/60">
             <CardContent className="pt-5 space-y-5">
 
@@ -280,7 +261,7 @@ export function GameBuilder({ sets, initial }: Props) {
                     {GAME_TYPES.map((t) => (
                       <button
                         key={t.key}
-                        onClick={() => { setType(t.key); setShowTypeSelector(false); }}
+                        onClick={() => { setType(t.key); setShowTypeSelector(false); setBuilderData({}); setBuilderValid(false); setBuilderKey((k) => k + 1); }}
                         className={cn(
                           "flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs transition-all text-left",
                           type === t.key
@@ -296,37 +277,26 @@ export function GameBuilder({ sets, initial }: Props) {
                 </div>
               )}
 
-              {/* Preview Section */}
-              <div className="rounded-xl border border-dashed border-border/60 bg-background/30 p-6 text-center">
-                <p className="text-xs font-semibold text-txt-secondary uppercase tracking-wider mb-4">
-                  Preview
-                </p>
-                {preview ? (
-                  <div className="space-y-4">
-                    {renderPreview(type, preview)}
-                    <Button
-                      variant="accent"
-                      size="sm"
-                      onClick={() => setMode("try")}
-                      className="mt-2"
-                    >
-                      <PlayCircle className="h-4 w-4" /> Try this game now
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="py-8">
-                    <Grid3X3 className="w-10 h-10 mx-auto text-txt-secondary/40 mb-3" />
-                    <p className="text-sm text-txt-secondary">
-                      Add words to your vocabulary set to see a preview.
-                    </p>
-                  </div>
-                )}
-              </div>
+              {/* Content editor */}
+              {editorMeta ? (
+                <SchemaBuilder
+                  key={`${type}:${builderKey}`}
+                  gameMeta={editorMeta}
+                  initial={builderData}
+                  onChange={setBuilderData}
+                  onValidation={setBuilderValid}
+                />
+              ) : (
+                <div className="rounded-xl border border-dashed border-border/60 bg-background/30 p-6 text-center py-8">
+                  <Grid3X3 className="w-10 h-10 mx-auto text-txt-secondary/40 mb-3" />
+                  <p className="text-sm text-txt-secondary">This game type isn’t editable here yet.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* ── Right: Settings ── */}
-          <Card className="shadow-sm border-border/60">
+          <Card className="shadow-sm border-border/60 self-start">
             <CardContent className="pt-5 space-y-5">
               <p className="font-heading font-semibold text-sm text-txt flex items-center gap-2">
                 <Settings className="w-4 h-4 text-txt-secondary" />
@@ -336,11 +306,7 @@ export function GameBuilder({ sets, initial }: Props) {
               <div className="space-y-4">
                 <div>
                   <Label className="text-xs font-medium text-txt-secondary">Difficulty</Label>
-                  <Select
-                    value={settings.difficulty}
-                    onChange={(e) => setSettings({ ...settings, difficulty: e.target.value })}
-                    className="mt-1"
-                  >
+                  <Select value={settings.difficulty} onChange={(e) => setSettings({ ...settings, difficulty: e.target.value })} className="mt-1">
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
                     <option value="hard">Hard</option>
@@ -352,59 +318,31 @@ export function GameBuilder({ sets, initial }: Props) {
                     <Timer className="w-3.5 h-3.5" />
                     Timer (seconds per question)
                   </Label>
-                  <Input
-                    type="number"
-                    min={5}
-                    value={settings.timer}
-                    onChange={(e) => setSettings({ ...settings, timer: Number(e.target.value) })}
-                    className="mt-1"
-                  />
+                  <Input type="number" min={5} value={settings.timer} onChange={(e) => setSettings({ ...settings, timer: Number(e.target.value) })} className="mt-1" />
                 </div>
 
                 <div className="space-y-2.5 pt-2 border-t border-border/40">
                   <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={settings.hints}
-                      onChange={(e) => setSettings({ ...settings, hints: e.target.checked })}
-                      className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4"
-                    />
+                    <input type="checkbox" checked={settings.hints} onChange={(e) => setSettings({ ...settings, hints: e.target.checked })} className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
                     <Lightbulb className="w-3.5 h-3.5 text-txt-secondary group-hover:text-primary transition-colors" />
                     <span className="text-txt group-hover:text-txt transition-colors">Hints</span>
                   </label>
                   <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={settings.audioAutoplay}
-                      onChange={(e) => setSettings({ ...settings, audioAutoplay: e.target.checked })}
-                      className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4"
-                    />
+                    <input type="checkbox" checked={settings.audioAutoplay} onChange={(e) => setSettings({ ...settings, audioAutoplay: e.target.checked })} className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
                     <Volume2 className="w-3.5 h-3.5 text-txt-secondary group-hover:text-primary transition-colors" />
                     <span className="text-txt group-hover:text-txt transition-colors">Audio autoplay</span>
                   </label>
                   <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={settings.shuffle}
-                      onChange={(e) => setSettings({ ...settings, shuffle: e.target.checked })}
-                      className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4"
-                    />
+                    <input type="checkbox" checked={settings.shuffle} onChange={(e) => setSettings({ ...settings, shuffle: e.target.checked })} className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
                     <Shuffle className="w-3.5 h-3.5 text-txt-secondary group-hover:text-primary transition-colors" />
                     <span className="text-txt group-hover:text-txt transition-colors">Shuffle questions</span>
                   </label>
                 </div>
 
                 <div className="pt-3 border-t border-border/40 space-y-3">
-                  <p className="text-xs font-semibold text-txt-secondary uppercase tracking-wider">
-                    Publishing
-                  </p>
+                  <p className="text-xs font-semibold text-txt-secondary uppercase tracking-wider">Publishing</p>
                   <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={isPublished}
-                      onChange={(e) => setIsPublished(e.target.checked)}
-                      className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4"
-                    />
+                    <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
                     <CheckCircle2 className="w-3.5 h-3.5 text-txt-secondary group-hover:text-green-500 transition-colors" />
                     <span className="text-txt group-hover:text-txt transition-colors">Published</span>
                   </label>
@@ -416,72 +354,4 @@ export function GameBuilder({ sets, initial }: Props) {
       )}
     </div>
   );
-}
-
-/* ── Preview renderers ── */
-function renderPreview(type: string, preview: { word: string; translation: string }) {
-  switch (type) {
-    case "FLASHCARD":
-      return (
-        <div className="inline-block bg-white border-2 border-primary/20 rounded-2xl px-12 py-10 shadow-lg">
-          <p className="text-sm text-txt-secondary mb-2">FRONT</p>
-          <p className="font-heading font-bold text-2xl text-txt">{preview.word}</p>
-          <div className="mt-4 pt-4 border-t border-border/40">
-            <p className="text-sm text-txt-secondary mb-2">BACK</p>
-            <p className="font-heading font-semibold text-xl text-primary">{preview.translation}</p>
-          </div>
-        </div>
-      );
-    case "QUIZ":
-    case "FILL_BLANK":
-    case "SPEED_ROUND":
-      return (
-        <div className="max-w-xs mx-auto space-y-3">
-          <p className="font-heading font-semibold text-txt">
-            What does "<span className="text-primary">{preview.word}</span>" mean?
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {[preview.translation, "Option B", "Option C", "Option D"].map((o, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "rounded-xl border py-3 px-4 text-sm font-medium transition-all",
-                  i === 0
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border/60 bg-card text-txt-secondary"
-                )}
-              >
-                {o}
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    case "MEMORY":
-      return (
-        <div className="grid grid-cols-4 gap-2 max-w-[200px] mx-auto">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                "aspect-square rounded-xl shadow-sm transition-all",
-                i % 2 === 0 ? "bg-primary/20" : "bg-primary/40"
-              )}
-            />
-          ))}
-        </div>
-      );
-    default:
-      return (
-        <div className="py-4">
-          <div className="inline-flex items-center gap-3 bg-white border border-border/60 rounded-xl px-6 py-4 shadow-sm">
-            <span className="text-2xl">{GAME_TYPES.find((t) => t.key === type)?.emoji ?? "🎮"}</span>
-            <div className="text-left">
-              <p className="font-heading font-semibold text-txt">{preview.word}</p>
-              <p className="text-sm text-txt-secondary">→ {preview.translation}</p>
-            </div>
-          </div>
-        </div>
-      );
-  }
 }

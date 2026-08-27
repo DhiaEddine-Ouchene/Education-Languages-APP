@@ -12,7 +12,7 @@ export default async function ProgressPage() {
 
   const [xp, progress, badges] = await Promise.all([
     prisma.studentXP.findUnique({ where: { studentId: session.user.id } }),
-    prisma.studentProgress.findMany({ where: { studentId: session.user.id }, include: { game: { include: { vocabularySet: { include: { items: true } } } } }, orderBy: { completedAt: "asc" } }),
+    prisma.studentProgress.findMany({ where: { studentId: session.user.id }, include: { game: { include: { flashcardData: { include: { pairs: true } } } } }, orderBy: { completedAt: "asc" } }),
     prisma.studentBadge.findMany({ where: { studentId: session.user.id }, include: { badge: true } }),
   ]);
 
@@ -47,9 +47,19 @@ export default async function ProgressPage() {
     xpHistory.push({ day: d.toLocaleDateString("en-US", { weekday: "short" }), xp: progress.filter((p) => p.completedAt.toDateString() === key).reduce((s, p) => s + p.xpEarned, 0) });
   }
 
-  // Words learned (distinct across played sets)
+  // Words learned (distinct across the game's own content)
   const wordSet = new Map<string, string>();
-  for (const p of progress) for (const i of (p.game.vocabularySet?.items ?? [])) wordSet.set(i.id, `${i.word} — ${i.translation}`);
+  for (const p of progress) {
+    const g = p.game;
+    const s = (g.settings as Record<string, any>) || {};
+    const content = s.pairs || s.sentenceItems || s.synonymItems || [];
+    for (const it of content as any[]) {
+      if (it.word) wordSet.set(it.word.toLowerCase(), `${it.word} — ${it.translation || ""}`);
+    }
+    for (const pair of g.flashcardData?.pairs ?? []) {
+      if (pair.word) wordSet.set(pair.word.toLowerCase(), `${pair.word} — ${pair.translation || ""}`);
+    }
+  }
   const words = Array.from(wordSet.values());
 
   const level = xp?.level ?? 1;

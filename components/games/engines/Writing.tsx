@@ -39,8 +39,16 @@ export default function Writing({ game, onComplete }: { game: FolderGame; onComp
   const [text, setText] = useState(d.prefill || d.starter || "");
 
   const rubric = useMemo<Compiled[]>(() => {
+    // Preferred: serializable rules DSL (survives DB/JSON round-trips).
     if (Array.isArray(d.rules)) return d.rules.map(compileRule);
-    if (Array.isArray(d.rubric)) return d.rubric as Compiled[];
+    // Fallback: legacy function-based rubric (built-in games, passed in-memory).
+    // Guard `check` so a serialized rubric (functions stripped) fails safe instead of throwing.
+    if (Array.isArray(d.rubric)) {
+      return (d.rubric as any[]).map((item) => ({
+        label: item?.label ?? "",
+        check: typeof item?.check === "function" ? item.check : () => false,
+      }));
+    }
     return [];
   }, [d.rules, d.rubric]);
 

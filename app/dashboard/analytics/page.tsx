@@ -13,14 +13,23 @@ export default async function AnalyticsPage() {
 
   const games = await prisma.game.findMany({
     where: { educatorId: profile.id },
-    include: { progress: { include: { student: { select: { name: true } } } }, vocabularySet: { include: { items: { take: 5 } } } },
+    include: { progress: { include: { student: { select: { name: true } } } }, flashcardData: { include: { pairs: true } } },
   });
 
   const engagement = games.map((g) => ({ name: g.title, plays: g.progress.length }));
 
+  // Words come from the game's own content (flashcard pairs or settings JSON).
+  const wordsFor = (g: any): string[] => {
+    const s = (g.settings as Record<string, any>) || {};
+    const content = s.pairs || s.sentenceItems || s.synonymItems || [];
+    const words = (content as any[]).map((i) => i.word || "").filter(Boolean);
+    if (g.flashcardData?.pairs) words.push(...g.flashcardData.pairs.map((p: any) => p.word).filter(Boolean));
+    return words.slice(0, 5);
+  };
+
   const gameStats = games
     .filter((g) => g.progress.length > 0)
-    .map((g) => ({ title: g.title, avgScore: g.progress.reduce((s, p) => s + p.score, 0) / g.progress.length, words: g.vocabularySet?.items.map((i) => i.word) ?? [] }))
+    .map((g) => ({ title: g.title, avgScore: g.progress.reduce((s, p) => s + p.score, 0) / g.progress.length, words: wordsFor(g) }))
     .sort((a, b) => a.avgScore - b.avgScore);
   const hardestWords = gameStats.slice(0, 3).flatMap((g) => g.words.map((w) => ({ word: w, game: g.title, avgScore: Math.round(g.avgScore) }))).slice(0, 10);
 

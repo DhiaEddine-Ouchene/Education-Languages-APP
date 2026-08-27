@@ -1,0 +1,7 @@
+[
+  {
+    "id": "TC001",
+    "title": "postapiauthregistershouldcreateuserandverifyemail",
+    "description": "Test the user registration endpoint POST /api/auth/register with valid user details to ensure a new user is created successfully and a verification code is sent. Then test POST /api/auth/verify with the correct verification code to confirm the email verification process completes successfully."
+  }
+]

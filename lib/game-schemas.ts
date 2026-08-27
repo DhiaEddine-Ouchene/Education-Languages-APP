@@ -94,17 +94,18 @@ function oddOneOutPrompt({ sourceContent, count, targetLang }: Parameters<Prompt
     footer(`{"items":[{"words":["...","...","...","..."],"oddWord":"...","category":"..."}]}`);
 }
 
-// PICTURE_TO_WORD — word, image search term, distractors
+// PICTURE_TO_WORD — word, representative emoji, image search term, distractors
 const pictureToWordItem = z.object({
   word: z.string().min(1),
+  emoji: z.string().min(1).optional(),
   imageSearchTerm: z.string().min(1),
   distractors: z.array(z.string().min(1)).min(2).max(3),
 });
 const PICTURE_TO_WORD_SCHEMA = z.object({ items: z.array(pictureToWordItem).min(2).max(50) });
 function pictureToWordPrompt({ sourceContent, count, targetLang }: Parameters<PromptBuilder>[0]) {
   return header(`Generate exactly ${count} picture-to-word items for ${targetLang} vocabulary practice.`, sourceContent) +
-    `Each item needs:\n- word: the ${targetLang} word being illustrated\n- imageSearchTerm: a concrete, unambiguous, safe-for-work search term (in English) that would reliably return a clear photo of this word's meaning\n- distractors: 2-3 other ${targetLang} words (concrete, also image-able) to use as wrong answer choices\n` +
-    footer(`{"items":[{"word":"...","imageSearchTerm":"...","distractors":["...","..."]}]}`);
+    `Each item needs:\n- word: the ${targetLang} word being illustrated\n- emoji: a SINGLE emoji that best represents the word's meaning (this is shown to the learner as the "picture", so choose a concrete, recognisable one — e.g. 🍎 for apple, 🐘 for elephant)\n- imageSearchTerm: a concrete, unambiguous, safe-for-work search term (in English) describing the same thing\n- distractors: 2-3 other ${targetLang} words (concrete, also picture-able) to use as wrong answer choices\n` +
+    footer(`{"items":[{"word":"...","emoji":"🍎","imageSearchTerm":"...","distractors":["...","..."]}]}`);
 }
 
 // COLLOCATION_BUILDER — base word, correct partners, wrong partners
@@ -149,6 +150,10 @@ const dialogueLine = z.object({
   speaker: z.string().min(1),
   text: z.string().min(1),
   isBlank: z.boolean(),
+  // "you" = the learner's own turn (the only side that may ever contain a blank).
+  // "other" = the other character in the scene (waiter, taxi driver, etc.), who always
+  // speaks complete, normal lines and is never blanked.
+  role: z.enum(["you", "other"]),
 });
 const dialogueBlank = z.object({
   lineIndex: z.number().int().min(0),
@@ -163,8 +168,17 @@ const dialogueFillItem = z.object({
 const DIALOGUE_FILL_SCHEMA = z.object({ items: z.array(dialogueFillItem).min(1).max(20) });
 function dialogueFillPrompt({ sourceContent, count, targetLang, nativeLang }: Parameters<PromptBuilder>[0]) {
   return header(`Generate exactly ${count} dialogue-fill exercises for a ${targetLang} learner (native language: ${nativeLang}).`, sourceContent) +
-    `Each exercise needs:\n- scenario: one sentence in ${nativeLang} describing the situation (e.g. "Ordering coffee at a cafe")\n- lines: 4-8 dialogue lines, each with a "speaker" name, "text" in ${targetLang}, and "isBlank" (true if this line contains the blank to fill)\n- blanks: for each line where isBlank is true, give "lineIndex" (its 0-based index in "lines"), "correctAnswer" (the missing ${targetLang} word/phrase), and "distractors" (2-3 wrong but plausible ${targetLang} options)\n` +
-    footer(`{"items":[{"scenario":"...","lines":[{"speaker":"A","text":"...___...","isBlank":true},{"speaker":"B","text":"...","isBlank":false}],"blanks":[{"lineIndex":0,"correctAnswer":"...","distractors":["...","..."]}]}]}`);
+    `Each exercise is a short back-and-forth conversation between the LEARNER and ONE other character (e.g. a waiter, taxi driver, shopkeeper, receptionist).\n` +
+    `Each exercise needs:\n` +
+    `- scenario: one sentence in ${nativeLang} describing the situation (e.g. "Ordering coffee at a cafe")\n` +
+    `- lines: 4-8 dialogue lines that alternate between the two speakers, each with:\n` +
+    `  - "speaker": a short name/label (the other character's role, e.g. "Waiter", or "You" for the learner)\n` +
+    `  - "role": "other" for the non-learner character, or "you" for the learner's own turn\n` +
+    `  - "text" in ${targetLang}\n` +
+    `  - "isBlank": true ONLY for a line where role is "you" — the other character (role "other") must ALWAYS speak a complete, normal line and must NEVER be marked isBlank\n` +
+    `- blanks: for each line where isBlank is true, give "lineIndex" (its 0-based index in "lines"), "correctAnswer" (the missing ${targetLang} word/phrase that completes the learner's line), and "distractors" (2-3 wrong but plausible ${targetLang} options)\n` +
+    `IMPORTANT: the gap to fill must always belong to the learner ("you") replying in the conversation — never to the other character. The other character's lines are shown to the learner as context and must be complete sentences with no blanks.\n` +
+    footer(`{"items":[{"scenario":"...","lines":[{"speaker":"Waiter","role":"other","text":"...","isBlank":false},{"speaker":"You","role":"you","text":"...___...","isBlank":true}],"blanks":[{"lineIndex":1,"correctAnswer":"...","distractors":["...","..."]}]}]}`);
 }
 
 // WORD_IN_CONTEXT — word, correct sentence, incorrect sentences
@@ -209,18 +223,6 @@ function errorSpottingPrompt({ sourceContent, count, targetLang, nativeLang }: P
     footer(`{"items":[{"sentenceWithError":"...","wrongPart":"...","correction":"...","ruleExplanation":"..."}]}`);
 }
 
-// FILL_BLANK_GRAMMAR — sentence with blank, base verb, correct conjugation
-const fillBlankGrammarItem = z.object({
-  sentenceWithBlank: z.string().min(3),
-  baseVerbForm: z.string().min(1),
-  correctConjugatedForm: z.string().min(1),
-});
-const FILL_BLANK_GRAMMAR_SCHEMA = z.object({ items: z.array(fillBlankGrammarItem).min(2).max(30) });
-function fillBlankGrammarPrompt({ sourceContent, count, targetLang }: Parameters<PromptBuilder>[0]) {
-  return header(`Generate exactly ${count} grammar fill-the-blank items for ${targetLang} practice.`, sourceContent) +
-    `Each item needs:\n- sentenceWithBlank: a sentence in ${targetLang} with "___" where a verb should go\n- baseVerbForm: the verb's base/infinitive form, shown to the student as a hint\n- correctConjugatedForm: the correctly conjugated form that fills the blank\n` +
-    footer(`{"items":[{"sentenceWithBlank":"... ___ ...","baseVerbForm":"...","correctConjugatedForm":"..."}]}`);
-}
 
 // VERB_CONJUGATION — verb, tense, forms per pronoun
 const verbConjugationForm = z.object({
@@ -334,6 +336,72 @@ function crosswordPrompt({ sourceContent, count, targetLang }: Parameters<Prompt
 }
 
 // ═══════════════════════════════════════════════════════════
+// PORTED ENGINES — SPEAKING / CATEGORY_SORT / TRANSFORMATION / WRITING_RUBRIC
+// ═══════════════════════════════════════════════════════════
+
+// SPEAKING — mic-based rounds (repeat / read / gap / roleplay / describe)
+const speakingItem = z.object({
+  mode: z.enum(["repeat", "read", "gap", "roleplay", "describe"]),
+  task: z.string().optional(),
+  display: z.string().optional(),
+  target: z.string().optional(),
+  keywords: z.array(z.string()).optional(),
+  note: z.string().optional(),
+  audioText: z.string().optional(),
+  image: z.string().optional(),
+});
+const SPEAKING_SCHEMA = z.object({ items: z.array(speakingItem).min(2).max(30) });
+function speakingPrompt({ sourceContent, count, targetLang }: Parameters<PromptBuilder>[0]) {
+  return header(`Generate exactly ${count} speaking rounds for a ${targetLang} learner.`, sourceContent) +
+    `Vary the modes across repeat / read / gap / roleplay / describe:\n` +
+    `- repeat: "mode":"repeat" plus an "audioText" phrase to listen and repeat\n` +
+    `- read: "mode":"read" plus a "display" sentence to read aloud\n` +
+    `- gap: "mode":"gap" plus a "display" sentence with "___" marking the blank and a "target" answer word\n` +
+    `- roleplay: "mode":"roleplay" plus a "task"/instruction and 2-3 "keywords" the learner should use\n` +
+    `- describe: "mode":"describe" plus a "task" and an "image" (emoji or short description) to describe\n` +
+    `For fields not used by a mode, set them to empty strings / empty arrays.\n` +
+    footer(`{"items":[{"mode":"repeat","audioText":"Nice to meet you!","display":"","target":"","keywords":[],"task":"","image":""},{"mode":"gap","display":"I ___ from Algeria.","target":"am","keywords":[],"task":"Say the missing word","image":""}]}`);
+}
+
+// CATEGORY_SORT — words grouped under a category
+const categorySortItem = z.object({
+  category: z.string().min(1),
+  words: z.array(z.string().min(1)).min(2).max(12),
+});
+const CATEGORY_SORT_SCHEMA = z.object({ items: z.array(categorySortItem).min(2).max(10) });
+function categorySortPrompt({ sourceContent, count, targetLang }: Parameters<PromptBuilder>[0]) {
+  return header(`Generate ${count} word categories for a ${targetLang} sorting exercise.`, sourceContent) +
+    `Each item needs:\n- category: a category name in ${targetLang}\n- words: 4-6 ${targetLang} words that belong to that category\n` +
+    footer(`{"items":[{"category":"Fruits","words":["apple","banana","pear","orange"]},{"category":"Animals","words":["cat","dog","bird","fish"]}]}`);
+}
+
+// TRANSFORMATION — instruction + starting sentence + accepted answers
+const transformationItem = z.object({
+  instruction: z.string().min(1),
+  prompt: z.string().min(1),
+  answers: z.array(z.string().min(1)).min(1),
+});
+const TRANSFORMATION_SCHEMA = z.object({ items: z.array(transformationItem).min(2).max(20) });
+function transformationPrompt({ sourceContent, count, targetLang }: Parameters<PromptBuilder>[0]) {
+  return header(`Generate exactly ${count} sentence-transformation exercises for ${targetLang}.`, sourceContent) +
+    `Each item needs:\n- instruction: what the learner must do (e.g. "Make the sentence negative")\n- prompt: the starting sentence in ${targetLang}\n- answers: 1-2 correct transformed sentences in ${targetLang}\n` +
+    footer(`{"items":[{"instruction":"Make this sentence negative","prompt":"She likes coffee.","answers":["She does not like coffee."]}]}`);
+}
+
+// WRITING_RUBRIC — writing prompt + word bank + starter
+const writingItem = z.object({
+  prompt: z.string().min(10),
+  wordBank: z.array(z.string()).optional(),
+  starter: z.string().optional(),
+});
+const WRITING_SCHEMA = z.object({ items: z.array(writingItem).min(1).max(5) });
+function writingPrompt({ sourceContent, count, targetLang, nativeLang }: Parameters<PromptBuilder>[0]) {
+  return header(`Generate ${count} creative-writing prompt(s) for a ${targetLang} learner (native language: ${nativeLang}).`, sourceContent) +
+    `Each item needs:\n- prompt: a detailed writing prompt (at least 10 characters)\n- wordBank: 5-8 ${targetLang} words the learner should try to use\n- starter: an optional opening sentence in ${targetLang}\n` +
+    footer(`{"items":[{"prompt":"Write about your last vacation.","wordBank":["visited","beach","weather"],"starter":"Last summer I went to..."}]}`);
+}
+
+// ═══════════════════════════════════════════════════════════
 // SCHEMA REGISTRY
 // ═══════════════════════════════════════════════════════════
 
@@ -359,7 +427,6 @@ export const GAME_SCHEMAS: Record<string, GameSchemaConfig> = {
   // Grammar & writing
   SENTENCE_BUILDER: { schema: SENTENCE_BUILDER_SCHEMA, buildPrompt: sentenceBuilderPrompt, description: "One full correct sentence to reorder" },
   ERROR_SPOTTING: { schema: ERROR_SPOTTING_SCHEMA, buildPrompt: errorSpottingPrompt, description: "Sentence with error + wrong part + correction + rule" },
-  FILL_BLANK_GRAMMAR: { schema: FILL_BLANK_GRAMMAR_SCHEMA, buildPrompt: fillBlankGrammarPrompt, description: "Sentence with blank + base verb + correct conjugation" },
   VERB_CONJUGATION: { schema: VERB_CONJUGATION_SCHEMA, buildPrompt: verbConjugationPrompt, description: "Verb + tense + conjugation per pronoun" },
   MULTIPLE_CHOICE_GRAMMAR: { schema: MULTIPLE_CHOICE_SCHEMA, buildPrompt: multipleChoicePrompt("grammar"), description: "Sentence with blank + 4 options + correct + explanation" },
   DRAG_DROP: { schema: DRAG_DROP_SCHEMA, buildPrompt: dragDropPrompt, description: "Items + target categories + correct mapping" },
@@ -374,6 +441,13 @@ export const GAME_SCHEMAS: Record<string, GameSchemaConfig> = {
   LISTEN_FILL_SENTENCE: { schema: ONE_SENTENCE_SCHEMA, buildPrompt: oneSentencePrompt("reorder"), description: "One full sentence to reconstruct after listening" },
   SPEAK_FILL_WORD: { schema: LISTEN_FILL_WORD_SCHEMA, buildPrompt: listenFillWordPrompt, description: "Sentence with blank + correct word (spoken)" },
   SPEAK_FILL_SENTENCE: { schema: ONE_SENTENCE_SCHEMA, buildPrompt: oneSentencePrompt("speak"), description: "One full sentence to speak aloud" },
+
+  // Ported engines
+  SPEAKING: { schema: SPEAKING_SCHEMA, buildPrompt: speakingPrompt, description: "Mic-based speaking rounds (repeat / read / gap / roleplay / describe)" },
+  CATEGORY_SORT: { schema: CATEGORY_SORT_SCHEMA, buildPrompt: categorySortPrompt, description: "Words to sort into categories" },
+  TRANSFORMATION: { schema: TRANSFORMATION_SCHEMA, buildPrompt: transformationPrompt, description: "Sentence transformation with accepted answers" },
+  WRITING_RUBRIC: { schema: WRITING_SCHEMA, buildPrompt: writingPrompt, description: "Writing prompt + word bank + rubric" },
+  FILL_BLANK_GRAMMAR: { schema: FILL_WORD_SCHEMA, buildPrompt: fillWordPrompt, description: "Grammar sentence with blank + correct word" },
 };
 
 export function getGameSchema(type: string): GameSchemaConfig | null {

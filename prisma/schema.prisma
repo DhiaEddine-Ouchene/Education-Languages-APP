@@ -41,12 +41,13 @@ enum GameType {
   // Vocabulary
   SYNONYM_ANTONYM
   FILL_GAP_WORD
-  WORD_MEANING_MATCH
   SITUATION_DIALOGUE_FILL
-  WORD_IN_CONTEXT
   WORD_SCRAMBLE
-  ODD_ONE_OUT
   CATEGORY_SORT
+  WORD_MEANING_MATCH
+  WORD_IN_CONTEXT
+  ODD_ONE_OUT
+  COLLOCATION_BUILDER
 
   // Grammar
   SENTENCE_BUILDER
@@ -68,7 +69,6 @@ enum GameType {
 
   // Extra game types
   CROSSWORD
-  COLLOCATION_BUILDER
   FLASHCARD_3D
   MINIMAL_PAIR
   PICTURE_TO_WORD
@@ -123,9 +123,9 @@ model EducatorProfile {
 
   courses        Course[]
   games          Game[]
-  vocabularySets VocabularySet[]
   classes        Class[]
   subscriptions  Subscription[]
+  wordSets       WordSet[]
 }
 
 model Course {
@@ -171,34 +171,25 @@ model ExerciseSet {
   games Game[]
 }
 
-model VocabularySet {
+// ── Portable, game-agnostic content list ──
+// A saved list of items ({ word, translation, exampleSentence }) that ANY game
+// type can be filled from (via lib/fill-game). Unlike ExerciseSet it is NOT tied
+// to a lesson or a single game's fields, so one set is reusable across every game.
+model WordSet {
   id             String   @id @default(cuid())
   educatorId     String
   educator       EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
   name           String
-  language       String
+  language       String   @default("English")
   nativeLanguage String   @default("English")
-  level          String?
-  sourceType     String   @default("MANUAL")   // "AI_TOPIC" | "AI_COURSE" | "MANUAL"
-  courseId       String?
+  level          String   @default("B1")
+  contentType    String   @default("words")  // words | phrases | sentences | grammar
+  sourceType     String   @default("MANUAL") // MANUAL | AI_TOPIC
+  items          Json     @default("[]")      // [{ word, translation, exampleSentence }]
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  items VocabularyItem[]
-  games Game[]
-}
-
-model VocabularyItem {
-  id              String   @id @default(cuid())
-  setId           String
-  set             VocabularySet @relation(fields: [setId], references: [id], onDelete: Cascade)
-  word            String
-  translation     String
-  audioUrl        String?
-  imageUrl        String?
-  exampleSentence String?
-  synonyms        Json     @default("[]")
-  antonyms        Json     @default("[]")
-  createdAt       DateTime @default(now())
+  @@index([educatorId])
 }
 
 model Game {
@@ -207,8 +198,6 @@ model Game {
   educator        EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
   title           String
   type            GameType
-  vocabularySetId String?
-  vocabularySet   VocabularySet? @relation(fields: [vocabularySetId], references: [id])
   exerciseSetId   String?
   exerciseSet     ExerciseSet? @relation(fields: [exerciseSetId], references: [id])
   settings        Json     @default("{}")
@@ -233,7 +222,7 @@ model Game {
   storyData            StoryData?
 }
 
-// ── Flashcard pairs (covers FLASHCARD, SYNONYM_ANTONYM, WORD_SCRAMBLE, PICTURE_TO_WORD, COLLOCATION_BUILDER, ODD_ONE_OUT, FLASHCARD_3D) ──
+// ── Flashcard pairs (covers FLASHCARD, SYNONYM_ANTONYM, WORD_SCRAMBLE, PICTURE_TO_WORD, FLASHCARD_3D) ──
 model FlashcardData {
   id     String   @id @default(cuid())
   gameId String   @unique
@@ -254,7 +243,7 @@ model FlashcardPair {
   order            Int          @default(0)
 }
 
-// ── Quiz questions (covers QUIZ, MULTIPLE_CHOICE_GRAMMAR, ERROR_SPOTTING, WORD_IN_CONTEXT) ──
+// ── Quiz questions (covers QUIZ, MULTIPLE_CHOICE_GRAMMAR, ERROR_SPOTTING) ──
 model QuizData {
   id     String   @id @default(cuid())
   gameId String   @unique

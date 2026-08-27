@@ -81,6 +81,31 @@ function optionCard(x: number, y: number, w: number, h: number, label: string, s
   `;
 }
 
+// A small rounded "tag" pill centered on cx — mirrors the engine's `.tag` label.
+function subPill(cx: number, y: number, label: string, w = 260): string {
+  return `
+    ${r(`x="${cx - w / 2}" y="${y}" width="${w}" height="30" rx="15" fill="${ACCENT_LIGHT}"`)}
+    ${t(`x="${cx}" y="${y + 20}" text-anchor="middle" font-family="Arial" font-size="12.5" font-weight="bold" fill="${ACCENT}"`, label)}
+  `;
+}
+
+// A full-width option row for the mcq "stack" layout (WORD_IN_CONTEXT, ODD_ONE_OUT).
+type OptVariant = "idle" | "correct" | "wrong";
+function optRow(x: number, y: number, w: number, h: number, label: string, variant: OptVariant = "idle"): string {
+  const map: Record<OptVariant, [string, string, string, number]> = {
+    idle: [CARD_BG, DIVIDER, TEXT_PRI, 1.5],
+    correct: [SUCCESS_LIGHT, "#6EE7B7", "#047857", 2.5],
+    wrong: ["#FEE2E2", "#FCA5A5", DANGER, 2.5],
+  };
+  const [bg, stroke, fg, sw] = map[variant];
+  const mark = variant === "correct" ? "✓" : variant === "wrong" ? "✗" : "";
+  return `
+    ${r(`x="${x}" y="${y}" width="${w}" height="${h}" rx="12" fill="${bg}" stroke="${stroke}" stroke-width="${sw}"`)}
+    ${t(`x="${x + 18}" y="${y + h / 2 + 5}" font-family="Arial" font-size="14" ${variant !== "idle" ? 'font-weight="bold" ' : ""}fill="${fg}"`, label)}
+    ${mark ? t(`x="${x + w - 24}" y="${y + h / 2 + 5}" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="${fg}"`, mark) : ""}
+  `;
+}
+
 function renderScreenshot(type: string, title: string = "Game"): string {
   const G = `${ACCENT_LIGHT}`;
 
@@ -106,7 +131,6 @@ function renderScreenshot(type: string, title: string = "Game"): string {
     case "QUIZ":
     case "MULTIPLE_CHOICE_GRAMMAR":
     case "ERROR_SPOTTING":
-    case "WORD_IN_CONTEXT":
       return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
         ${r(`x="0" y="0" width="600" height="600" fill="${APP_BG}"`)}
         ${statusBar()}${appHeader("Multiple Choice")}
@@ -263,19 +287,18 @@ function renderScreenshot(type: string, title: string = "Game"): string {
         ${bottomBar()}
       </svg>`;
 
-    // ============ ODD ONE OUT ============
+    // ============ ODD ONE OUT (mcq · stacked options) ============
     case "ODD_ONE_OUT":
       return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
         ${r(`x="0" y="0" width="600" height="600" fill="${APP_BG}"`)}
         ${statusBar()}${appHeader("Odd One Out")}
-        ${t(`x="300" y="115" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="${TEXT_PRI}"`, "Which word doesn't belong?")}
-        ${t(`x="300" y="135" text-anchor="middle" font-family="Arial" font-size="11" fill="${TEXT_SEC}"`, "Find the word that doesn't fit with the others")}
-        <g transform="translate(40, 170)">${r(`x="0" y="0" width="240" height="100" rx="14" fill="${CARD_BG}" stroke="${DIVIDER}" stroke-width="1.5"`)}${t(`x="120" y="40" text-anchor="middle" font-family="Arial" font-size="32"`, "🍎")}${t(`x="120" y="75" text-anchor="middle" font-family="Arial" font-size="14" fill="${TEXT_PRI}"`, "Apple")}</g>
-        <g transform="translate(320, 170)">${r(`x="0" y="0" width="240" height="100" rx="14" fill="${CARD_BG}" stroke="${DIVIDER}" stroke-width="1.5"`)}${t(`x="120" y="40" text-anchor="middle" font-family="Arial" font-size="32"`, "🍌")}${t(`x="120" y="75" text-anchor="middle" font-family="Arial" font-size="14" fill="${TEXT_PRI}"`, "Banana")}</g>
-        <g transform="translate(40, 285)">${r(`x="0" y="0" width="240" height="100" rx="14" fill="${CARD_BG}" stroke="${DIVIDER}" stroke-width="1.5"`)}${t(`x="120" y="40" text-anchor="middle" font-family="Arial" font-size="32"`, "🥕")}${t(`x="120" y="75" text-anchor="middle" font-family="Arial" font-size="14" fill="${TEXT_PRI}"`, "Carrot")}</g>
-        <g transform="translate(320, 285)">${r(`x="0" y="0" width="240" height="100" rx="14" fill="#FEE2E2" stroke="#FCA5A5" stroke-width="2"`)}${t(`x="120" y="40" text-anchor="middle" font-family="Arial" font-size="32"`, "🍇")}${t(`x="120" y="75" text-anchor="middle" font-family="Arial" font-size="14" fill="#DC2626" font-weight="bold"`, "Grape ✗")}</g>
-        ${t(`x="300" y="435" text-anchor="middle" font-family="Arial" font-size="11" fill="${TEXT_SEC}"`, "💡 Three are fruits, one is a vegetable")}
-        ${primaryBtn(200, 475, 200, 44, "Submit")}
+        ${subPill(300, 105, "Which word doesn't belong?", 300)}
+        ${t(`x="300" y="160" text-anchor="middle" font-family="Arial" font-size="12" fill="${TEXT_SEC}"`, "Three go together — tap the one that doesn't fit")}
+        ${optRow(70, 195, 460, 58, "🍎  Apple", "idle")}
+        ${optRow(70, 263, 460, 58, "🍌  Banana", "idle")}
+        ${optRow(70, 331, 460, 58, "🥕  Carrot", "correct")}
+        ${optRow(70, 399, 460, 58, "🍇  Grape", "idle")}
+        ${t(`x="300" y="490" text-anchor="middle" font-family="Arial" font-size="11" fill="${TEXT_SEC}"`, "💡 Three are fruits, one is a vegetable")}
         ${bottomBar()}
       </svg>`;
 
@@ -304,10 +327,8 @@ function renderScreenshot(type: string, title: string = "Game"): string {
         ${bottomBar()}
       </svg>`;
 
-    // ============ SYNONYM/MATCHING ============
-    case "SYNONYM_ANTONYM":
+    // ============ MATCHING (two columns) ============
     case "WORD_MEANING_MATCH":
-    case "COLLOCATION_BUILDER":
     case "DRAG_DROP":
       return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
         ${r(`x="0" y="0" width="600" height="600" fill="${APP_BG}"`)}
@@ -460,11 +481,10 @@ function renderScreenshot(type: string, title: string = "Game"): string {
       return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
         ${r(`x="0" y="0" width="600" height="600" fill="${APP_BG}"`)}
         ${statusBar()}${appHeader("Picture to Word")}
-        ${t(`x="300" y="115" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="${TEXT_PRI}"`, "Choose the word that matches the picture")}
-        ${r(`x="175" y="140" width="250" height="180" rx="24" fill="${CARD_BG}" stroke="${DIVIDER}" stroke-width="1.5"`)}
-        <circle cx="300" cy="230" r="55" fill="#FEF3C7"/>
-        ${t(`x="300" y="240" text-anchor="middle" font-family="Arial" font-size="50"`, "🍎")}
-        ${t(`x="300" y="300" text-anchor="middle" font-family="Arial" font-size="10" fill="${TEXT_SEC}"`, "Upload image")}
+        ${subPill(300, 100, "Which word matches the picture?", 300)}
+        ${r(`x="185" y="150" width="230" height="170" rx="24" fill="${CARD_BG}" stroke="${DIVIDER}" stroke-width="1.5"`)}
+        <circle cx="300" cy="235" r="58" fill="#FEF3C7"/>
+        ${t(`x="300" y="253" text-anchor="middle" font-family="Arial" font-size="56"`, "🍎")}
         <g transform="translate(40, 345)">
           <rect x="0" y="0" width="240" height="55" rx="12" fill="#D1FAE5" stroke="#6EE7B7" stroke-width="2"/>
           <text x="120" y="34" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#047857">🍎 Apple ✓</text>
@@ -507,6 +527,83 @@ function renderScreenshot(type: string, title: string = "Game"): string {
         </g>
         ${t(`x="300" y="410" text-anchor="middle" font-family="Arial" font-size="12" fill="${TEXT_SEC}"`, "⏱ Time remaining: 12 seconds")}
         ${primaryBtn(200, 455, 200, 44, "Confirm")}
+        ${bottomBar()}
+      </svg>`;
+
+    // ============ SYNONYM / ANTONYM (mcq · grid) ============
+    case "SYNONYM_ANTONYM":
+      return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+        ${r(`x="0" y="0" width="600" height="600" fill="${APP_BG}"`)}
+        ${statusBar()}${appHeader("Synonyms &amp; Antonyms")}
+        ${subPill(300, 100, "Pick the SYNONYM", 200)}
+        ${t(`x="300" y="175" text-anchor="middle" font-family="Arial" font-size="34" font-weight="bold" fill="${TEXT_PRI}"`, "Happy")}
+        ${t(`x="300" y="202" text-anchor="middle" font-family="Arial" font-size="12" fill="${TEXT_SEC}"`, "Which word means the same?")}
+        ${optionCard(60, 235, 220, 66, "😊  Joyful", "", true)}
+        ${optionCard(320, 235, 220, 66, "😢  Sad", "")}
+        ${optionCard(60, 318, 220, 66, "😠  Angry", "")}
+        ${optionCard(320, 318, 220, 66, "😴  Tired", "")}
+        ${primaryBtn(200, 470, 200, 44, "Submit Answer")}
+        ${bottomBar()}
+      </svg>`;
+
+    // ============ COLLOCATION BUILDER (mcq · grid) ============
+    case "COLLOCATION_BUILDER":
+      return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+        ${r(`x="0" y="0" width="600" height="600" fill="${APP_BG}"`)}
+        ${statusBar()}${appHeader("Collocation Builder")}
+        ${subPill(300, 100, "Which word goes together?", 260)}
+        ${t(`x="300" y="178" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="${TEXT_PRI}"`, "heavy ____")}
+        ${t(`x="300" y="205" text-anchor="middle" font-family="Arial" font-size="12" fill="${TEXT_SEC}"`, "Choose the word that fits naturally")}
+        ${optionCard(60, 238, 220, 66, "rain", "heavy rain ✓", true)}
+        ${optionCard(320, 238, 220, 66, "water", "")}
+        ${optionCard(60, 321, 220, 66, "wind", "")}
+        ${optionCard(320, 321, 220, 66, "sun", "")}
+        ${primaryBtn(200, 470, 200, 44, "Submit Answer")}
+        ${bottomBar()}
+      </svg>`;
+
+    // ============ WORD IN CONTEXT (mcq · stacked options) ============
+    case "WORD_IN_CONTEXT":
+      return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+        ${r(`x="0" y="0" width="600" height="600" fill="${APP_BG}"`)}
+        ${statusBar()}${appHeader("Word in Context")}
+        ${r(`x="40" y="96" width="520" height="72" rx="14" fill="${CARD_BG}" stroke="${DIVIDER}" stroke-width="1.5"`)}
+        ${t(`x="60" y="128" font-family="Arial" font-size="13" font-style="italic" fill="${TEXT_PRI}"`, "“She felt ‘blue’ after hearing the sad news.”")}
+        ${t(`x="60" y="152" font-family="Arial" font-size="12.5" fill="${TEXT_SEC}"`, "What does ‘blue’ mean in this sentence?")}
+        ${optRow(70, 195, 460, 58, "Sad or unhappy", "correct")}
+        ${optRow(70, 263, 460, 58, "The colour blue", "idle")}
+        ${optRow(70, 331, 460, 58, "Feeling cold", "idle")}
+        ${optRow(70, 399, 460, 58, "Very excited", "idle")}
+        ${t(`x="300" y="490" text-anchor="middle" font-family="Arial" font-size="11" fill="${TEXT_SEC}"`, "💡 Use the sentence to work out the meaning")}
+        ${bottomBar()}
+      </svg>`;
+
+    // ============ CATEGORY SORT (sort · buckets) ============
+    case "CATEGORY_SORT":
+      return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+        ${r(`x="0" y="0" width="600" height="600" fill="${APP_BG}"`)}
+        ${statusBar()}${appHeader("Category Sort")}
+        ${t(`x="300" y="120" text-anchor="middle" font-family="Arial" font-size="13" fill="${TEXT_SEC}"`, "Word 3 of 8 — tap the right category")}
+        ${r(`x="150" y="145" width="300" height="120" rx="20" fill="${CARD_BG}" stroke="${ACCENT}" stroke-width="2.5"`)}
+        ${t(`x="300" y="200" text-anchor="middle" font-family="Arial" font-size="40"`, "🥕")}
+        ${t(`x="300" y="240" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="${TEXT_PRI}"`, "Carrot")}
+        ${t(`x="300" y="320" text-anchor="middle" font-family="Arial" font-size="12" fill="${TEXT_SEC}"`, "⬇  Which basket does it belong in?")}
+        <g transform="translate(40, 345)">
+          ${r(`x="0" y="0" width="160" height="110" rx="16" fill="${CARD_BG}" stroke="${DIVIDER}" stroke-width="1.5"`)}
+          ${t(`x="80" y="45" text-anchor="middle" font-family="Arial" font-size="30"`, "🍎")}
+          ${t(`x="80" y="80" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="${TEXT_PRI}"`, "Fruits")}
+        </g>
+        <g transform="translate(220, 345)">
+          ${r(`x="0" y="0" width="160" height="110" rx="16" fill="${SUCCESS_LIGHT}" stroke="${SUCCESS}" stroke-width="2.5"`)}
+          ${t(`x="80" y="45" text-anchor="middle" font-family="Arial" font-size="30"`, "🥦")}
+          ${t(`x="80" y="80" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="#047857"`, "Vegetables")}
+          ${t(`x="80" y="100" text-anchor="middle" font-family="Arial" font-size="12" fill="#047857"`, "✓")}
+        </g>
+        <g transform="translate(400, 345)">
+          ${r(`x="0" y="0" width="160" height="110" rx="16" fill="${CARD_BG}" stroke="${DIVIDER}" stroke-width="1.5"`)}
+          ${t(`x="80" y="45" text-anchor="middle" font-family="Arial" font-size="30"`, "🐾")}
+          ${t(`x="80" y="80" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="${TEXT_PRI}"`, "Animals")}
+        </g>
         ${bottomBar()}
       </svg>`;
 

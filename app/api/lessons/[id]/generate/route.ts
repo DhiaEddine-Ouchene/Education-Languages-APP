@@ -68,7 +68,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       },
     });
 
-    return NextResponse.json({ ...exerciseSet, wordSetId: result.wordSetId }, { status: 201 });
+    return NextResponse.json({ ...exerciseSet }, { status: 201 });
   } catch (err) {
     console.error("[lessons:generate:POST]", err);
     return NextResponse.json({ error: "Generation failed" }, { status: 500 });

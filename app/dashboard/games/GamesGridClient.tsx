@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { GamePreviewImage } from "@/components/dashboard/GamePreviewImage";
+import { GamePoster } from "@/components/dashboard/GamePoster";
 import { TYPE_LABELS } from "@/lib/game-type-metadata";
 import { Plus, Gamepad2, RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
 
@@ -20,7 +20,6 @@ type GameRow = {
   generationStatus?: string;
   generationError?: string | null;
   createdAt: Date;
-  vocabularySet: { name: string } | null;
   _count: { progress: number };
 };
 
@@ -35,7 +34,7 @@ export function GamesGridClient({ games, stats }: Props) {
   const handleRegenerate = async (g: GameRow) => {
     setRegenerating((prev) => ({ ...prev, [g.id]: true }));
     try {
-      const content = g.vocabularySet?.name || g.title || "General vocabulary";
+      const content = g.title || "General vocabulary";
       const res = await fetch("/api/games/regenerate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,7 +93,7 @@ export function GamesGridClient({ games, stats }: Props) {
               <Link href={`/dashboard/games/${g.id}`}>
                 <Card className="hover:border-primary/30 hover:shadow-lg transition-all duration-300 overflow-hidden">
                   <div className="relative">
-                    <GamePreviewImage type={g.type} title={g.title} className="w-full" />
+                    <GamePoster type={g.type} title={g.title} className="w-full" />
                     <Badge variant={g.isPublished ? "accent" : "outline"}
                       className={cn("absolute top-2 right-2 text-[10px] font-semibold px-2 py-0.5",
                         g.isPublished && "bg-green-100 text-green-700 border-green-200")}>

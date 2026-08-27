@@ -7,10 +7,38 @@ export type AIGenerationStatus =
   | { allowed: true; remaining: number; resetAt: Date | null }
   | { allowed: false; remaining: 0; resetAt: Date | null };
 
+// Paid tiers (either the profile's plan or an active subscription row) have no limit.
+function isPaidPlan(plan: string | null | undefined): boolean {
+  return plan === "PRO" || plan === "ULTIMATE";
+}
+
+/**
+ * Resolve whether an educator is on a paid (unlimited) tier.
+ * Checks both the profile's `subscriptionPlan` field AND any ACTIVE paid
+ * subscription in the `subscription` table — the field can lag behind the
+ * real subscription (e.g. during payment verification or test-mode checkouts).
+ */
+async function educatorIsPaid(
+  tx: PrismaClientLike,
+  educatorId: string
+): Promise<boolean> {
+  const p = await tx.educatorProfile.findUniqueOrThrow({
+    where: { id: educatorId },
+    select: { subscriptionPlan: true },
+  });
+  if (isPaidPlan(p.subscriptionPlan)) return true;
+
+  const active = await tx.subscription.findFirst({
+    where: { educatorId, status: "ACTIVE", plan: { in: ["PRO", "ULTIMATE"] } },
+    select: { id: true },
+  });
+  return !!active;
+}
+
 /**
  * Check whether an educator can perform an AI generation this month.
  *
- * - PRO and ULTIMATE → always allowed (no counting).
+ * - PRO and ULTIMATE (profile field or active subscription) → always allowed.
  * - FREE → allowed up to 15/month; counter resets lazily on first gen of a new
  *   calendar month. Uses a transaction to avoid race conditions.
  */
@@ -32,7 +60,7 @@ export async function checkAIGenerationLimit(
     });
 
     // Paid tiers have no limit
-    if (p.subscriptionPlan === "PRO" || p.subscriptionPlan === "ULTIMATE") {
+    if (await educatorIsPaid(tx as any, educatorId)) {
       return { ...p, aiGenerationsThisMonth: 0 };
     }
 
@@ -55,7 +83,8 @@ export async function checkAIGenerationLimit(
     return p;
   });
 
-  if (profile.subscriptionPlan === "PRO" || profile.subscriptionPlan === "ULTIMATE") {
+  const paid = await educatorIsPaid(prisma as any, educatorId);
+  if (paid) {
     return {
       allowed: true,
       remaining: Infinity,
@@ -98,8 +127,9 @@ export async function incrementAIGenerationCount(
       },
     });
 
-    // Only count for FREE tier
-    if (p.subscriptionPlan !== "FREE") return;
+    // Only count for FREE tier (not paid via plan or active subscription)
+    if (isPaidPlan(p.subscriptionPlan)) return;
+    if (await educatorIsPaid(tx as any, educatorId)) return;
 
     // Lazy reset if needed
     if (!p.aiGenerationsResetAt || p.aiGenerationsResetAt < startOfMonth) {
@@ -123,3 +153,16 @@ export async function incrementAIGenerationCount(
     });
   });
 }
+
+// Minimal structural type for the transaction client so we can share the paid check.
+type PrismaClientLike = {
+  educatorProfile: {
+    findUniqueOrThrow: (args: { where: { id: string }; select: Record<string, boolean> }) => Promise<{ subscriptionPlan: string }>;
+  };
+  subscription: {
+    findFirst: (args: {
+      where: { educatorId: string; status: string; plan: { in: string[] } };
+      select: { id: boolean };
+    }) => Promise<{ id: string } | null>;
+  };
+};

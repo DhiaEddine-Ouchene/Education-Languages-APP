@@ -37,6 +37,9 @@ type Props = {
   items: GameItem[];
   settings: GameSettings | Record<string, unknown>;
   previewMode?: boolean;
+  // The logged-in student (name + avatar) — used by dialogue games so the
+  // learner's own bubbles show their real identity instead of "You".
+  student?: { name: string; image?: string | null };
 };
 
 const gameLabels: Record<string, string> = {
@@ -97,11 +100,11 @@ function hasSettingsContent(settings: GameSettings | Record<string, unknown>): b
       s?.transformationItems?.length ||
       s?.crosswordWords?.length ||
       s?.writingData?.prompt ||
-      (d && (d.rounds?.length || d.pairs?.length || d.entries?.length || d.prompt || d.rules))
+      (d && (d.rounds?.length || d.pairs?.length || d.entries?.length || d.cards?.length || d.prompt || d.rules))
   );
 }
 
-export function GamePlayer({ gameId, title, type, items, settings, previewMode = false }: Props) {
+export function GamePlayer({ gameId, title, type, items, settings, previewMode = false, student }: Props) {
   const [result, setResult] = useState<(Result & { score: number; timeTaken: number }) | null>(null);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [round, setRound] = useState(0);
@@ -197,7 +200,7 @@ export function GamePlayer({ gameId, title, type, items, settings, previewMode =
             <LevelUpModal level={result.level} open={showLevelUp} onClose={() => setShowLevelUp(false)} />
           </>
         ) : (
-          <FolderGame key={round} game={folderGame} onComplete={onComplete} />
+          <FolderGame key={round} game={folderGame} onComplete={onComplete} student={student} />
         )}
       </div>
     </motion.div>

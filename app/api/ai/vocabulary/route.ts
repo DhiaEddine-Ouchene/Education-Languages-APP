@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
+import { completeJSON } from "@/lib/ai-complete";
 import { auth, getEducatorProfile } from "@/lib/auth";
 import {
   checkAIGenerationLimit,
   incrementAIGenerationCount,
 } from "@/lib/plan-guard";
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
 
 export async function POST(req: Request) {
   try {
@@ -31,36 +27,68 @@ export async function POST(req: Request) {
       );
     }
 
-    const { topic, language = "English", targetLanguage = "English", level = "B1", count = 10 } = await req.json();
+    const { topic, language = "English", targetLanguage = "English", level = "B1", count = 10, contentType = "words" } = await req.json();
 
     if (!topic) return NextResponse.json({ error: "Topic is required" }, { status: 400 });
 
-    const prompt = `Generate a list of exactly ${count} vocabulary words or short phrases about the topic "${topic}" suitable for ${level} level learners.
-The words should be in ${language}.
-Also provide their accurate translation in ${targetLanguage}.
+    // The word bank feeds many game types — some need single words, others need
+    // phrases, full sentences, or grammar items. Ask the AI for the right kind so
+    // downstream games (and the "fill game" step) get content that actually fits.
+    const CONTENT_SPEC: Record<string, string> = {
+      words: "single vocabulary words",
+      phrases: "short phrases or common expressions (2-4 words each), not single words",
+      sentences: "complete, natural example sentences",
+      grammar: "grammar-focused items (e.g. verb forms, collocations, or target structures)",
+    };
+    const kind = CONTENT_SPEC[contentType as string] || CONTENT_SPEC.words;
+    const unit = contentType === "sentences" ? "sentence" : contentType === "phrases" ? "phrase" : "word or item";
 
-Respond ONLY with a valid JSON object in this exact format:
+    // ── Bilingual contract ──
+    // The #1 real-world bug: a teacher sets Translation Lang = Arabic (or French,
+    // etc.) but the model returns an English *definition* instead of an actual
+    // translation. Fast models paraphrase in the source language unless told very
+    // firmly not to. So we branch: cross-language → demand a real translation in
+    // the target language's own script; same-language → a concise synonym/gloss.
+    const sameLang = language.trim().toLowerCase() === targetLanguage.trim().toLowerCase();
+    const translationRule = sameLang
+      ? `"translation" must be a SHORT synonym or one-line definition written in ${language} (source and translation language are the same here).`
+      : `CRITICAL: "translation" MUST be the item written entirely in ${targetLanguage}, using ${targetLanguage}'s own alphabet/script and words.
+- Do NOT answer in ${language}. Do NOT write an English definition, gloss, or explanation.
+- It must be a genuine ${language}→${targetLanguage} translation a native ${targetLanguage} speaker would use.
+- Example of the REQUIRED direction: for the ${language} word "book", the ${targetLanguage} translation is the single ${targetLanguage} word that means "book" (NOT the English phrase "a set of printed pages").`;
+
+    const prompt = `Generate exactly ${count} ${kind} about the topic "${topic}" for ${level}-level learners.
+
+Languages:
+- Source language (the "word" field): ${language}
+- Translation language (the "translation" field): ${targetLanguage}
+
+Rules:
+- "word": the ${unit} in ${language}.
+- ${translationRule}
+- "exampleSentence": a natural sentence in ${language} that uses the ${unit} in context.
+- Every item must be filled in; never leave "translation" empty or equal to "word"${sameLang ? "" : ` and never write it in ${language}`}.
+
+Respond ONLY with a valid JSON object in exactly this shape (no markdown, no commentary):
 {
   "items": [
-    {
-      "word": "word in ${language}",
-      "translation": "translation in ${targetLanguage}",
-      "exampleSentence": "a natural example sentence using the word in ${language}"
-    }
+    { "word": "<${unit} in ${language}>", "translation": "<in ${targetLanguage}>", "exampleSentence": "<sentence in ${language}>" }
   ]
 }`;
 
-    const completion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: "You are a helpful language learning assistant. Always return valid JSON." },
-        { role: "user", content: prompt }
+    const { text } = await completeJSON(
+      [
+        {
+          role: "system",
+          content: `You are a bilingual ${language}–${targetLanguage} language-learning assistant. You translate accurately INTO ${targetLanguage} and always return valid JSON only.`,
+        },
+        { role: "user", content: prompt },
       ],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.7,
-      response_format: { type: "json_object" },
-    });
-
-    const text = completion.choices[0]?.message?.content || "{}";
+      // Prefer a fast model first so word generation feels instant; discovery/
+      // fallbacks still apply if it's unavailable. Lower temperature = more
+      // faithful translations and less "creative" same-language drift.
+      { temperature: 0.4, groqModels: ["llama-3.1-8b-instant"], geminiModels: ["gemini-flash-latest"] }
+    );
 
     let jsonString = text.trim();
     if (jsonString.startsWith("```json")) {

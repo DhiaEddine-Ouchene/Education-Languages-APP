@@ -11,26 +11,25 @@ export default async function EditGamePage({ params }: { params: { id: string } 
   const profile = await getEducatorProfile(session.user.id);
   if (!profile) redirect("/auth/login");
 
-  const [game, sets] = await Promise.all([
-    prisma.game.findFirst({ where: { id: params.id, educatorId: profile.id } }),
-    prisma.vocabularySet.findMany({
-      where: { educatorId: profile.id },
-      include: { items: { select: { id: true, word: true, translation: true, audioUrl: true, imageUrl: true, exampleSentence: true } } },
-    }),
-  ]);
+  const game = await prisma.game.findFirst({
+    where: { id: params.id, educatorId: profile.id },
+    include: { flashcardData: { include: { pairs: true } } },
+  });
   if (!game) notFound();
 
   return (
     <div className="space-y-6">
       <h1 className="font-heading font-bold text-2xl">Edit game</h1>
       <GameBuilder
-        sets={sets}
         initial={{
           id: game.id,
           title: game.title,
           type: game.type,
-          vocabularySetId: game.vocabularySetId ?? "",
           settings: (game.settings ?? {}) as Record<string, unknown>,
+          flashcardPairs: game.flashcardData?.pairs?.map((p) => ({
+            word: p.word, translation: p.translation, exampleSentence: p.exampleSentence,
+            audioUrl: p.audioUrl, imageUrl: p.imageUrl,
+          })) ?? [],
           isPublished: game.isPublished,
         }}
       />

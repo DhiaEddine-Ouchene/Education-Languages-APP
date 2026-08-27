@@ -108,6 +108,7 @@ export type GameItem = {
   target?: string;
   keywords?: string[];
   audioText?: string;
+  image?: string;
 };
 
 export type GameSettings = {

@@ -64,23 +64,6 @@ export const GAME_GUIDES: Record<string, GameGuide> = {
     timeEstimate: "8-10 min per 10 sentences"
   },
 
-  // ─── WORD_MEANING_MATCH ───
-  WORD_MEANING_MATCH: {
-    summary: "A two-column matching game: words on the left, definitions or translations on the right. Students draw lines or tap pairs to connect them.",
-    howToPlay: [
-      "Left column shows target-language words",
-      "Right column shows shuffled translations or definitions",
-      "Student taps one item from each column to create a match",
-      "Correct pairs lock together with a visible line/connector",
-      "All pairs must be matched to complete the round"
-    ],
-    teacherPrep: "The game uses word-translation pairs from your vocabulary set. Optionally, write short definitions instead of translations for a harder challenge.",
-    classroomUse: "Perfect for review sessions before a quiz. Students work individually or in pairs racing against the clock to match all pairs.",
-    scoring: "Score based on time to complete and number of incorrect attempts. Faster completions with fewer mistakes earn higher scores.",
-    difficultyLabel: "Beginner-friendly",
-    timeEstimate: "8-10 min per 8-10 words"
-  },
-
   // ─── SITUATION_DIALOGUE_FILL ───
   SITUATION_DIALOGUE_FILL: {
     summary: "Students complete a real-life conversation by filling in missing words. Builds practical conversational fluency in context.",
@@ -96,23 +79,6 @@ export const GAME_GUIDES: Record<string, GameGuide> = {
     scoring: "Points per correct fill. Bonus for completing the dialogue without any mistakes. The final screen shows the complete corrected dialogue.",
     difficultyLabel: "Intermediate",
     timeEstimate: "12-15 min per dialogue"
-  },
-
-  // ─── WORD_IN_CONTEXT ───
-  WORD_IN_CONTEXT: {
-    summary: "Students see a vocabulary word and must choose the sentence where it fits correctly. Tests deeper understanding of word usage.",
-    howToPlay: [
-      "A vocabulary word is displayed (e.g. 'apple')",
-      "Multiple sentences are shown — only one uses the word correctly",
-      "Student selects the sentence where the word fits naturally",
-      "Feedback explains why the correct sentence works and others don't",
-      "Next word appears with new sentence options"
-    ],
-    teacherPrep: "For each vocabulary word, write 3-4 sentences — one correct usage and 2-3 incorrect/illogical uses. The AI can generate these from your word list.",
-    classroomUse: "Use after initial vocabulary introduction to check if students truly understand word meanings — not just translations but actual usage.",
-    scoring: "Points per correct selection. Progress bar shows how many words mastered. End screen shows words that need review.",
-    difficultyLabel: "Intermediate-Advanced",
-    timeEstimate: "10 min per 8-10 words"
   },
 
   // ─── WORD_SCRAMBLE ───
@@ -132,23 +98,6 @@ export const GAME_GUIDES: Record<string, GameGuide> = {
     timeEstimate: "5-8 min per 8-10 words"
   },
 
-  // ─── ODD_ONE_OUT ───
-  ODD_ONE_OUT: {
-    summary: "A group of words is shown. Students must identify which word doesn't belong. Develops categorization and critical thinking skills.",
-    howToPlay: [
-      "4-5 words are displayed together (e.g. 'apple, banana, carrot, grape')",
-      "Student must identify the word that doesn't belong with the others",
-      "Tap the odd word to select it",
-      "If correct: explanation shows why it's different (e.g. 'carrot is a vegetable, the rest are fruits')",
-      "If wrong: a helpful hint points to the category"
-    ],
-    teacherPrep: "Create groups of 4-5 words where 3-4 share a category and one doesn't. The AI can generate these from your vocabulary sets.",
-    classroomUse: "Great for critical thinking and categorization skills. Use as a warm-up discussion starter — ask students to explain WHY it's the odd one.",
-    scoring: "Points per correct identification. Bonus for speed. The game tracks which categories (e.g. fruits vs vegetables) need more practice.",
-    difficultyLabel: "Beginner-Intermediate",
-    timeEstimate: "5-8 min per 10 rounds"
-  },
-
   // ─── CROSSWORD ───
   CROSSWORD: {
     summary: "A classic crossword puzzle where clues are vocabulary definitions or translations. Students type letters into the grid to form words.",
@@ -165,23 +114,6 @@ export const GAME_GUIDES: Record<string, GameGuide> = {
     scoring: "Score based on correctly filled words and time to complete. Hints used reduce the potential score. Bonus for solving without any hints.",
     difficultyLabel: "Intermediate-Advanced",
     timeEstimate: "15-20 min per puzzle"
-  },
-
-  // ─── COLLOCATION_BUILDER ───
-  COLLOCATION_BUILDER: {
-    summary: "Students match words that naturally go together (collocations). Builds natural-sounding language skills by teaching which words pair with which.",
-    howToPlay: [
-      "A base word is shown (e.g. 'make')",
-      "Several possible word partners are shown (e.g. 'a decision', 'a cake', 'homework')",
-      "Student selects which words correctly collocate with the base",
-      "Correct pairings are highlighted green, wrong ones in red",
-      "The game explains why certain words pair together naturally"
-    ],
-    teacherPrep: "Provide common collocation pairs from your lesson content. Example: make + decision, take + break, do + homework. The AI can extract collocations from any text.",
-    classroomUse: "Perfect for intermediate learners who need to sound more natural. Use before a writing task so students have ready-made word combinations.",
-    scoring: "Points per correct match. The game highlights which collocations are most useful for the student's level.",
-    difficultyLabel: "Intermediate",
-    timeEstimate: "10-12 min per 10 pairs"
   },
 
   // ─── FLASHCARD_3D ───
@@ -252,22 +184,6 @@ export const GAME_GUIDES: Record<string, GameGuide> = {
     timeEstimate: "10-12 min per 10 sentences"
   },
 
-  // ─── FILL_BLANK_GRAMMAR ───
-  FILL_BLANK_GRAMMAR: {
-    summary: "A sentence with a missing grammatical form. Students type the correct word in the right tense or form. Focuses on grammar accuracy.",
-    howToPlay: [
-      "A sentence is shown with a grammatical blank (e.g. 'She ___ (play) tennis every Sunday.')",
-      "The base form of the verb is shown in parentheses",
-      "Student types the correct conjugated form ('plays')",
-      "Correct: confirmation with the full correct sentence",
-      "Wrong: the correct form is shown with a brief grammar rule"
-    ],
-    teacherPrep: "Provide sentences where one word needs to be conjugated or changed grammatically. Include the base form for reference. Perfect for verb tense practice.",
-    classroomUse: "Use after teaching a specific grammar point (e.g. present simple vs past simple). Students practice by applying the rule to fill the blank.",
-    scoring: "Points per correct answer. The game tracks which tenses/forms are mastered and which need more practice.",
-    difficultyLabel: "Intermediate",
-    timeEstimate: "10 min per 10 sentences"
-  },
 
   // ─── VERB_CONJUGATION ───
   VERB_CONJUGATION: {

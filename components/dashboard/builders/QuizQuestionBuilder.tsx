@@ -10,6 +10,7 @@ import type { BuilderProps } from "./index";
 type Question = {
   id: string;
   prompt: string;
+  wrongWord: string;
   options: string[];
   correctAnswer: string;
   explanation: string;
@@ -18,9 +19,15 @@ type Question = {
 function createQuestion(overrides?: Partial<Question>): Question {
   return {
     id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    prompt: "", options: ["", "", "", ""], correctAnswer: "", explanation: "",
+    prompt: "", wrongWord: "", options: ["", "", "", ""], correctAnswer: "", explanation: "",
     ...overrides,
   };
+}
+
+function wordInPrompt(prompt: string, word: string): boolean {
+  if (!word.trim()) return false;
+  const strip = (w: string) => w.toLowerCase().replace(/[.,!?;:]/g, "");
+  return prompt.trim().split(/\s+/).some((w) => strip(w) === strip(word));
 }
 
 export function QuizQuestionBuilder({ onChange, initial, onValidation, gameMeta, wordBank }: BuilderProps) {
@@ -31,6 +38,7 @@ export function QuizQuestionBuilder({ onChange, initial, onValidation, gameMeta,
         const prompt = q.prompt || q.prompt_target || q.sentenceWithError_target || q.sentenceWithError || (q.word_target ? `Which sentence uses "${q.word_target}" correctly?` : "") || "";
         const explanation = q.explanation || q.explanation_target || q.ruleExplanation_target || "";
         const correctAnswer = q.correctAnswer || q.correction || q.correctSentence || "";
+        const wrongWord = q.wrongWord || q.wrongPart || "";
         
         let mappedOptions: string[] = [];
         if (Array.isArray(q.options) && q.options.length > 0) {
@@ -45,6 +53,7 @@ export function QuizQuestionBuilder({ onChange, initial, onValidation, gameMeta,
         return createQuestion({
           id: q.id || `q-${i}`,
           prompt,
+          wrongWord,
           explanation,
           correctAnswer,
           options: mappedOptions,
@@ -55,13 +64,20 @@ export function QuizQuestionBuilder({ onChange, initial, onValidation, gameMeta,
   });
   const [optionsCount, setOptionsCount] = useState(4);
 
+  const isErrorSpotting = gameMeta.type === "ERROR_SPOTTING";
+
   useEffect(() => {
     const valid = questions.length >= 1 && questions.every(
-      (q) => q.prompt.trim() && q.options.filter((o) => o.trim()).length >= 2 && q.correctAnswer.trim()
+      (q) =>
+        q.prompt.trim() &&
+        q.correctAnswer.trim() &&
+        (isErrorSpotting
+          ? wordInPrompt(q.prompt, q.wrongWord)
+          : q.options.filter((o) => o.trim()).length >= 2)
     );
     onValidation?.(valid);
     onChange({ questions, optionsCount });
-  }, [questions, optionsCount, onChange, onValidation]);
+  }, [questions, optionsCount, onChange, onValidation, isErrorSpotting]);
 
   const updateQuestion = (id: string, field: keyof Question, value: any) => {
     setQuestions((prev) => prev.map((q) => (q.id === id ? { ...q, [field]: value } : q)));
@@ -116,12 +132,23 @@ export function QuizQuestionBuilder({ onChange, initial, onValidation, gameMeta,
           </div>
           <div className="p-4 space-y-3">
             <div>
-              <label className="text-xs font-medium text-txt-secondary mb-1 block">Prompt</label>
+              <label className="text-xs font-medium text-txt-secondary mb-1 block">{isErrorSpotting ? "Sentence with the error" : "Prompt"}</label>
               <Input value={q.prompt} onChange={(e) => updateQuestion(q.id, "prompt", e.target.value)}
-                placeholder={gameMeta.type === "ERROR_SPOTTING" ? "e.g. He go to school yesterday." : "e.g. What does 'apple' mean?"} className="text-sm" />
+                placeholder={isErrorSpotting ? "e.g. He go to school yesterday." : "e.g. What does 'apple' mean?"} className="text-sm" />
             </div>
+            {isErrorSpotting && (
+              <div>
+                <label className="text-xs font-medium text-txt-secondary mb-1 block">Wrong word (must match a word above exactly)</label>
+                <Input value={q.wrongWord} onChange={(e) => updateQuestion(q.id, "wrongWord", e.target.value)}
+                  placeholder="e.g. go"
+                  className={cn("text-sm", q.wrongWord.trim() && !wordInPrompt(q.prompt, q.wrongWord) && "border-red-300")} />
+                {q.wrongWord.trim() && !wordInPrompt(q.prompt, q.wrongWord) && (
+                  <p className="text-[11px] text-red-500 mt-1">This word isn't found in the sentence above — students won't be able to tap it.</p>
+                )}
+              </div>
+            )}
             <div>
-              <label className="text-xs font-medium text-txt-secondary mb-1 block">Answer options</label>
+              <label className="text-xs font-medium text-txt-secondary mb-1 block">{isErrorSpotting ? "Correction + optional decoy answers" : "Answer options"}</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {q.options.map((opt, oi) => (
                   <div key={oi} className="flex items-center gap-2">
@@ -131,7 +158,7 @@ export function QuizQuestionBuilder({ onChange, initial, onValidation, gameMeta,
                       {q.correctAnswer === opt && <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />}
                     </button>
                     <Input value={opt} onChange={(e) => updateOption(q.id, oi, e.target.value)}
-                      placeholder={`Option ${oi + 1}`}
+                      placeholder={isErrorSpotting ? (oi === 0 ? "Correction, e.g. went" : `Decoy ${oi}`) : `Option ${oi + 1}`}
                       className={cn("text-sm h-9", q.correctAnswer === opt && "border-green-300 bg-green-50/50")} />
                   </div>
                 ))}

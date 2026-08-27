@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, useMemo, Suspense, useCallback } from "react";
+import { useState, useMemo, useEffect, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
-import { SelectCustom, type SelectOption } from "@/components/ui/select-custom";
-import { VocabularySetCreator, type VocabWord } from "@/components/dashboard/VocabularySetCreator";
 import { GamePreviewModal } from "@/components/dashboard/GamePreviewModal";
-import { GamePreviewImage } from "@/components/dashboard/GamePreviewImage";
-import { getBuilderForGameType } from "@/components/dashboard/builders";
+import { GamePoster } from "@/components/dashboard/GamePoster";
+import { SchemaBuilder } from "@/components/dashboard/builders/SchemaBuilder";
 import { WordBank } from "@/components/dashboard/builders/WordBank";
-import type { ChipData } from "@/components/dashboard/builders/WordBank";
-import { mapAiResponseToBuilderData } from "@/lib/map-ai-data";
+import type { ChipData, ExistingSet } from "@/components/dashboard/builders/WordBank";
+import { aiToEngineData } from "@/lib/ai-to-engine";
+import { hasEngineContent } from "@/lib/builder-schemas";
+import { buildEngineDataFromItems, isInstantFillType, itemsFromChips } from "@/lib/fill-game";
 import {
   GAME_TYPES,
   CATEGORY_META,
@@ -33,18 +33,11 @@ import {
 // ── Icon map ──
 const ICON_MAP: Record<string, React.ElementType> = { BookOpen, PenTool, Headphones, Edit3, Mic };
 
-type ExistingSet = {
-  id: string;
-  name: string;
-  items: { id: string; word: string; translation: string; exampleSentence?: string }[];
-};
-
 type Props = {
   educatorId: string;
-  existingSets: ExistingSet[];
 };
 
-export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
+export function UnifiedGameCreator({ educatorId }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedType = searchParams.get("type");
@@ -74,9 +67,6 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
 
   // Step 3: Configuration
   const [title, setTitle] = useState(preselectedType ? (getGameTypeMeta(preselectedType)?.title ?? "") : "");
-  const [vocabMode, setVocabMode] = useState<"ai" | "existing">("ai");
-  const [vocabWords, setVocabWords] = useState<VocabWord[]>([]);
-  const [selectedSetId, setSelectedSetId] = useState(existingSets[0]?.id ?? "");
   const [language, setLanguage] = useState("English");
   const [level, setLevel] = useState("B1");
   const [gameConfig, setGameConfig] = useState<Record<string, any>>({
@@ -104,8 +94,21 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
 
   // Word bank state
   const [wordBankWords, setWordBankWords] = useState<ChipData[]>([]);
-  const [wordBankId, setWordBankId] = useState<string | null>(null);
   const [nativeLang, setNativeLang] = useState("English");
+
+  // Reusable, game-agnostic saved sets (loaded once for this teacher).
+  const [existingSets, setExistingSets] = useState<ExistingSet[]>([]);
+  const loadSets = useCallback(async () => {
+    try {
+      const res = await fetch("/api/word-sets");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data)) setExistingSets(data);
+    } catch {
+      /* sets are optional — ignore fetch errors */
+    }
+  }, []);
+  useEffect(() => { loadSets(); }, [loadSets]);
 
   // Preview modal state (for step 2 and step 3)
   const [previewGame, setPreviewGame] = useState<GameTypeMeta | null>(null);
@@ -114,153 +117,14 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
   const gamesInCategory = selectedCategory ? getGameTypesByCategory(selectedCategory) : [];
   const currentGameType = selectedTemplate;
 
-  const setOptions: SelectOption[] = existingSets.map((s) => ({
-    value: s.id,
-    label: s.name,
-    description: `${s.items.length} items`,
-  }));
-
-  const selectedExistingSet = existingSets.find((s) => s.id === selectedSetId);
-  const finalWords = vocabMode === "existing" ? (selectedExistingSet?.items ?? []) : vocabWords;
-
-  // Build preview items from builder data
-  const previewItems = useMemo(() => {
-    if (!builderData) return [];
-    // For pair-based builders
-    if (builderData.pairs && Array.isArray(builderData.pairs)) {
-      // For COLLOCATION_BUILDER: expand each partner into a separate pair ("word + partner")
-      if (currentGameType?.type === "COLLOCATION_BUILDER") {
-        const items: any[] = [];
-        (builderData.pairs as any[]).forEach((p: any) => {
-          const partners = (p.translation || "").split(",").map((s: string) => s.trim()).filter(Boolean);
-          partners.forEach((partner: string, pi: number) => {
-            items.push({
-              id: `preview-${items.length}`,
-              word: `${p.word} + ${partner}`,
-              translation: partner,
-              audioUrl: null,
-              imageUrl: null,
-              exampleSentence: p.exampleSentence || null,
-            });
-          });
-        });
-        return items;
-      }
-      return (builderData.pairs as any[]).map((p: any, i: number) => ({
-        id: `preview-${i}`,
-        word: p.word || "",
-        translation: p.translation || "",
-        audioUrl: null,
-        imageUrl: null,
-        exampleSentence: p.exampleSentence || null,
-      }));
-    }
-    // For sentence-fill builders
-    if (builderData.sentenceItems && Array.isArray(builderData.sentenceItems)) {
-      return (builderData.sentenceItems as any[]).map((s: any, i: number) => ({
-        id: `preview-${i}`,
-        word: s.correctAnswer || "",
-        translation: s.sentence || "",
-        audioUrl: null,
-        imageUrl: null,
-        exampleSentence: s.sentence || null,
-      }));
-    }
-    // For synonym/antonym builder
-    if (builderData.synonymItems && Array.isArray(builderData.synonymItems)) {
-      return (builderData.synonymItems as any[]).map((s: any, i: number) => ({
-        id: `preview-${i}`,
-        word: s.word || "",
-        synonym: s.synonym || "",
-        antonym: s.antonym || "",
-        audioUrl: null,
-        imageUrl: null,
-      }));
-    }
-    // For quiz/Q&A builders (QUIZ, MULTIPLE_CHOICE_GRAMMAR, ERROR_SPOTTING, WORD_IN_CONTEXT)
-    if (builderData.questions && Array.isArray(builderData.questions)) {
-      return (builderData.questions as any[]).map((q: any, i: number) => ({
-        id: `preview-${i}`,
-        word: q.prompt || "",
-        translation: q.correctAnswer || "",
-        options: q.options || [],
-        explanation: q.explanation || "",
-        audioUrl: null,
-        imageUrl: null,
-      }));
-    }
-    // For odd-one-out builder
-    if (builderData.oddOneOutItems && Array.isArray(builderData.oddOneOutItems)) {
-      return (builderData.oddOneOutItems as any[]).map((o: any, i: number) => ({
-        id: `preview-${i}`,
-        word: Array.isArray(o.groupWords) ? o.groupWords.join(", ") : "",
-        translation: o.oddWord || "",
-        exampleSentence: o.category || "",
-        audioUrl: null,
-        imageUrl: null,
-      }));
-    }
-    // CATEGORY_SORT
-    if (builderData.sortCategories && Array.isArray(builderData.sortCategories)) {
-      return [{
-        id: "preview-sort",
-        word: "Sort",
-        sortCategories: builderData.sortCategories as string[],
-        sortItems: (builderData.sortItems as any[]) || [],
-        audioUrl: null, imageUrl: null, exampleSentence: null,
-      }];
-    }
-    // TRANSFORMATION
-    if (builderData.transformationItems && Array.isArray(builderData.transformationItems)) {
-      return (builderData.transformationItems as any[]).map((t: any, i: number) => ({
-        id: `preview-${i}`,
-        word: t.prompt || "",
-        taskPrompt: t.prompt || "",
-        instruction: t.instruction || "",
-        answers: t.answers || [],
-        audioUrl: null, imageUrl: null, exampleSentence: null,
-      }));
-    }
-    // WRITING_RUBRIC
-    if (builderData.rules && Array.isArray(builderData.rules)) {
-      return [{
-        id: "preview-writing",
-        word: builderData.prompt || "",
-        writingPrompt: builderData.prompt || "",
-        wordBank: (builderData.wordBank as string[]) || [],
-        starter: builderData.starter || "",
-        note: builderData.note || "",
-        teacherReview: !!builderData.teacherReview,
-        rubric: builderData.rules as any[],
-        audioUrl: null, imageUrl: null, exampleSentence: null,
-      }];
-    }
-    // SITUATION_DIALOGUE_FILL
-    if (builderData.dialogueItems && Array.isArray(builderData.dialogueItems)) {
-      return (builderData.dialogueItems as any[]).map((d: any, i: number) => ({
-        id: `preview-${i}`,
-        word: d.answer || "",
-        translation: d.scenario || "",
-        lines: d.lines || [],
-        audioUrl: null, imageUrl: null, exampleSentence: null,
-      }));
-    }
-    // SPEAKING
-    if (builderData.speakingItems && Array.isArray(builderData.speakingItems)) {
-      return (builderData.speakingItems as any[]).map((s: any, i: number) => ({
-        id: `preview-${i}`,
-        word: s.display || s.target || "",
-        mode: s.mode || "",
-        display: s.display || "",
-        target: s.target || "",
-        keywords: s.keywords || [],
-        note: s.note || "",
-        task: s.task || "",
-        audioUrl: null, imageUrl: null, exampleSentence: null,
-      }));
-    }
-    return [];
-  }, [builderData]);
+  // Preview is available once the builder holds engine-ready content (rounds /
+  // pairs / entries / prompt / rules) OR the teacher has a vocabulary set that
+  // item-derived engines (flashcard, memory, …) can build a game from.
+  const canPreview = useMemo(() => {
+    if (!currentGameType) return false;
+    if (hasEngineContent(currentGameType.type, builderData)) return true;
+    return wordBankWords.length >= 2;
+  }, [currentGameType, builderData, wordBankWords]);
 
   // ── Navigation helpers ──
   const selectCategory = (cat: GameCategory) => {
@@ -271,6 +135,11 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
   const selectTemplate = (t: GameTypeMeta) => {
     setSelectedTemplate(t);
     setTitle(t.title);
+    // New game type ⇒ start the builder from a clean slate and remount it.
+    setBuilderData({});
+    setBuilderValid(false);
+    setGenerationStatus(null);
+    setBuilderKey((k) => k + 1);
     setWizardStep(3);
   };
 
@@ -288,7 +157,7 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
   const handleGenerateGame = async (providedWords?: ChipData[]) => {
     const effectiveWords = providedWords !== undefined ? providedWords : wordBankWords;
     if (!selectedTemplate) return;
-    if (!wordBankId && effectiveWords.length === 0) {
+    if (effectiveWords.length === 0) {
       toast("error", "Please add words to the word bank first.");
       return;
     }
@@ -300,7 +169,6 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameType: selectedTemplate.type,
-          wordBankId: wordBankId || undefined,
           words: effectiveWords.map((w) => ({
             word: w.word,
             translation: w.translation,
@@ -314,11 +182,11 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
         }),
       });
       const result = await res.json();
-      
+
       if (!res.ok && result.status !== "needs_review") {
         throw new Error(result.error || "Generation failed");
       }
-      
+
       if (result.status === "needs_review") {
         setGenerationStatus("needs_review");
         toast("error", "Generation needs review");
@@ -329,16 +197,53 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
 
       // Pre-fill builder with generated data
       if (result.data) {
-        const mappedData = mapAiResponseToBuilderData(selectedTemplate.type, result.data);
-        setBuilderData(mappedData);
-        // Force Builder to reinitialize with new data
+        // Convert the AI's per-type `{ items: [...] }` output directly into
+        // engine-ready `data`, then remount the SchemaBuilder so it re-seeds
+        // from this `initial` (it only seeds on mount).
+        setBuilderData(aiToEngineData(selectedTemplate.type, result.data));
         setBuilderKey((k) => k + 1);
       }
     } catch (err: any) {
-      toast("error", err.message || "Failed to generate game content");
+      // AI is unavailable — don't leave the teacher stuck. Fall back to the
+      // deterministic build from their words so the game is still populated
+      // (they can refine it by hand or retry AI later).
+      const fallback = buildEngineDataFromItems(selectedTemplate.type, itemsFromChips(effectiveWords));
+      if (hasEngineContent(selectedTemplate.type, fallback.data)) {
+        setBuilderData(fallback.data);
+        setBuilderKey((k) => k + 1);
+        setGenerationStatus("needs_review");
+        toast("error", "AI unavailable — added a basic version from your words. Please review it.");
+      } else {
+        toast("error", err.message || "Failed to generate game content");
+      }
     } finally {
       setGeneratingGame(false);
     }
+  };
+
+  // ── Fill the game from the current content list (AI-generated, manual, or a set) ──
+  // Instant for simple types (flashcard, memory, match, meaning MCQ, scramble);
+  // AI-shaped for structured types (crossword, category sort, dialogue, grammar …).
+  const handleFillGame = async (providedWords?: ChipData[]) => {
+    const effectiveWords = providedWords !== undefined ? providedWords : wordBankWords;
+    if (!selectedTemplate) return;
+    if (effectiveWords.length < 2) {
+      toast("error", "Add at least 2 items to fill the game.");
+      return;
+    }
+    const { data, viaAI, instant } = buildEngineDataFromItems(
+      selectedTemplate.type,
+      itemsFromChips(effectiveWords)
+    );
+    if (instant && !viaAI) {
+      setBuilderData(data);
+      setBuilderKey((k) => k + 1);
+      setGenerationStatus("ready");
+      toast("success", `Filled ${effectiveWords.length} items into your game!`);
+      return;
+    }
+    // Structured type → let the AI shape the items (falls back to `data` on failure).
+    await handleGenerateGame(effectiveWords);
   };
 
   // ── Save handler ──
@@ -346,11 +251,10 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
     if (!selectedTemplate) return;
     if (title.trim().length < 2) { toast("error", "Please enter a game title"); return; }
 
-    // Validate: either builder data exists or the word bank has items
-    const hasBuilderContent =
-      builderValid ||
-      (!!builderData && Object.values(builderData).some((v) => (Array.isArray(v) ? v.length > 0 : !!v)));
-    const hasVocab = wordBankWords.length >= 2 || !!wordBankId;
+    // Validate: the builder holds engine-ready content, or there's a vocab set
+    // that item-derived engines can build from.
+    const hasBuilderContent = hasEngineContent(selectedTemplate.type, builderData);
+    const hasVocab = wordBankWords.length >= 2;
     if (!hasBuilderContent && !hasVocab) {
       toast("error", "Please add game content using the builder or a vocabulary set");
       return;
@@ -358,46 +262,25 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
 
     setSaving(true);
     try {
-      let vocabSetId: string | undefined;
-      if (!wordBankId && wordBankWords.length > 0) {
-        const vocabRes = await fetch("/api/vocabulary", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: `${title} - Vocabulary`,
-            language,
-            items: wordBankWords.map((w) => ({
-              word: w.word,
-              translation: w.translation,
-              exampleSentence: w.exampleSentence || "",
-            })),
-          }),
-        });
-        if (!vocabRes.ok) throw new Error("Failed to create vocabulary set");
-        const vocabData = await vocabRes.json();
-        vocabSetId = vocabData.id;
-      } else if (wordBankId) {
-        vocabSetId = wordBankId;
-      }
-
       const gameRes = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
           type: selectedTemplate.type,
-          vocabularySetId: vocabSetId || null,
           settings: {
             ...settings,
             ...gameConfig,
+            // Engine-ready content from the SchemaBuilder. `buildFolderGame`
+            // passes `settings.data` through unchanged to the play engine, so
+            // preview and live student play render identical content.
+            data: hasBuilderContent ? builderData : undefined,
             items: wordBankWords.map((w) => ({
               word: w.word,
               translation: w.translation,
               exampleSentence: w.exampleSentence || "",
             })),
           },
-          // Builder-specific data for the relational models
-          builderData: hasBuilderContent ? builderData : undefined,
           isPublished: settings.isPublished,
         }),
       });
@@ -531,7 +414,6 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
             onClose={() => setPreviewGame(null)}
             gameType={previewGame.type}
             gameTitle={previewGame.title}
-            settings={builderData as Record<string, unknown>}
           />
         )}
       </div>
@@ -575,7 +457,7 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
             variant="outline"
             className="flex-1 sm:flex-none"
             onClick={() => setShowBuilderPreview(true)}
-            disabled={previewItems.length < 2}
+            disabled={!canPreview}
           >
             <PlayCircle className="w-4 h-4" /> Preview
           </Button>
@@ -597,9 +479,9 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
             level={level}
             onLanguageChange={setLanguage}
             onLevelChange={setLevel}
-            onSetSaved={setWordBankId}
             onNativeLangChange={setNativeLang}
-            onAiGenerateComplete={(generatedWords) => { handleGenerateGame(generatedWords); }}
+            onSetSaved={() => loadSets()}
+            onAiGenerateComplete={(generatedWords) => { handleFillGame(generatedWords); }}
           />
         </div>
 
@@ -616,21 +498,28 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
             </div>
           )}
 
-          {/* AI Generation Control */}
-          <div className="rounded-xl border border-border/60 bg-card p-4 flex items-center justify-between">
-             <div className="flex items-center gap-3 text-txt">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <div>
-                   <h3 className="font-semibold text-sm">AI Game Generation</h3>
-                   <p className="text-xs text-txt-secondary">Auto-build this game using the selected word bank</p>
+          {/* Fill Game from the content list (AI items, manual, or a saved set) */}
+          <div className="rounded-xl border border-border/60 bg-card p-4 flex items-center justify-between gap-3">
+             <div className="flex items-center gap-3 text-txt min-w-0">
+                <Sparkles className="w-5 h-5 text-primary shrink-0" />
+                <div className="min-w-0">
+                   <h3 className="font-semibold text-sm">Fill this game from your word bank</h3>
+                   <p className="text-xs text-txt-secondary truncate">
+                      {currentGameType && isInstantFillType(currentGameType.type)
+                        ? "Builds instantly from your list — no AI needed."
+                        : "Uses AI to shape your list into this game's format."}
+                   </p>
                 </div>
              </div>
-             <Button 
-                onClick={() => handleGenerateGame()} 
-                disabled={generatingGame || (!wordBankId && wordBankWords.length === 0)}
+             <Button
+                onClick={() => handleFillGame()}
+                disabled={generatingGame || wordBankWords.length < 2}
                 variant={builderData && Object.keys(builderData).length > 0 ? "outline" : "primary"}
+                className="shrink-0"
              >
-                {generatingGame ? "Generating..." : (builderData && Object.keys(builderData).length > 0 ? "Regenerate" : "Generate Game Content")}
+                {generatingGame
+                  ? "Filling..."
+                  : (builderData && Object.keys(builderData).length > 0 ? "Refill Game" : "Fill Game With These")}
              </Button>
           </div>
 
@@ -660,22 +549,16 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
                   <span className="ml-3 text-sm text-txt-secondary">Loading builder...</span>
                 </div>
               }>
-                {(() => {
-                  const Builder = currentGameType ? getBuilderForGameType(currentGameType.type) : null;
-                  if (!Builder || !currentGameType) return null;
-                  return (
-                    <Builder
-                      key={builderKey}
-                      gameMeta={currentGameType}
-                      onChange={setBuilderData}
-                      initial={builderData}
-                      onValidation={setBuilderValid}
-                      wordBank={wordBankWords}
-                      onWordBankChange={setWordBankWords}
-                      generating={generatingGame}
-                    />
-                  );
-                })()}
+              {currentGameType && (
+                <SchemaBuilder
+                  key={`${currentGameType.type}:${builderKey}`}
+                  gameMeta={currentGameType}
+                  initial={builderData}
+                  onChange={setBuilderData}
+                  onValidation={setBuilderValid}
+                  generating={generatingGame}
+                />
+              )}
               </Suspense>
             </div>
           </div>
@@ -689,7 +572,7 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
               variant="outline"
               className="w-full sm:w-auto"
               onClick={() => setShowBuilderPreview(true)}
-              disabled={previewItems.length < 2}
+              disabled={!canPreview}
             >
               <PlayCircle className="w-4 h-4" /> Preview Game
             </Button>
@@ -707,8 +590,15 @@ export function UnifiedGameCreator({ educatorId, existingSets }: Props) {
           onClose={() => setShowBuilderPreview(false)}
           gameType={currentGameType.type}
           gameTitle={title || currentGameType.title}
-          customItems={previewItems as any}
-          settings={builderData as Record<string, unknown>}
+          customItems={wordBankWords.map((w, i) => ({
+            id: `wb-${i}`,
+            word: w.word,
+            translation: w.translation,
+            audioUrl: null,
+            imageUrl: null,
+            exampleSentence: w.exampleSentence || null,
+          })) as any}
+          settings={{ ...settings, ...gameConfig, data: builderData }}
         />
       )}
     </div>
@@ -861,7 +751,7 @@ function GameSelectCard({
   return (
     <div className="bg-card border border-border/60 rounded-2xl overflow-hidden flex flex-col gap-4 p-5 transition-all hover:shadow-md hover:-translate-y-0.5 duration-200 md:flex-row md:gap-5">
       {/* Visual area — game screenshot (hidden on mobile to save space) */}
-      <GamePreviewImage
+      <GamePoster
         type={game.type}
         title={game.title}
         className="hidden md:block md:w-52 flex-shrink-0 rounded-xl"

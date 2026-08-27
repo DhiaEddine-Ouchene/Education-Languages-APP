@@ -15,6 +15,7 @@ const schema = z.object({
     translation: z.string().optional(),
     exampleSentence: z.string().optional(),
   })).optional(),
+  topic: z.string().optional(),
   count: z.number().int().min(1).max(50).default(10),
   options: z.object({
     scenarioDescription: z.string().optional(),
@@ -48,11 +49,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
     }
 
-    const { gameType, wordBankId, words, count, options } = body.data;
+    const { gameType, wordBankId, words, topic, count, options } = body.data;
 
     const result = await generateGameFromWordBank(gameType, wordBankId, count, {
       ...options,
       words,
+      topic,
       educatorId: profile!.id,
     });
 
