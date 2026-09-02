@@ -33,10 +33,26 @@ export default async function LearnHomePage() {
   const lastPlayed = progress[0];
 
   const educatorIds = Array.from(new Set(memberships.map((m) => m.class.educator.id)));
-  const practice = await prisma.game.findMany({
-    where: educatorIds.length ? { educatorId: { in: educatorIds }, isPublished: true } : { isPublished: true },
-    take: 9,
-    orderBy: { createdAt: "desc" },
+  const assignedGameIds = assignments.map((a) => a.gameId);
+
+  const [practice, courseGames] = await Promise.all([
+    prisma.game.findMany({
+      where: educatorIds.length ? { educatorId: { in: educatorIds }, isPublished: true } : { isPublished: true },
+      take: 9,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.game.findMany({
+      where: { id: { in: assignedGameIds }, courseId: { not: null } },
+      select: { courseId: true },
+    }),
+  ]);
+
+  const assignedCourseIds = Array.from(new Set(courseGames.map((g) => g.courseId).filter(Boolean))) as string[];
+  const studentCourses = await prisma.course.findMany({
+    where: { id: { in: assignedCourseIds } },
+    include: {
+      games: { select: { id: true, title: true, type: true } },
+    },
   });
 
   const level = xp?.level ?? 1;
@@ -90,6 +106,40 @@ export default async function LearnHomePage() {
           </div>
         )}
       </section>
+
+      {/* My Assigned Courses */}
+      {studentCourses.length > 0 && (
+        <section>
+          <h2 className="font-heading font-semibold text-lg mb-3">My Courses</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {studentCourses.map((c) => (
+              <Card key={c.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <CardContent className="p-4 flex items-start gap-4">
+                  {c.coverImage ? (
+                    <img src={c.coverImage} alt={c.title} className="w-16 h-16 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-primary-light text-primary font-bold text-xl flex items-center justify-center shrink-0">
+                      📚
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-heading font-bold text-base text-txt-primary truncate">{c.title}</h3>
+                    <p className="text-xs text-txt-secondary line-clamp-1 mt-0.5">{c.description}</p>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs bg-primary-light text-primary font-semibold px-2.5 py-0.5 rounded-full">
+                        {c.games.length} game(s)
+                      </span>
+                      <Link href={`/learn/course/${c.id}`}>
+                        <Button size="sm" variant="outline">View Course</Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Continue learning */}
       {lastPlayed && (

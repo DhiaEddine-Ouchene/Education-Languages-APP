@@ -18,34 +18,51 @@ const schema = z.object({
   ]),
   settings: z.record(z.unknown()).default({}),
   isPublished: z.boolean().default(false),
+  courseId: z.string().optional(),
   builderData: z.record(z.unknown()).optional(),
 });
 
-export async function GET() {
-  const { error, profile } = await requireEducator();
-  if (error) return error;
-  const games = await prisma.game.findMany({ where: { educatorId: profile!.id }, orderBy: { createdAt: "desc" } });
-  return NextResponse.json(games);
+async function owned(id: string, educatorId: string) {
+  return prisma.game.findFirst({ where: { id, educatorId } });
 }
 
-export async function POST(req: Request) {
+export async function GET(_: Request, { params }: { params: { id: string } }) {
   const { error, profile } = await requireEducator();
   if (error) return error;
+  const game = await prisma.game.findFirst({
+    where: { id: params.id, educatorId: profile!.id },
+    include: {
+      flashcardData: { include: { pairs: true } },
+      quizData: { include: { questions: true } },
+      crosswordData: true,
+      verbConjugationData: true,
+      storyData: true,
+    },
+  });
+  if (!game) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(game);
+}
+
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  const { error, profile } = await requireEducator();
+  if (error) return error;
+  if (!(await owned(params.id, profile!.id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
   try {
     const body = schema.safeParse(await req.json());
     if (!body.success) return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
 
-    const game = await prisma.game.create({
+    const game = await prisma.game.update({
+      where: { id: params.id },
       data: {
         title: body.data.title,
         type: body.data.type as any,
         settings: body.data.settings as object,
         isPublished: body.data.isPublished,
-        educatorId: profile!.id,
+        courseId: body.data.courseId || undefined,
       },
     });
 
-    // Create type-specific relational models if builderData is provided
+    // Handle type-specific content via builderData
     const bd = body.data.builderData;
     if (bd && typeof bd === "object") {
       const type = body.data.type;
@@ -53,10 +70,11 @@ export async function POST(req: Request) {
       // Flashcard-type games (word pairs)
       if (["FLASHCARD","WORD_SCRAMBLE","PICTURE_TO_WORD","FLASHCARD_3D","MEMORY","MINIMAL_PAIR","SPEED_ROUND"].includes(type)) {
         const pairs = (bd.pairs as any[]) || [];
+        await prisma.flashcardData.deleteMany({ where: { gameId: params.id } });
         if (pairs.length > 0) {
           await prisma.flashcardData.create({
             data: {
-              gameId: game.id,
+              gameId: params.id,
               pairs: {
                 create: pairs.map((p: any, i: number) => ({
                   word: p.word || "",
@@ -75,55 +93,51 @@ export async function POST(req: Request) {
       // Synonym & Antonym
       if (type === "SYNONYM_ANTONYM") {
         const synonymItems = (bd.synonymItems as any[]) || [];
-        if (synonymItems.length > 0) {
-          const existingSettings = (game.settings as Record<string, any>) || {};
-          await prisma.game.update({
-            where: { id: game.id },
-            data: {
-              settings: {
-                ...existingSettings,
-                synonymItems: synonymItems.map((s: any, i: number) => ({
-                  word: s.word || "",
-                  synonym: s.synonym || "",
-                  antonym: s.antonym || "",
-                  order: i,
-                })),
-              },
+        const existingSettings = (game.settings as Record<string, any>) || {};
+        await prisma.game.update({
+          where: { id: params.id },
+          data: {
+            settings: {
+              ...existingSettings,
+              synonymItems: synonymItems.map((s: any, i: number) => ({
+                word: s.word || "",
+                synonym: s.synonym || "",
+                antonym: s.antonym || "",
+                order: i,
+              })),
             },
-          });
-        }
+          },
+        });
       }
 
-      // Sentence-fill-type games — store in settings JSON since no dedicated model
+      // Sentence-fill-type games — store in settings JSON
       if (["FILL_GAP_WORD","FILL_BLANK","DRAG_DROP","SITUATION_DIALOGUE_FILL","SENTENCE_BUILDER","LISTEN_FILL_WORD","LISTEN_FILL_SENTENCE","SPEAK_FILL_WORD","SPEAK_FILL_SENTENCE","DICTATION"].includes(type)) {
         const sentenceItems = (bd.sentenceItems as any[]) || [];
-        if (sentenceItems.length > 0) {
-          // Merge sentence items into game settings
-          const existingSettings = (game.settings as Record<string, any>) || {};
-          await prisma.game.update({
-            where: { id: game.id },
-            data: {
-              settings: {
-                ...existingSettings,
-                sentenceItems: sentenceItems.map((s: any, i: number) => ({
-                  sentence: s.sentence || "",
-                  correctAnswer: s.correctAnswer || "",
-                  options: s.options || [],
-                  order: i,
-                })),
-              },
+        const existingSettings = (game.settings as Record<string, any>) || {};
+        await prisma.game.update({
+          where: { id: params.id },
+          data: {
+            settings: {
+              ...existingSettings,
+              sentenceItems: sentenceItems.map((s: any, i: number) => ({
+                sentence: s.sentence || "",
+                correctAnswer: s.correctAnswer || "",
+                options: s.options || [],
+                order: i,
+              })),
             },
-          });
-        }
+          },
+        });
       }
 
       // Quiz-type games
       if (["QUIZ","MULTIPLE_CHOICE_GRAMMAR","ERROR_SPOTTING"].includes(type)) {
         const questions = (bd.questions as any[]) || [];
+        await prisma.quizData.deleteMany({ where: { gameId: params.id } });
         if (questions.length > 0) {
           await prisma.quizData.create({
             data: {
-              gameId: game.id,
+              gameId: params.id,
               config: { optionsCount: bd.optionsCount || 4 },
               questions: {
                 create: questions.map((q: any, i: number) => ({
@@ -141,9 +155,10 @@ export async function POST(req: Request) {
 
       // Crossword
       if (type === "CROSSWORD") {
+        await prisma.crosswordData.deleteMany({ where: { gameId: params.id } });
         await prisma.crosswordData.create({
           data: {
-            gameId: game.id,
+            gameId: params.id,
             gridSize: (bd.gridSize as number) || 8,
             words: JSON.parse(JSON.stringify(bd.words || [])),
           },
@@ -152,9 +167,10 @@ export async function POST(req: Request) {
 
       // Verb Conjugation
       if (type === "VERB_CONJUGATION") {
+        await prisma.verbConjugationData.deleteMany({ where: { gameId: params.id } });
         await prisma.verbConjugationData.create({
           data: {
-            gameId: game.id,
+            gameId: params.id,
             verb: (bd.verb as string) || "",
             tense: (bd.tense as string) || "Present",
             forms: JSON.parse(JSON.stringify(bd.forms || {})),
@@ -164,9 +180,10 @@ export async function POST(req: Request) {
 
       // Story
       if (type === "STORY") {
+        await prisma.storyData.deleteMany({ where: { gameId: params.id } });
         await prisma.storyData.create({
           data: {
-            gameId: game.id,
+            gameId: params.id,
             prompt: (bd.prompt as string) || "",
             wordBank: bd.wordBank ? JSON.parse(JSON.stringify(bd.wordBank)) : null,
             template: (bd.template as string) || null,
@@ -178,7 +195,7 @@ export async function POST(req: Request) {
       if (type === "CATEGORY_SORT") {
         const existingSettings = (game.settings as Record<string, any>) || {};
         await prisma.game.update({
-          where: { id: game.id },
+          where: { id: params.id },
           data: {
             settings: {
               ...existingSettings,
@@ -192,7 +209,7 @@ export async function POST(req: Request) {
       if (type === "TRANSFORMATION") {
         const existingSettings = (game.settings as Record<string, any>) || {};
         await prisma.game.update({
-          where: { id: game.id },
+          where: { id: params.id },
           data: {
             settings: {
               ...existingSettings,
@@ -209,7 +226,7 @@ export async function POST(req: Request) {
       if (type === "WRITING_RUBRIC") {
         const existingSettings = (game.settings as Record<string, any>) || {};
         await prisma.game.update({
-          where: { id: game.id },
+          where: { id: params.id },
           data: {
             settings: {
               ...existingSettings,
@@ -229,7 +246,7 @@ export async function POST(req: Request) {
       if (type === "SPEAKING") {
         const existingSettings = (game.settings as Record<string, any>) || {};
         await prisma.game.update({
-          where: { id: game.id },
+          where: { id: params.id },
           data: {
             settings: {
               ...existingSettings,
@@ -243,7 +260,7 @@ export async function POST(req: Request) {
       if (type === "SITUATION_DIALOGUE_FILL") {
         const existingSettings = (game.settings as Record<string, any>) || {};
         await prisma.game.update({
-          where: { id: game.id },
+          where: { id: params.id },
           data: {
             settings: {
               ...existingSettings,
@@ -252,24 +269,31 @@ export async function POST(req: Request) {
           },
         });
       }
-
     }
 
-    // Fetch the game again with its type-specific data
-    const gameWithData = await prisma.game.findUnique({
-      where: { id: game.id },
+    // Return updated game
+    const updatedGame = await prisma.game.findUnique({
+      where: { id: params.id },
       include: {
-        flashcardData: { include: { pairs: { orderBy: { order: "asc" } } } },
-        quizData: { include: { questions: { orderBy: { order: "asc" } } } },
+        flashcardData: { include: { pairs: true } },
+        quizData: { include: { questions: true } },
         crosswordData: true,
         verbConjugationData: true,
         storyData: true,
       },
     });
 
-    return NextResponse.json(gameWithData || game, { status: 201 });
+    return NextResponse.json(updatedGame);
   } catch (err) {
-    console.error("[games:POST]", err);
+    console.error("[games:PUT]", err);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
+}
+
+export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+  const { error, profile } = await requireEducator();
+  if (error) return error;
+  if (!(await owned(params.id, profile!.id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  await prisma.game.delete({ where: { id: params.id } });
+  return NextResponse.json({ ok: true });
 }

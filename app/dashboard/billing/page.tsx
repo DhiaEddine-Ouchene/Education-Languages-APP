@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { auth, getEducatorProfile } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BillingClient } from "@/components/dashboard/BillingClient";
 import { PaymentVerification } from "./PaymentVerification";
+import { isAlgerianUser } from "@/lib/geolocation";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,10 @@ export default async function BillingPage({
     orderBy: { createdAt: "desc" },
   });
 
+  // Detect if user is in Algeria
+  const headersList = headers();
+  const isInAlgeria = isAlgerianUser(headersList);
+
   return (
     <div className="space-y-6">
       <h1 className="font-heading font-bold text-2xl">Billing</h1>
@@ -37,6 +43,8 @@ export default async function BillingPage({
 
       <BillingClient
         currentPlan={profile.subscriptionPlan}
+        paymentProvider={profile.paymentProvider}
+        isAlgerian={isInAlgeria}
         history={history.map((h) => ({
           id: h.id,
           plan: h.plan,

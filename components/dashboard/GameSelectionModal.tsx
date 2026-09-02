@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   Sparkles,
   Search,
-  Filter,
-  Star,
   Clock,
   ChevronRight,
   X,
@@ -29,7 +27,7 @@ export interface GameDefinition {
   type: string;
   title: string;
   desc: string;
-  diff: number; // 1-3 stars
+  diff: number; // 1-3
   time: string; // e.g. "10 mins"
   anex: "VOCABULARY" | "GRAMMAR" | "LISTENING_WRITING" | "SPEAKING";
   popular?: boolean;
@@ -323,7 +321,6 @@ export function GameSelectionModal({
   const [activeCategory, setActiveCategory] = useState<GameCategoryKey>("vocabulary");
   const [selectedGames, setSelectedGames] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
   const [generating, setGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState<number>(1); // 1: Choose Category, 2: Select Game, 3: Confirm
 
@@ -339,12 +336,10 @@ export function GameSelectionModal({
 
   const getFilteredItems = () => {
     return currentCategoryData.items.filter((item) => {
-      const matchesSearch =
+      return (
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.desc.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesDiff =
-        difficultyFilter === "all" || item.diff.toString() === difficultyFilter;
-      return matchesSearch && matchesDiff;
+        item.desc.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     });
   };
 
@@ -404,153 +399,112 @@ export function GameSelectionModal({
     }
   };
 
+  const stepCircle = (step: number, done: boolean) =>
+    `w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-all ${
+      currentStep === step
+        ? "bg-primary text-white ring-4 ring-primary/20 scale-110"
+        : done
+        ? "bg-accent text-white"
+        : "bg-border text-txt-secondary"
+    }`;
+
+  const stepLabel = (step: number) =>
+    `text-xs font-semibold ${currentStep === step ? "text-primary" : "text-txt-secondary"}`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Modal Header with Wizard Stepper (from ChoseGame.html) */}
-        <div className="p-6 bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-6">
+      <div className="bg-card border border-border rounded-card shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Modal Header with Wizard Stepper */}
+        <div className="p-6 bg-background border-b border-border flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-primary/10 text-primary rounded-2xl">
+              <div className="p-2.5 bg-primary-light text-primary rounded-card">
                 <Sparkles className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold font-heading text-slate-900 dark:text-white">
-                  Teacher Game Selection Wizard
+                <h2 className="text-xl font-bold font-heading text-txt-primary">
+                  Select Game Types
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {lessonTitle ? `Generating interactive games for: "${lessonTitle}"` : "Choose games to generate and attach to your course"}
+                <p className="text-xs text-txt-secondary">
+                  {lessonTitle
+                    ? `Generating interactive games for: "${lessonTitle}"`
+                    : "Choose games to generate from your content"}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-full text-txt-secondary hover:text-txt-primary hover:bg-border/60 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Stepper bar from ChoseGame.html */}
+          {/* Stepper bar */}
           <div className="flex items-center justify-between max-w-xl mx-auto w-full relative px-4">
-            <div className="absolute top-4 left-8 right-8 h-0.5 bg-slate-200 dark:bg-slate-800 -z-0"></div>
-            
+            <div className="absolute top-4 left-8 right-8 h-0.5 bg-border -z-0"></div>
+
             {/* Step 1 */}
             <button
               onClick={() => setCurrentStep(1)}
-              className="flex flex-col items-center gap-1.5 z-10 relative bg-slate-50 dark:bg-slate-900 px-3 cursor-pointer group"
+              className="flex flex-col items-center gap-1.5 z-10 relative bg-background px-3 cursor-pointer group"
             >
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-all ${
-                  currentStep === 1
-                    ? "bg-primary text-white ring-4 ring-primary/20 scale-110"
-                    : "bg-emerald-600 text-white"
-                }`}
-              >
+              <div className={stepCircle(1, currentStep > 1)}>
                 {currentStep > 1 ? <Check className="h-4 w-4" /> : "1"}
               </div>
-              <span
-                className={`text-xs font-semibold ${
-                  currentStep === 1 ? "text-primary" : "text-slate-600 dark:text-slate-400"
-                }`}
-              >
-                Category
-              </span>
+              <span className={stepLabel(1)}>Category</span>
             </button>
 
             {/* Step 2 */}
             <button
               onClick={() => setCurrentStep(2)}
-              className="flex flex-col items-center gap-1.5 z-10 relative bg-slate-50 dark:bg-slate-900 px-3 cursor-pointer group"
+              className="flex flex-col items-center gap-1.5 z-10 relative bg-background px-3 cursor-pointer group"
             >
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-all ${
-                  currentStep === 2
-                    ? "bg-primary text-white ring-4 ring-primary/20 scale-110"
-                    : selectedGames.length > 0
-                    ? "bg-emerald-600 text-white"
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-500"
-                }`}
-              >
-                2
-              </div>
-              <span
-                className={`text-xs font-semibold ${
-                  currentStep === 2 ? "text-primary" : "text-slate-600 dark:text-slate-400"
-                }`}
-              >
-                Select Games ({selectedGames.length})
-              </span>
+              <div className={stepCircle(2, selectedGames.length > 0)}>2</div>
+              <span className={stepLabel(2)}>Select Games ({selectedGames.length})</span>
             </button>
 
             {/* Step 3 */}
             <button
               onClick={() => setCurrentStep(3)}
-              className="flex flex-col items-center gap-1.5 z-10 relative bg-slate-50 dark:bg-slate-900 px-3 cursor-pointer group"
+              className="flex flex-col items-center gap-1.5 z-10 relative bg-background px-3 cursor-pointer group"
             >
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-all ${
-                  currentStep === 3
-                    ? "bg-primary text-white ring-4 ring-primary/20 scale-110"
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-500"
-                }`}
-              >
-                3
-              </div>
-              <span
-                className={`text-xs font-semibold ${
-                  currentStep === 3 ? "text-primary" : "text-slate-600 dark:text-slate-400"
-                }`}
-              >
-                Generate & Attach
-              </span>
+              <div className={stepCircle(3, false)}>3</div>
+              <span className={stepLabel(3)}>Generate & Attach</span>
             </button>
           </div>
         </div>
 
         {/* Modal Main Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-card">
           {/* Main Grid Section */}
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Left Column: Categories Grid */}
             <div className="flex-1 space-y-6">
               <div>
-                <h3 className="text-xl font-bold font-heading text-slate-900 dark:text-white">
+                <h3 className="text-xl font-bold font-heading text-txt-primary">
                   Select Game Skill Area
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-txt-secondary">
                   Pick a skill category to browse available classroom activities.
                 </p>
               </div>
 
-              {/* Search and Filter Bar */}
-              <div className="flex flex-col sm:flex-row gap-3 bg-slate-100 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              {/* Search Bar */}
+              <div className="bg-background p-3 rounded-card border border-border">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-txt-secondary" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search games by name..."
-                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                    className="w-full pl-9 pr-3 py-2 bg-card text-txt-primary rounded-btn border border-border text-sm placeholder:text-txt-secondary focus:ring-2 focus:ring-primary focus:outline-none"
                   />
-                </div>
-                <div className="relative min-w-[160px]">
-                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <select
-                    value={difficultyFilter}
-                    onChange={(e) => setDifficultyFilter(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-primary focus:outline-none appearance-none"
-                  >
-                    <option value="all">All Difficulties</option>
-                    <option value="1">Beginner (1 Star)</option>
-                    <option value="2">Intermediate (2 Stars)</option>
-                    <option value="3">Advanced (3 Stars)</option>
-                  </select>
                 </div>
               </div>
 
-              {/* Category Selection Cards Grid (Exact design from ChoseGame.html) */}
+              {/* Category Selection Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {(Object.keys(CATEGORIES) as GameCategoryKey[]).map((key) => {
                   const cat = CATEGORIES[key];
@@ -565,10 +519,10 @@ export function GameSelectionModal({
                         setActiveCategory(key);
                         setCurrentStep(2);
                       }}
-                      className={`text-left p-6 rounded-3xl border transition-all duration-300 relative flex flex-col justify-between group cursor-pointer ${
+                      className={`text-left p-6 rounded-card border transition-all duration-300 relative flex flex-col justify-between group cursor-pointer ${
                         isActive
-                          ? "border-primary bg-primary/5 shadow-md shadow-primary/10 ring-2 ring-primary/30"
-                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:border-primary/50 hover:-translate-y-1 hover:shadow-lg"
+                          ? "border-primary bg-primary-light/40 shadow-md ring-2 ring-primary/30"
+                          : "border-border bg-card hover:border-primary/50 hover:-translate-y-1 hover:shadow-hover"
                       }`}
                     >
                       {countInCat > 0 && (
@@ -578,15 +532,15 @@ export function GameSelectionModal({
                       )}
                       <div className="space-y-4">
                         <div
-                          className={`w-14 h-14 rounded-2xl ${cat.bgColor} flex items-center justify-center ${cat.color} group-hover:scale-110 transition-transform duration-300`}
+                          className={`w-14 h-14 rounded-card ${cat.bgColor} flex items-center justify-center ${cat.color} group-hover:scale-110 transition-transform duration-300`}
                         >
                           <IconComponent className="h-7 w-7" />
                         </div>
                         <div>
-                          <h4 className="text-lg font-bold font-heading text-slate-900 dark:text-white mb-1">
+                          <h4 className="text-lg font-bold font-heading text-txt-primary mb-1">
                             {cat.title}
                           </h4>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                          <p className="text-xs text-txt-secondary leading-relaxed">
                             {cat.subtitle}
                           </p>
                         </div>
@@ -601,18 +555,18 @@ export function GameSelectionModal({
               </div>
             </div>
 
-            {/* Right Side Panel: Games List for Active Category (From ChoseGame.html side panel) */}
-            <aside className="w-full lg:w-[420px] shrink-0 bg-slate-50 dark:bg-slate-950/60 rounded-3xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden max-h-[580px]">
-              <div className="p-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            {/* Right Side Panel: Games List for Active Category */}
+            <aside className="w-full lg:w-[420px] shrink-0 bg-background rounded-card border border-border flex flex-col overflow-hidden max-h-[580px]">
+              <div className="p-5 bg-card border-b border-border flex justify-between items-center">
                 <div>
-                  <h4 className="font-bold font-heading text-slate-900 dark:text-white">
+                  <h4 className="font-bold font-heading text-txt-primary">
                     {currentCategoryData.title}
                   </h4>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-txt-secondary">
                     {getFilteredItems().length} games available
                   </p>
                 </div>
-                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                <span className="bg-primary-light text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                   {activeCategory}
                 </span>
               </div>
@@ -626,10 +580,10 @@ export function GameSelectionModal({
                     <div
                       key={game.id}
                       onClick={() => toggleGameSelection(game.type)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer group relative ${
+                      className={`p-4 rounded-card border transition-all cursor-pointer group relative ${
                         isSelected
-                          ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-md ring-1 ring-primary"
-                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/40 hover:shadow-sm"
+                          ? "border-primary bg-primary-light/40 shadow-md ring-1 ring-primary"
+                          : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
                       }`}
                     >
                       {game.popular && (
@@ -638,31 +592,17 @@ export function GameSelectionModal({
                         </span>
                       )}
                       <div className="flex justify-between items-start mb-2 pr-16">
-                        <h5 className="font-bold font-heading text-sm text-slate-900 dark:text-white group-hover:text-primary transition-colors">
+                        <h5 className="font-bold font-heading text-sm text-txt-primary group-hover:text-primary transition-colors">
                           {game.title}
                         </h5>
                       </div>
 
-                      {/* Difficulty stars */}
-                      <div className="flex items-center gap-1 mb-2">
-                        {[1, 2, 3].map((star) => (
-                          <Star
-                            key={star}
-                            className={`h-3.5 w-3.5 ${
-                              star <= game.diff
-                                ? "text-amber-500 fill-amber-500"
-                                : "text-slate-300 dark:text-slate-700"
-                            }`}
-                          />
-                        ))}
-                      </div>
-
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-3 leading-snug">
+                      <p className="text-xs text-txt-secondary mb-3 leading-snug">
                         {game.desc}
                       </p>
 
-                      <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                        <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                      <div className="flex justify-between items-center pt-2 border-t border-border">
+                        <span className="text-[11px] font-medium text-txt-secondary flex items-center gap-1">
                           <Clock className="h-3 w-3" /> {game.time}
                         </span>
                         <Button
@@ -688,21 +628,21 @@ export function GameSelectionModal({
                 })}
 
                 {getFilteredItems().length === 0 && (
-                  <div className="p-8 text-center text-slate-400 text-xs">
+                  <div className="p-8 text-center text-txt-secondary text-xs">
                     No games matching search filters.
                   </div>
                 )}
               </div>
 
               {/* Bottom selection summary */}
-              <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center">
-                <span className="text-xs text-slate-500 font-medium">
+              <div className="p-4 border-t border-border bg-card flex justify-between items-center">
+                <span className="text-xs text-txt-secondary font-medium">
                   {selectedGames.length} game(s) chosen
                 </span>
                 {selectedGames.length > 0 && (
                   <button
                     onClick={() => setSelectedGames([])}
-                    className="text-xs text-rose-500 font-semibold hover:underline"
+                    className="text-xs text-error font-semibold hover:underline"
                   >
                     Clear selection
                   </button>
@@ -713,11 +653,11 @@ export function GameSelectionModal({
         </div>
 
         {/* Modal Footer Bar */}
-        <div className="p-5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Zap className="h-4 w-4 text-amber-500 shrink-0" />
+        <div className="p-5 bg-background border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2 text-xs text-txt-secondary">
+            <Zap className="h-4 w-4 text-warning shrink-0" />
             <span>
-              Selected games will be automatically populated with target vocabulary and grammar rules from the lesson.
+              Selected games will be automatically populated with target vocabulary and grammar rules from your content.
             </span>
           </div>
 
@@ -728,7 +668,7 @@ export function GameSelectionModal({
             <Button
               onClick={handleGenerateOrAttach}
               disabled={generating || selectedGames.length === 0}
-              className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white font-bold"
+              className="w-full sm:w-auto"
             >
               {generating ? (
                 <>
@@ -738,7 +678,9 @@ export function GameSelectionModal({
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate & Attach {selectedGames.length} Game(s)
+                  {lessonId
+                    ? `Generate & Attach ${selectedGames.length} Game(s)`
+                    : `Confirm ${selectedGames.length} Game(s)`}
                 </>
               )}
             </Button>

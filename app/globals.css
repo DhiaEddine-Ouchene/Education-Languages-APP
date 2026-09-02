@@ -17,6 +17,22 @@
   --border: #E5E7EB;
 }
 
+.dark {
+  --primary: #9D94E8;
+  --primary-dark: #B7B1F0;
+  --primary-light: #2A2647;
+  --accent: #3BBF94;
+  --accent-light: #123B30;
+  --background: #121218;
+  --card: #1B1B24;
+  --text-primary: #F1F1F6;
+  --text-secondary: #9CA3AF;
+  --warning: #EF9F27;
+  --error: #F07070;
+  --border: #2E2E3A;
+  color-scheme: dark;
+}
+
 html, body {
   max-width: 100%;
   overflow-x: hidden;

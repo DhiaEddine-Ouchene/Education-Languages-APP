@@ -41,6 +41,7 @@ export function UnifiedGameCreator({ educatorId }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedType = searchParams.get("type");
+  const courseIdParam = searchParams.get("courseId");
 
   // ── Wizard state ──
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(() => {
@@ -268,6 +269,7 @@ export function UnifiedGameCreator({ educatorId }: Props) {
         body: JSON.stringify({
           title: title.trim(),
           type: selectedTemplate.type,
+          courseId: courseIdParam || undefined,
           settings: {
             ...settings,
             ...gameConfig,

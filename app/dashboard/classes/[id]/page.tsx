@@ -21,6 +21,7 @@ export default async function ClassDetailPage({ params }: { params: { id: string
   if (!cls) notFound();
 
   const games = await prisma.game.findMany({ where: { educatorId: profile.id }, select: { id: true, title: true } });
+  const courses = await prisma.course.findMany({ where: { educatorId: profile.id, isPublished: true }, select: { id: true, title: true } });
 
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
@@ -47,7 +48,7 @@ export default async function ClassDetailPage({ params }: { params: { id: string
       cls={{
         id: cls.id, name: cls.name, language: cls.language, level: cls.level, inviteCode: cls.inviteCode,
         members: cls.members.map((m) => ({
-          id: m.id, name: m.student.name, email: m.student.email, joinedAt: m.joinedAt.toISOString(),
+          id: m.id, studentId: m.studentId, name: m.student.name, email: m.student.email, joinedAt: m.joinedAt.toISOString(),
           totalXP: m.student.xp?.totalXP ?? 0, level: m.student.xp?.level ?? 1, streak: m.student.xp?.streak ?? 0,
         })),
         assignments: cls.assignments.map((a) => ({
@@ -56,6 +57,7 @@ export default async function ClassDetailPage({ params }: { params: { id: string
         })),
       }}
       games={games}
+      courses={courses}
       leaderboard={leaderboard}
     />
   );

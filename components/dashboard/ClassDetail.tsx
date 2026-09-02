@@ -8,25 +8,69 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { cn, formatDate } from "@/lib/utils";
-import { Radio, Trophy, Copy } from "lucide-react";
+import { Radio, Trophy, Copy, UserPlus, Trash2, UserMinus } from "lucide-react";
 
-type Member = { id: string; name: string; email: string; joinedAt: string; totalXP: number; level: number; streak: number };
+type Member = { id: string; studentId?: string; name: string; email: string; joinedAt: string; totalXP: number; level: number; streak: number };
 type AssignmentRow = { id: string; gameTitle: string; dueDate: string; isLive: boolean; completions: number };
 type Props = {
   cls: { id: string; name: string; language: string; level: string; inviteCode: string; members: Member[]; assignments: AssignmentRow[] };
   games: { id: string; title: string }[];
+  courses: { id: string; title: string }[];
   leaderboard: { name: string; xp: number }[];
 };
 
 const tabs = ["Students", "Assignments", "Announcements", "Leaderboard"] as const;
 
-export function ClassDetail({ cls, games, leaderboard }: Props) {
+export function ClassDetail({ cls, games, courses, leaderboard }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof tabs)[number]>("Students");
   const [gameId, setGameId] = useState(games[0]?.id ?? "");
+  const [courseId, setCourseId] = useState(courses[0]?.id ?? "");
   const [dueDate, setDueDate] = useState("");
   const [announcement, setAnnouncement] = useState("");
+  const [studentEmail, setStudentEmail] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const addStudent = async () => {
+    if (!studentEmail || !studentEmail.includes("@")) return toast("error", "Enter a valid student email");
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/classes/${cls.id}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: studentEmail }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return toast("error", body.error || "Failed to add student");
+      }
+      toast("success", "Student added to class");
+      setStudentEmail("");
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeStudent = async (studentId: string, studentName: string) => {
+    if (!confirm(`Are you sure you want to remove ${studentName} from this class? They will lose access to class assignments.`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/classes/${cls.id}/students`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return toast("error", body.error || "Failed to remove student");
+      }
+      toast("success", `${studentName} removed from class`);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const assign = async () => {
     if (!gameId || !dueDate) return toast("error", "Select a game and due date");
@@ -35,6 +79,21 @@ export function ClassDetail({ cls, games, leaderboard }: Props) {
       const res = await fetch(`/api/classes/${cls.id}/assign`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ gameId, dueDate }) });
       if (!res.ok) return toast("error", "Failed to assign");
       toast("success", "Game assigned. Students were notified by email.");
+      router.refresh();
+    } finally { setBusy(false); }
+  };
+
+  const assignCourse = async () => {
+    if (!courseId || !dueDate) return toast("error", "Select a course and due date");
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/classes/${cls.id}/assign-course`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ courseId, dueDate }) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return toast("error", body.error ?? "Failed to assign course");
+      }
+      const { assignedCount } = await res.json();
+      toast("success", `Course assigned. ${assignedCount} game(s) added to class.`);
       router.refresh();
     } finally { setBusy(false); }
   };
@@ -83,31 +142,98 @@ export function ClassDetail({ cls, games, leaderboard }: Props) {
       </div>
 
       {tab === "Students" && (
-        <Card><CardContent className="pt-4">
-          {cls.members.length === 0 ? (
-            <p className="text-sm text-txt-secondary py-8 text-center">No students yet. Share code <b>{cls.inviteCode}</b> to invite them.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-txt-secondary border-b border-border"><th className="py-2">Student</th><th>Level</th><th>XP</th><th>Streak</th><th>Joined</th></tr></thead>
-              <tbody>
-                {cls.members.map((m) => (
-                  <tr key={m.id} className="border-b border-border last:border-0">
-                    <td className="py-2.5"><p className="font-medium">{m.name}</p><p className="text-xs text-txt-secondary">{m.email}</p></td>
-                    <td>Lv {m.level}</td><td>{m.totalXP} XP</td><td>🔥 {m.streak}</td><td className="text-xs text-txt-secondary">{formatDate(m.joinedAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent></Card>
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <Label className="font-semibold block text-sm">Add Student to Class</Label>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Input
+                  type="email"
+                  placeholder="student@example.com"
+                  value={studentEmail}
+                  onChange={(e) => setStudentEmail(e.target.value)}
+                  className="flex-1 min-w-[220px]"
+                />
+                <Button onClick={addStudent} disabled={busy} variant="primary">
+                  <UserPlus className="h-4 w-4 mr-1.5" /> Add Student
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-4">
+              {cls.members.length === 0 ? (
+                <p className="text-sm text-txt-secondary py-8 text-center">
+                  No students yet. Add them above or share invite code <b>{cls.inviteCode}</b>.
+                </p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-txt-secondary border-b border-border">
+                      <th className="py-2">Student</th>
+                      <th>Level</th>
+                      <th>XP</th>
+                      <th>Streak</th>
+                      <th>Joined</th>
+                      <th className="text-right pr-2">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cls.members.map((m) => (
+                      <tr key={m.id} className="border-b border-border last:border-0 hover:bg-background/50">
+                        <td className="py-2.5">
+                          <p className="font-medium">{m.name}</p>
+                          <p className="text-xs text-txt-secondary">{m.email}</p>
+                        </td>
+                        <td>Lv {m.level}</td>
+                        <td>{m.totalXP} XP</td>
+                        <td>🔥 {m.streak}</td>
+                        <td className="text-xs text-txt-secondary">{formatDate(m.joinedAt)}</td>
+                        <td className="text-right pr-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeStudent(m.studentId || m.id, m.name)}
+                            disabled={busy}
+                            className="text-error hover:bg-error/10 hover:text-error"
+                            title="Remove student from class"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {tab === "Assignments" && (
         <div className="space-y-4">
-          <Card><CardContent className="pt-4 flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-[180px]"><Label>Game</Label><Select value={gameId} onChange={(e) => setGameId(e.target.value)}>{games.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}</Select></div>
-            <div><Label>Due date</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
-            <Button onClick={assign} disabled={busy}>Assign game</Button>
+          <Card><CardContent className="pt-4 space-y-4">
+            <div>
+              <Label className="font-semibold mb-2 block">Assign Individual Game</Label>
+              <div className="flex flex-wrap gap-3 items-end">
+                <div className="flex-1 min-w-[180px]"><Label>Game</Label><Select value={gameId} onChange={(e) => setGameId(e.target.value)}>{games.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}</Select></div>
+                <div><Label>Due date</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+                <Button onClick={assign} disabled={busy}>Assign game</Button>
+              </div>
+            </div>
+            {courses.length > 0 && (
+              <div className="border-t border-border pt-4">
+                <Label className="font-semibold mb-2 block">Assign Entire Course</Label>
+                <div className="flex flex-wrap gap-3 items-end">
+                  <div className="flex-1 min-w-[180px]"><Label>Course</Label><Select value={courseId} onChange={(e) => setCourseId(e.target.value)}>{courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}</Select></div>
+                  <div><Label>Due date</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+                  <Button onClick={assignCourse} disabled={busy} variant="accent">Assign course</Button>
+                </div>
+                <p className="text-xs text-txt-secondary mt-2">All games in the course will be assigned to this class.</p>
+              </div>
+            )}
           </CardContent></Card>
           <Card><CardContent className="pt-4">
             {cls.assignments.length === 0 ? (

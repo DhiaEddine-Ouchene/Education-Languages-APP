@@ -8,6 +8,7 @@ import {
   LayoutDashboard, BookOpen, Gamepad2, Users, BarChart3, Palette, Settings, CreditCard,
   LogOut, ChevronLeft, ChevronRight, ShieldCheck, UserCog, Receipt, Menu, X
 } from "lucide-react";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 const educatorLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -92,6 +93,7 @@ export function Sidebar({ role }: { role: "EDUCATOR" | "SUPER_ADMIN" }) {
             </div>
           </div>
         )}
+        <ThemeToggle collapsed={collapsed} />
         <button onClick={() => signOut({ callbackUrl: "/" })} className="flex items-center gap-3 px-3 py-2 rounded-btn text-sm text-txt-secondary hover:bg-background w-full">
           <LogOut className="h-5 w-5 shrink-0" />
           {!collapsed && "Sign out"}

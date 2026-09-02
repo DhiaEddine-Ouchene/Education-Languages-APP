@@ -91,7 +91,12 @@ function hasSettingsContent(settings: GameSettings | Record<string, unknown>): b
   const s = settings as Record<string, any>;
   const d = s?.data;
   return Boolean(
-    s?.questions?.length ||
+    s?.items?.length ||
+      s?.pairs?.length ||
+      s?.generated?.items?.length ||
+      s?.generated?.questions?.length ||
+      s?.generated?.pairs?.length ||
+      s?.questions?.length ||
       s?.dialogueItems?.length ||
       s?.sentenceItems?.length ||
       s?.oddOneOutItems?.length ||

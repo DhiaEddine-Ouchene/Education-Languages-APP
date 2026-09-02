@@ -9,7 +9,7 @@
   background: var(--bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
-  max-width: 480px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 8px 6px 96px;
   min-height: 60vh;

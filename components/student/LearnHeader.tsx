@@ -7,6 +7,7 @@ import { LogOut } from "lucide-react";
 
 const links = [
   { href: "/learn", label: "Home" },
+  { href: "/learn/courses", label: "Courses" },
   { href: "/learn/progress", label: "Progress" },
   { href: "/learn/classes", label: "Classes" },
   { href: "/learn/profile", label: "Profile" },
@@ -16,7 +17,7 @@ export function LearnHeader({ appName, logo }: { appName: string; logo: string |
   const pathname = usePathname();
   return (
     <header className="sticky top-0 z-40 bg-card/80 backdrop-blur border-b border-border">
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
         <Link href="/learn" className="flex items-center gap-2 font-heading font-bold text-primary">
           {logo ? <img src={logo} alt="" className="h-7 w-7 rounded" /> : <span className="h-7 w-7 rounded bg-primary inline-block" />}
           {appName}

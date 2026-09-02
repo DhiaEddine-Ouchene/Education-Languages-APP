@@ -11,22 +11,23 @@ export default async function EditCoursePage({ params }: { params: { id: string 
   const profile = await getEducatorProfile(session.user.id);
   if (!profile) redirect("/auth/login");
 
-  const [course, games] = await Promise.all([
-    prisma.course.findFirst({ where: { id: params.id, educatorId: profile.id }, include: { lessons: { orderBy: { order: "asc" } } } }),
-    prisma.game.findMany({ where: { educatorId: profile.id }, select: { id: true, title: true } }),
-  ]);
+  const course = await prisma.course.findFirst({
+    where: { id: params.id, educatorId: profile.id },
+  });
   if (!course) notFound();
 
   return (
     <div className="space-y-6">
       <h1 className="font-heading font-bold text-2xl">Edit course</h1>
       <CourseBuilder
-        games={games}
         initial={{
-          id: course.id, title: course.title, description: course.description, language: course.language,
-          level: course.level, coverImage: course.coverImage,
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          language: course.language,
+          level: course.level,
+          coverImage: course.coverImage,
           isPublished: course.isPublished,
-          lessons: course.lessons.map((l) => ({ id: l.id, title: l.title, type: l.type, content: l.content })),
         }}
       />
     </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckoutModal } from "./CheckoutModal";
 import { formatDate } from "@/lib/utils";
+import { CHARGILY_PLANS, isChargilyConfigured, formatDZD } from "@/lib/chargily";
 import {
   CheckCircle,
   Sparkles,
@@ -14,6 +15,8 @@ import {
   Crown,
   XCircle,
   HelpCircle,
+  Globe,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -72,15 +75,24 @@ type HistoryRow = {
   currentPeriodEnd: string | null;
 };
 
+type Props = {
+  currentPlan: string;
+  history: HistoryRow[];
+  paymentProvider?: string | null;
+  isAlgerian?: boolean;
+};
+
 export function BillingClient({
   currentPlan,
   history,
-}: {
-  currentPlan: string;
-  history: HistoryRow[];
-}) {
+  paymentProvider = null,
+  isAlgerian = false,
+}: Props) {
   const router = useRouter();
   const [annual, setAnnual] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"usd" | "dzd">(
+    isAlgerian ? "dzd" : "usd"
+  );
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{
     key: string;
@@ -88,6 +100,9 @@ export function BillingClient({
     price: number;
     interval: "monthly" | "yearly";
   } | null>(null);
+
+  const chargilyAvailable = isChargilyConfigured();
+  const showChargilyOption = isAlgerian && chargilyAvailable;
 
   // Determine if a plan is an upgrade from current
   const planRank: Record<string, number> = {
@@ -110,6 +125,31 @@ export function BillingClient({
       interval: annual ? "yearly" : "monthly",
     });
     setCheckoutOpen(true);
+  };
+
+  const handleChargilySubscribe = async (planKey: string) => {
+    const planData = PLAN_FEATURES[planKey as keyof typeof PLAN_FEATURES];
+    if (!planData || planKey === "FREE") return;
+
+    try {
+      const interval = annual ? "YEARLY" : "MONTHLY";
+      const res = await fetch("/api/billing/chargily-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planKey, interval }),
+      });
+
+      if (!res.ok) {
+        alert("Payment link not available. Please contact support.");
+        return;
+      }
+
+      const { url } = await res.json();
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error("Failed to get Chargily payment link:", err);
+      alert("Failed to open payment page. Please try again.");
+    }
   };
 
   const handleDowngradeToFree = async () => {
@@ -193,9 +233,31 @@ export function BillingClient({
 
       {/* Plan selector */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle>Choose your plan</CardTitle>
-          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+          {showChargilyOption && (
+            <div className="flex gap-2 mt-3">
+              <Button
+                variant={paymentMethod === "usd" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setPaymentMethod("usd")}
+                className="flex items-center gap-1.5"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                International Card
+              </Button>
+              <Button
+                variant={paymentMethod === "dzd" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setPaymentMethod("dzd")}
+                className="flex items-center gap-1.5"
+              >
+                <CreditCard className="h-3.5 w-3.5" />
+                🇩🇿 EDAHABIA/CIB (DZD)
+              </Button>
+            </div>
+          )}
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none mt-3">
             <span
               className={cn(
                 "text-xs transition-colors",
@@ -271,20 +333,50 @@ export function BillingClient({
                   </h3>
 
                   <div className="mb-3">
-                    <span className="font-heading font-bold text-3xl">
-                      {planKey === "FREE" ? "$0" : (annual ? planData.yearly : planData.monthly)}
-                    </span>
-                    <span className="text-txt-secondary text-sm ml-1">
-                      {planKey === "FREE" ? "" : `/${annual ? "yr" : "mo"}`}
-                    </span>
-                    {annual && planKey !== "FREE" && (
-                      <p className="text-xs text-accent mt-0.5">
-                        ~$
-                        {planKey === "PRO"
-                          ? Math.round(99 / 12)
-                          : Math.round(179 / 12)}
-                        /mo billed annually
-                      </p>
+                    {paymentMethod === "usd" || !showChargilyOption ? (
+                      <>
+                        <span className="font-heading font-bold text-3xl">
+                          {planKey === "FREE" ? "$0" : (annual ? planData.yearly : planData.monthly)}
+                        </span>
+                        <span className="text-txt-secondary text-sm ml-1">
+                          {planKey === "FREE" ? "" : `/${annual ? "yr" : "mo"}`}
+                        </span>
+                        {annual && planKey !== "FREE" && (
+                          <p className="text-xs text-accent mt-0.5">
+                            ~$
+                            {planKey === "PRO"
+                              ? Math.round(99 / 12)
+                              : Math.round(179 / 12)}
+                            /mo billed annually
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-heading font-bold text-3xl">
+                          {planKey === "FREE"
+                            ? "0 DA"
+                            : formatDZD(
+                                annual
+                                  ? CHARGILY_PLANS[planKey].yearly
+                                  : CHARGILY_PLANS[planKey].monthly
+                              )}
+                        </span>
+                        <span className="text-txt-secondary text-sm ml-1">
+                          {planKey === "FREE" ? "" : `/${annual ? "yr" : "mo"}`}
+                        </span>
+                        {annual && planKey !== "FREE" && (
+                          <p className="text-xs text-accent mt-0.5">
+                            ~
+                            {formatDZD(
+                              Math.round(
+                                CHARGILY_PLANS[planKey].yearly / 12
+                              )
+                            )}
+                            /mo billed annually
+                          </p>
+                        )}
+                      </>
                     )}
                     {planKey === "FREE" && (
                       <p className="text-xs text-txt-secondary mt-0.5">Free forever</p>
@@ -313,7 +405,13 @@ export function BillingClient({
                         : "primary"
                     }
                     disabled={isCurrentPlan}
-                    onClick={() => planKey === "FREE" ? handleDowngradeToFree() : handleSubscribe(planKey)}
+                    onClick={() =>
+                      planKey === "FREE"
+                        ? handleDowngradeToFree()
+                        : paymentMethod === "dzd" && showChargilyOption
+                        ? handleChargilySubscribe(planKey)
+                        : handleSubscribe(planKey)
+                    }
                   >
                     {isCurrentPlan
                       ? "Current plan"

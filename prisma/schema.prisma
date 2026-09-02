@@ -88,6 +88,11 @@ enum SubscriptionStatus {
   CANCELLED
 }
 
+enum PaymentProvider {
+  LEMONSQUEEZY
+  CHARGILY
+}
+
 model User {
   id                      String    @id @default(cuid())
   email                   String    @unique
@@ -115,8 +120,10 @@ model EducatorProfile {
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   creatorType          String? // Teacher | Content Creator | Both
   subscriptionPlan     Plan     @default(FREE)
+  paymentProvider      PaymentProvider? // NEW: track which payment system
   lemonSqueezyCustomerId     String?
   lemonSqueezySubscriptionId String?
+  chargilyCustomerId         String?  // NEW: for future use
   aiGenerationsThisMonth   Int      @default(0)
   aiGenerationsResetAt     DateTime?
   createdAt                DateTime @default(now())
@@ -142,6 +149,21 @@ model Course {
   updatedAt     DateTime    @updatedAt
 
   lessons   Lesson[]
+  sources   CourseSource[]
+  games     Game[]
+}
+
+model CourseSource {
+  id            String   @id @default(cuid())
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  fileName      String
+  fileType      String
+  extractedText String   @db.Text
+  fileUrl       String?  @db.Text
+  uploadedAt    DateTime @default(now())
+
+  @@index([courseId])
 }
 
 model Lesson {
@@ -198,6 +220,8 @@ model Game {
   educator        EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
   title           String
   type            GameType
+  courseId        String?
+  course          Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
   exerciseSetId   String?
   exerciseSet     ExerciseSet? @relation(fields: [exerciseSetId], references: [id])
   settings        Json     @default("{}")
@@ -380,9 +404,14 @@ model Subscription {
   educator         EducatorProfile @relation(fields: [educatorId], references: [id], onDelete: Cascade)
   plan             Plan
   status           SubscriptionStatus @default(ACTIVE)
+  paymentProvider  PaymentProvider @default(LEMONSQUEEZY) // NEW
   lemonSqueezyId         String?  @unique
+  chargilyCheckoutId     String?  // NEW: last successful Chargily checkout
   currentPeriodEnd DateTime?
   createdAt        DateTime @default(now())
+
+  @@index([paymentProvider])
+  @@index([currentPeriodEnd])
 }
 
 model PlatformSettings {
