@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckoutModal } from "./CheckoutModal";
 import { formatDate } from "@/lib/utils";
-import { CHARGILY_PLANS, isChargilyConfigured, formatDZD } from "@/lib/chargily";
+import { CHARGILY_PLANS, formatDZD } from "@/lib/chargily";
 import {
   CheckCircle,
   Sparkles,
@@ -80,6 +80,7 @@ type Props = {
   history: HistoryRow[];
   paymentProvider?: string | null;
   isAlgerian?: boolean;
+  chargilyEnabled?: boolean;
 };
 
 export function BillingClient({
@@ -87,6 +88,7 @@ export function BillingClient({
   history,
   paymentProvider = null,
   isAlgerian = false,
+  chargilyEnabled = false,
 }: Props) {
   const router = useRouter();
   const [annual, setAnnual] = useState(false);
@@ -101,7 +103,7 @@ export function BillingClient({
     interval: "monthly" | "yearly";
   } | null>(null);
 
-  const chargilyAvailable = isChargilyConfigured();
+  const chargilyAvailable = chargilyEnabled;
   const showChargilyOption = isAlgerian && chargilyAvailable;
 
   // Determine if a plan is an upgrade from current

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { BillingClient } from "@/components/dashboard/BillingClient";
 import { PaymentVerification } from "./PaymentVerification";
 import { isAlgerianUser } from "@/lib/geolocation";
+import { isChargilyConfigured } from "@/lib/chargily";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,10 @@ export default async function BillingPage({
   const headersList = headers();
   const isInAlgeria = isAlgerianUser(headersList);
 
+  // Chargily uses server-only env vars, so this MUST be evaluated on the server
+  // and passed to the client component (client bundles can't read these vars).
+  const chargilyEnabled = isChargilyConfigured();
+
   return (
     <div className="space-y-6">
       <h1 className="font-heading font-bold text-2xl">Billing</h1>
@@ -45,6 +50,7 @@ export default async function BillingPage({
         currentPlan={profile.subscriptionPlan}
         paymentProvider={profile.paymentProvider}
         isAlgerian={isInAlgeria}
+        chargilyEnabled={chargilyEnabled}
         history={history.map((h) => ({
           id: h.id,
           plan: h.plan,
