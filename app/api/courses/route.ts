@@ -3,6 +3,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireEducator } from "@/lib/api";
 
+const lessonSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1),
+  type: z.string().min(1),
+  content: z.string().optional().default(""),
+});
+
 const schema = z.object({
   title: z.string().min(3),
   description: z.string().min(10),
@@ -10,6 +17,7 @@ const schema = z.object({
   level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]),
   coverImage: z.string().optional().nullable(),
   isPublished: z.boolean().default(false),
+  lessons: z.array(lessonSchema).default([]),
 });
 
 async function owned(id: string, educatorId: string) {

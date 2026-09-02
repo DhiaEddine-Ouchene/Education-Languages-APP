@@ -67,10 +67,10 @@ export async function POST(req: Request) {
           }),
           prisma.subscription.upsert({
             where: {
-              educatorId_paymentProvider: {
-                educatorId,
-                paymentProvider: "CHARGILY",
-              },
+              AND: [
+                { educatorId: educatorId },
+                { paymentProvider: "CHARGILY" },
+              ],
             },
             create: {
               educatorId,

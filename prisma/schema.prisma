@@ -412,6 +412,7 @@ model Subscription {
 
   @@index([paymentProvider])
   @@index([currentPeriodEnd])
+  @@unique([educatorId, paymentProvider])
 }
 
 model PlatformSettings {
