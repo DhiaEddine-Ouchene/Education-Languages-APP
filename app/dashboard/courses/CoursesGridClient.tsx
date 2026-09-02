@@ -18,7 +18,7 @@ type CourseRow = {
   level: string;
   coverImage: string | null;
   isPublished: boolean;
-  _count: { lessons: true; games?: true };
+  _count: { lessons: number; games: number };
 };
 
 type Props = {

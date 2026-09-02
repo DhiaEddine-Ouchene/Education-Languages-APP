@@ -358,8 +358,8 @@ export function BillingClient({
                             ? "0 DA"
                             : formatDZD(
                                 annual
-                                  ? CHARGILY_PLANS[planKey].yearly
-                                  : CHARGILY_PLANS[planKey].monthly
+                                  ? CHARGILY_PLANS[planKey].yearly.dzd
+                                  : CHARGILY_PLANS[planKey].monthly.dzd
                               )}
                         </span>
                         <span className="text-txt-secondary text-sm ml-1">
@@ -370,7 +370,7 @@ export function BillingClient({
                             ~
                             {formatDZD(
                               Math.round(
-                                CHARGILY_PLANS[planKey].yearly / 12
+                                CHARGILY_PLANS[planKey].yearly.dzd / 12
                               )
                             )}
                             /mo billed annually

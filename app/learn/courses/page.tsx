@@ -41,7 +41,7 @@ export default async function StudentCoursesPage() {
       games: { select: { id: true } },
       lessons: { select: { id: true } },
       sources: { select: { id: true } },
-      educator: { select: { name: true } }
+      educator: { select: { user: { select: { name: true } } } }
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -83,7 +83,7 @@ export default async function StudentCoursesPage() {
                 
                 <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs text-txt-secondary">
                   <span className="truncate max-w-[120px]">
-                    {c.educator?.name || "Teacher"}
+                    {c.educator?.user?.name || "Teacher"}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
@@ -93,7 +93,7 @@ export default async function StudentCoursesPage() {
                 </div>
 
                 <Link href={`/learn/course/${c.id}`} className="mt-4 block">
-                  <Button variant="default" className="w-full shadow-sm">View Course Materials</Button>
+                  <Button variant="primary" className="w-full shadow-sm">View Course Materials</Button>
                 </Link>
               </CardContent>
             </Card>

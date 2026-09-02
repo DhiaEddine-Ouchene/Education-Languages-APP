@@ -38,6 +38,7 @@ type PlanMapping = {
 };
 
 export function getPlanFromChargilyPrice(priceId: string): PlanMapping | null {
+  if (!priceId) return null;
   const priceMap: Record<string, PlanMapping> = {
     [CHARGILY_PLANS.PRO.monthly.priceId]: { plan: "PRO", interval: "monthly", days: 30 },
     [CHARGILY_PLANS.PRO.yearly.priceId]: { plan: "PRO", interval: "yearly", days: 365 },
@@ -46,6 +47,21 @@ export function getPlanFromChargilyPrice(priceId: string): PlanMapping | null {
   };
 
   return priceMap[priceId] ?? null;
+}
+
+// Fallback: map by the paid DZD amount when the webhook payload does not
+// expose a Price ID (Payment Link checkouts may only carry `amount`).
+// Each plan/interval has a distinct amount, so this is unambiguous.
+export function getPlanFromChargilyAmount(amount: number): PlanMapping | null {
+  if (typeof amount !== "number" || Number.isNaN(amount)) return null;
+  const amountMap: Record<number, PlanMapping> = {
+    [CHARGILY_PLANS.PRO.monthly.dzd]: { plan: "PRO", interval: "monthly", days: 30 },
+    [CHARGILY_PLANS.PRO.yearly.dzd]: { plan: "PRO", interval: "yearly", days: 365 },
+    [CHARGILY_PLANS.ULTIMATE.monthly.dzd]: { plan: "ULTIMATE", interval: "monthly", days: 30 },
+    [CHARGILY_PLANS.ULTIMATE.yearly.dzd]: { plan: "ULTIMATE", interval: "yearly", days: 365 },
+  };
+
+  return amountMap[amount] ?? null;
 }
 
 // Helper to check if Chargily is configured

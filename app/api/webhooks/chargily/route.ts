@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { getPlanFromChargilyPrice } from "@/lib/chargily";
+import { getPlanFromChargilyPrice, getPlanFromChargilyAmount } from "@/lib/chargily";
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -36,7 +36,6 @@ export async function POST(req: Request) {
     switch (eventType) {
       case "checkout.paid": {
         const checkout = event.data;
-        const priceId = checkout.amount; // TODO: Verify correct field from Chargily docs
         const checkoutId = checkout.id;
         const metadata = checkout.metadata || {};
         const educatorId = metadata.educatorId;
@@ -46,10 +45,25 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Missing educatorId" }, { status: 400 });
         }
 
-        // Map price ID to plan details
-        const planMapping = getPlanFromChargilyPrice(priceId);
+        // Resolve the purchased plan. Prefer the Chargily Price ID (carried on
+        // the checkout's line items); fall back to the paid DZD amount when the
+        // Payment Link payload does not expose a Price ID.
+        const priceId: string =
+          checkout.items?.[0]?.price ??
+          checkout.price_id ??
+          checkout.price ??
+          "";
+        const planMapping =
+          getPlanFromChargilyPrice(priceId) ??
+          getPlanFromChargilyAmount(Number(checkout.amount));
+
         if (!planMapping) {
-          console.error("[chargily-webhook] Unknown price ID:", priceId);
+          console.error(
+            "[chargily-webhook] Could not resolve plan. priceId:",
+            priceId,
+            "amount:",
+            checkout.amount
+          );
           return NextResponse.json({ error: "Unknown price" }, { status: 400 });
         }
 
@@ -67,10 +81,10 @@ export async function POST(req: Request) {
           }),
           prisma.subscription.upsert({
             where: {
-              AND: [
-                { educatorId: educatorId },
-                { paymentProvider: "CHARGILY" },
-              ],
+              educatorId_paymentProvider: {
+                educatorId,
+                paymentProvider: "CHARGILY",
+              },
             },
             create: {
               educatorId,
