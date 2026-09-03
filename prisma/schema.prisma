@@ -244,6 +244,8 @@ model Game {
   crosswordData        CrosswordData?
   verbConjugationData  VerbConjugationData?
   storyData            StoryData?
+
+  @@index([educatorId, isPublished])
 }
 
 // ── Flashcard pairs (covers FLASHCARD, SYNONYM_ANTONYM, WORD_SCRAMBLE, PICTURE_TO_WORD, FLASHCARD_3D) ──

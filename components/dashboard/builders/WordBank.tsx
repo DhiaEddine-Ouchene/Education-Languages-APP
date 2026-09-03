@@ -165,15 +165,18 @@ export function WordBank({
       </div>
 
       {/* Mode tabs */}
-      <div className="flex gap-1 p-2 border-b border-border/30 bg-background/20">
-        <button onClick={() => setMode("ai")} className={cn("flex-1 px-2 py-1.5 text-xs font-medium rounded-lg transition-all", mode === "ai" ? "bg-primary text-white shadow-sm" : "text-txt-secondary hover:text-txt")}>
-          <Sparkles className="w-3 h-3 inline mr-1" />AI
+      <div className="flex gap-1 p-1.5 border-b border-border/30 bg-background/20">
+        <button onClick={() => setMode("ai")} className={cn("flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1", mode === "ai" ? "bg-primary text-white shadow-sm" : "text-txt-secondary hover:text-txt")}>
+          <Sparkles className="w-3.5 h-3.5 shrink-0" />
+          <span>AI</span>
         </button>
-        <button onClick={() => setMode("existing")} className={cn("flex-1 px-2 py-1.5 text-xs font-medium rounded-lg transition-all", mode === "existing" ? "bg-primary text-white shadow-sm" : "text-txt-secondary hover:text-txt")}>
-          <Database className="w-3 h-3 inline mr-1" />Sets
+        <button onClick={() => setMode("existing")} className={cn("flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1", mode === "existing" ? "bg-primary text-white shadow-sm" : "text-txt-secondary hover:text-txt")}>
+          <Database className="w-3.5 h-3.5 shrink-0" />
+          <span>Sets</span>
         </button>
-        <button onClick={() => setMode("manual")} className={cn("flex-1 px-2 py-1.5 text-xs font-medium rounded-lg transition-all", mode === "manual" ? "bg-primary text-white shadow-sm" : "text-txt-secondary hover:text-txt")}>
-          <Plus className="w-3 h-3 inline mr-1" />Manual
+        <button onClick={() => setMode("manual")} className={cn("flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1", mode === "manual" ? "bg-primary text-white shadow-sm" : "text-txt-secondary hover:text-txt")}>
+          <Plus className="w-3.5 h-3.5 shrink-0" />
+          <span>Manual</span>
         </button>
       </div>
 

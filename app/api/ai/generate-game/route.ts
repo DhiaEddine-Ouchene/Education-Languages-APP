@@ -5,6 +5,7 @@ import { generateGameFromWordBank } from "@/lib/generate-game";
 import {
   checkAIGenerationLimit,
   incrementAIGenerationCount,
+  checkGameTypeAllowed,
 } from "@/lib/plan-guard";
 
 const schema = z.object({
@@ -31,6 +32,19 @@ export async function POST(req: Request) {
     const { error, profile } = await requireEducator();
     if (error) return error;
 
+    const body = schema.safeParse(await req.json());
+    if (!body.success) {
+      return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
+    }
+
+    const { gameType, wordBankId, words, topic, count, options } = body.data;
+
+    // ── Check game type allowed ──
+    const typeCheck = await checkGameTypeAllowed(profile!.id, gameType);
+    if (!typeCheck.allowed) {
+      return NextResponse.json({ error: typeCheck.reason, requiresUpgrade: true }, { status: 403 });
+    }
+
     // ── Check AI generation limit ──
     const limit = await checkAIGenerationLimit(profile!.id);
     if (!limit.allowed) {
@@ -43,13 +57,6 @@ export async function POST(req: Request) {
         { status: 429 }
       );
     }
-
-    const body = schema.safeParse(await req.json());
-    if (!body.success) {
-      return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
-    }
-
-    const { gameType, wordBankId, words, topic, count, options } = body.data;
 
     const result = await generateGameFromWordBank(gameType, wordBankId, count, {
       ...options,

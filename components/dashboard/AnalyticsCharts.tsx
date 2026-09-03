@@ -4,15 +4,23 @@ import { Button } from "@/components/ui/button";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Download, Printer } from "lucide-react";
 
+import { toast } from "@/components/ui/toast";
+import Link from "next/link";
+
 type Props = {
   engagement: { name: string; plays: number }[];
   timeSpent: { day: string; minutes: number }[];
   classPerf: { name: string; avgScore: number }[];
   hardestWords: { word: string; game: string; avgScore: number }[];
+  isUltimate?: boolean;
 };
 
-export function AnalyticsCharts({ engagement, timeSpent, classPerf, hardestWords }: Props) {
+export function AnalyticsCharts({ engagement, timeSpent, classPerf, hardestWords, isUltimate = false }: Props) {
   const exportCsv = () => {
+    if (!isUltimate) {
+      toast("error", "CSV export is an Ultimate plan feature. Upgrade to Ultimate to export your class data.");
+      return;
+    }
     const rows = [
       "section,name,value",
       ...engagement.map((e) => `engagement,${e.name},${e.plays}`),
@@ -27,11 +35,19 @@ export function AnalyticsCharts({ engagement, timeSpent, classPerf, hardestWords
     a.click();
   };
 
+  const exportPdf = () => {
+    if (!isUltimate) {
+      toast("error", "PDF export is an Ultimate plan feature. Upgrade to Ultimate to export your class reports.");
+      return;
+    }
+    window.print();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex gap-2 justify-end">
         <Button variant="outline" size="sm" onClick={exportCsv}><Download className="h-4 w-4" /> Export CSV</Button>
-        <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4" /> Export PDF</Button>
+        <Button variant="outline" size="sm" onClick={exportPdf}><Printer className="h-4 w-4" /> Export PDF</Button>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireStudent } from "@/lib/api";
 import { sendFirstStudentJoined } from "@/lib/mail";
+import { checkStudentLimit } from "@/lib/plan-guard";
 
 const schema = z.object({ inviteCode: z.string().min(4) });
 
@@ -17,6 +18,13 @@ export async function POST(req: Request) {
       include: { educator: { include: { user: true } }, _count: { select: { members: true } } },
     });
     if (!cls) return NextResponse.json({ error: "No class found for this code" }, { status: 404 });
+
+    // ── Check Student limit on class ──
+    const studentCheck = await checkStudentLimit(cls.id);
+    if (!studentCheck.allowed) {
+      return NextResponse.json({ error: studentCheck.reason }, { status: 403 });
+    }
+
     const existing = await prisma.classMember.findUnique({ where: { classId_studentId: { classId: cls.id, studentId: session!.user.id } } });
     if (existing) return NextResponse.json({ error: "You already joined this class" }, { status: 409 });
     await prisma.classMember.create({ data: { classId: cls.id, studentId: session!.user.id } });

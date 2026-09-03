@@ -58,7 +58,13 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-heading font-bold text-2xl">Analytics</h1>
-      <AnalyticsCharts engagement={engagement} timeSpent={days} classPerf={classPerf} hardestWords={hardestWords} />
+      <AnalyticsCharts
+        engagement={engagement}
+        timeSpent={days}
+        classPerf={classPerf}
+        hardestWords={hardestWords}
+        isUltimate={profile.subscriptionPlan === "ULTIMATE"}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireEducator } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { generateGame } from "@/lib/generate-game";
-import { checkAIGenerationLimit, incrementAIGenerationCount } from "@/lib/plan-guard";
+import { checkAIGenerationLimit, incrementAIGenerationCount, checkGameTypeAllowed } from "@/lib/plan-guard";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const { error, profile } = await requireEducator();
@@ -24,6 +24,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     if (course.sources.length === 0) {
       return NextResponse.json({ error: "No source files uploaded. Upload content first." }, { status: 400 });
+    }
+
+    // Check game types allowed
+    for (const gt of gameTypes) {
+      const typeCheck = await checkGameTypeAllowed(profile!.id, gt);
+      if (!typeCheck.allowed) {
+        return NextResponse.json(
+          { error: typeCheck.reason, requiresUpgrade: true },
+          { status: 403 }
+        );
+      }
     }
 
     // Check AI generation limit

@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireEducator } from "@/lib/api";
+import { checkGamePublishLimit, checkGameTypeAllowed } from "@/lib/plan-guard";
 
 const schema = z.object({
-  title: z.string().min(3),
+  title: z.string().min(2),
   type: z.enum([
     "FLASHCARD", "FILL_BLANK", "DRAG_DROP", "QUIZ", "DICTATION", "MEMORY", "SPEED_ROUND", "STORY",
     "SYNONYM_ANTONYM", "FILL_GAP_WORD", "SITUATION_DIALOGUE_FILL",
@@ -22,59 +23,91 @@ const schema = z.object({
   builderData: z.record(z.unknown()).optional(),
 });
 
-async function owned(id: string, educatorId: string) {
-  return prisma.game.findFirst({ where: { id, educatorId } });
-}
-
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request) {
   const { error, profile } = await requireEducator();
   if (error) return error;
-  const game = await prisma.game.findFirst({
-    where: { id: params.id, educatorId: profile!.id },
-    include: {
-      flashcardData: { include: { pairs: true } },
-      quizData: { include: { questions: true } },
-      crosswordData: true,
-      verbConjugationData: true,
-      storyData: true,
-    },
-  });
-  if (!game) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(game);
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const courseId = searchParams.get("courseId");
+
+    const games = await prisma.game.findMany({
+      where: {
+        educatorId: profile!.id,
+        ...(courseId ? { courseId } : {}),
+      },
+      include: {
+        _count: { select: { progress: true, assignments: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(games);
+  } catch (err: any) {
+    console.error("[games:GET]", err);
+    return NextResponse.json({ error: "Failed to fetch games" }, { status: 500 });
+  }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request) {
   const { error, profile } = await requireEducator();
   if (error) return error;
-  if (!(await owned(params.id, profile!.id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   try {
     const body = schema.safeParse(await req.json());
-    if (!body.success) return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
+    if (!body.success) {
+      return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
+    }
 
-    const game = await prisma.game.update({
-      where: { id: params.id },
+    const { title, type, settings, isPublished, courseId, builderData } = body.data;
+
+    // ── 1. Plan guard: Check Game Type ──
+    const typeCheck = await checkGameTypeAllowed(profile!.id, type);
+    if (!typeCheck.allowed) {
+      return NextResponse.json(
+        { error: typeCheck.reason, requiresUpgrade: true, requiredTier: "PRO" },
+        { status: 403 }
+      );
+    }
+
+    // ── 2. Plan guard: Check Game Publish Limit (if isPublished) ──
+    if (isPublished) {
+      const publishCheck = await checkGamePublishLimit(profile!.id);
+      if (!publishCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: `Published game limit reached (${publishCheck.limit} games max on Free). Upgrade to Pro for unlimited published games.`,
+            requiresUpgrade: true,
+            requiredTier: "PRO",
+            publishedCount: publishCheck.publishedCount,
+            limit: publishCheck.limit,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Create the game
+    const game = await prisma.game.create({
       data: {
-        title: body.data.title,
-        type: body.data.type as any,
-        settings: body.data.settings as object,
-        isPublished: body.data.isPublished,
-        courseId: body.data.courseId || undefined,
+        educatorId: profile!.id,
+        title: title.trim(),
+        type: type as any,
+        settings: settings as object,
+        isPublished: isPublished,
+        courseId: courseId || undefined,
       },
     });
 
-    // Handle type-specific content via builderData
-    const bd = body.data.builderData;
+    // Handle type-specific relational data if supplied
+    const bd = builderData;
     if (bd && typeof bd === "object") {
-      const type = body.data.type;
-
-      // Flashcard-type games (word pairs)
       if (["FLASHCARD","WORD_SCRAMBLE","PICTURE_TO_WORD","FLASHCARD_3D","MEMORY","MINIMAL_PAIR","SPEED_ROUND"].includes(type)) {
         const pairs = (bd.pairs as any[]) || [];
-        await prisma.flashcardData.deleteMany({ where: { gameId: params.id } });
         if (pairs.length > 0) {
           await prisma.flashcardData.create({
             data: {
-              gameId: params.id,
+              gameId: game.id,
               pairs: {
                 create: pairs.map((p: any, i: number) => ({
                   word: p.word || "",
@@ -90,54 +123,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         }
       }
 
-      // Synonym & Antonym
-      if (type === "SYNONYM_ANTONYM") {
-        const synonymItems = (bd.synonymItems as any[]) || [];
-        const existingSettings = (game.settings as Record<string, any>) || {};
-        await prisma.game.update({
-          where: { id: params.id },
-          data: {
-            settings: {
-              ...existingSettings,
-              synonymItems: synonymItems.map((s: any, i: number) => ({
-                word: s.word || "",
-                synonym: s.synonym || "",
-                antonym: s.antonym || "",
-                order: i,
-              })),
-            },
-          },
-        });
-      }
-
-      // Sentence-fill-type games — store in settings JSON
-      if (["FILL_GAP_WORD","FILL_BLANK","DRAG_DROP","SITUATION_DIALOGUE_FILL","SENTENCE_BUILDER","LISTEN_FILL_WORD","LISTEN_FILL_SENTENCE","SPEAK_FILL_WORD","SPEAK_FILL_SENTENCE","DICTATION"].includes(type)) {
-        const sentenceItems = (bd.sentenceItems as any[]) || [];
-        const existingSettings = (game.settings as Record<string, any>) || {};
-        await prisma.game.update({
-          where: { id: params.id },
-          data: {
-            settings: {
-              ...existingSettings,
-              sentenceItems: sentenceItems.map((s: any, i: number) => ({
-                sentence: s.sentence || "",
-                correctAnswer: s.correctAnswer || "",
-                options: s.options || [],
-                order: i,
-              })),
-            },
-          },
-        });
-      }
-
-      // Quiz-type games
       if (["QUIZ","MULTIPLE_CHOICE_GRAMMAR","ERROR_SPOTTING"].includes(type)) {
         const questions = (bd.questions as any[]) || [];
-        await prisma.quizData.deleteMany({ where: { gameId: params.id } });
         if (questions.length > 0) {
           await prisma.quizData.create({
             data: {
-              gameId: params.id,
+              gameId: game.id,
               config: { optionsCount: bd.optionsCount || 4 },
               questions: {
                 create: questions.map((q: any, i: number) => ({
@@ -153,24 +144,20 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         }
       }
 
-      // Crossword
       if (type === "CROSSWORD") {
-        await prisma.crosswordData.deleteMany({ where: { gameId: params.id } });
         await prisma.crosswordData.create({
           data: {
-            gameId: params.id,
+            gameId: game.id,
             gridSize: (bd.gridSize as number) || 8,
             words: JSON.parse(JSON.stringify(bd.words || [])),
           },
         });
       }
 
-      // Verb Conjugation
       if (type === "VERB_CONJUGATION") {
-        await prisma.verbConjugationData.deleteMany({ where: { gameId: params.id } });
         await prisma.verbConjugationData.create({
           data: {
-            gameId: params.id,
+            gameId: game.id,
             verb: (bd.verb as string) || "",
             tense: (bd.tense as string) || "Present",
             forms: JSON.parse(JSON.stringify(bd.forms || {})),
@@ -178,102 +165,20 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         });
       }
 
-      // Story
       if (type === "STORY") {
-        await prisma.storyData.deleteMany({ where: { gameId: params.id } });
         await prisma.storyData.create({
           data: {
-            gameId: params.id,
+            gameId: game.id,
             prompt: (bd.prompt as string) || "",
             wordBank: bd.wordBank ? JSON.parse(JSON.stringify(bd.wordBank)) : null,
             template: (bd.template as string) || null,
           },
         });
       }
-
-      // Ported engines — store rich content in settings JSON
-      if (type === "CATEGORY_SORT") {
-        const existingSettings = (game.settings as Record<string, any>) || {};
-        await prisma.game.update({
-          where: { id: params.id },
-          data: {
-            settings: {
-              ...existingSettings,
-              sortCategories: (bd.sortCategories as string[]) || [],
-              sortItems: (bd.sortItems as any[]) || [],
-            },
-          },
-        });
-      }
-
-      if (type === "TRANSFORMATION") {
-        const existingSettings = (game.settings as Record<string, any>) || {};
-        await prisma.game.update({
-          where: { id: params.id },
-          data: {
-            settings: {
-              ...existingSettings,
-              transformationItems: ((bd.transformationItems as any[]) || []).map((t: any) => ({
-                instruction: t.instruction || "",
-                prompt: t.prompt || "",
-                answers: t.answers || [],
-              })),
-            },
-          },
-        });
-      }
-
-      if (type === "WRITING_RUBRIC") {
-        const existingSettings = (game.settings as Record<string, any>) || {};
-        await prisma.game.update({
-          where: { id: params.id },
-          data: {
-            settings: {
-              ...existingSettings,
-              writingData: {
-                prompt: (bd.prompt as string) || "",
-                wordBank: (bd.wordBank as string[]) || [],
-                starter: (bd.starter as string) || "",
-                note: (bd.note as string) || "",
-                teacherReview: !!bd.teacherReview,
-                rules: (bd.rules as any[]) || [],
-              },
-            },
-          },
-        });
-      }
-
-      if (type === "SPEAKING") {
-        const existingSettings = (game.settings as Record<string, any>) || {};
-        await prisma.game.update({
-          where: { id: params.id },
-          data: {
-            settings: {
-              ...existingSettings,
-              speakingItems: (bd.speakingItems as any[]) || [],
-            },
-          },
-        });
-      }
-
-      // Situational dialogue — real conversation with named speakers
-      if (type === "SITUATION_DIALOGUE_FILL") {
-        const existingSettings = (game.settings as Record<string, any>) || {};
-        await prisma.game.update({
-          where: { id: params.id },
-          data: {
-            settings: {
-              ...existingSettings,
-              dialogueItems: (bd.dialogueItems as any[]) || [],
-            },
-          },
-        });
-      }
     }
 
-    // Return updated game
-    const updatedGame = await prisma.game.findUnique({
-      where: { id: params.id },
+    const createdGame = await prisma.game.findUnique({
+      where: { id: game.id },
       include: {
         flashcardData: { include: { pairs: true } },
         quizData: { include: { questions: true } },
@@ -283,17 +188,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       },
     });
 
-    return NextResponse.json(updatedGame);
-  } catch (err) {
-    console.error("[games:PUT]", err);
+    return NextResponse.json(createdGame, { status: 201 });
+  } catch (err: any) {
+    console.error("[games:POST]", err);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
-}
-
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
-  const { error, profile } = await requireEducator();
-  if (error) return error;
-  if (!(await owned(params.id, profile!.id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  await prisma.game.delete({ where: { id: params.id } });
-  return NextResponse.json({ ok: true });
 }

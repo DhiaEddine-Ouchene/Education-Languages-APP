@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireEducator } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
+import { checkGamePublishLimit, checkGameTypeAllowed } from "@/lib/plan-guard";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const { error, profile } = await requireEducator();
@@ -75,6 +76,28 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       const { title, type, settings, isPublished } = body;
       if (!title || !type) {
         return NextResponse.json({ error: "Title and type are required" }, { status: 400 });
+      }
+
+      // Check game type allowed
+      const typeCheck = await checkGameTypeAllowed(profile!.id, type);
+      if (!typeCheck.allowed) {
+        return NextResponse.json({ error: typeCheck.reason, requiresUpgrade: true }, { status: 403 });
+      }
+
+      // Check publish limit if published
+      if (isPublished) {
+        const publishCheck = await checkGamePublishLimit(profile!.id);
+        if (!publishCheck.allowed) {
+          return NextResponse.json(
+            {
+              error: `Published game limit reached (${publishCheck.limit} games max on Free). Upgrade to Pro for unlimited published games.`,
+              requiresUpgrade: true,
+              publishedCount: publishCheck.publishedCount,
+              limit: publishCheck.limit,
+            },
+            { status: 403 }
+          );
+        }
       }
 
       const game = await prisma.game.create({

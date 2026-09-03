@@ -5,6 +5,8 @@ import { generateGame } from "@/lib/generate-game";
 import {
   checkAIGenerationLimit,
   incrementAIGenerationCount,
+  checkPdfImportAllowed,
+  checkGameTypeAllowed,
 } from "@/lib/plan-guard";
 
 export async function POST(req: Request) {
@@ -49,6 +51,12 @@ export async function POST(req: Request) {
       );
     }
 
+    // ── Check game type allowed ──
+    const typeCheck = await checkGameTypeAllowed(educator.id, gameType);
+    if (!typeCheck.allowed) {
+      return NextResponse.json({ error: typeCheck.reason, requiresUpgrade: true }, { status: 403 });
+    }
+
     // Convert file to buffer and extract text
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -59,8 +67,18 @@ export async function POST(req: Request) {
       try {
         const pdfParse = require("pdf-parse");
         const pdfData = await pdfParse(buffer);
+
+        // ── Check PDF page limit ──
+        const pdfCheck = await checkPdfImportAllowed(educator.id, pdfData.numpages);
+        if (!pdfCheck.allowed) {
+          return NextResponse.json({ error: pdfCheck.reason, requiresUpgrade: true }, { status: 403 });
+        }
+
         extractedText = pdfData.text;
       } catch (e: any) {
+        if (e.message && e.message.includes("upgrade")) {
+          return NextResponse.json({ error: e.message, requiresUpgrade: true }, { status: 403 });
+        }
         console.error("PDF Parse error:", e);
         throw new Error(`Failed to extract text from PDF: ${e.message}`);
       }

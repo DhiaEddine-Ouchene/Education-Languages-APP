@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireEducator } from "@/lib/api";
 import { generateInviteCode } from "@/lib/utils";
+import { checkClassLimit } from "@/lib/plan-guard";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -20,6 +21,13 @@ export async function GET() {
 export async function POST(req: Request) {
   const { error, profile } = await requireEducator();
   if (error) return error;
+
+  // ── Plan guard: Check Class Limit ──
+  const classCheck = await checkClassLimit(profile!.id);
+  if (!classCheck.allowed) {
+    return NextResponse.json({ error: classCheck.reason, requiresUpgrade: true }, { status: 403 });
+  }
+
   try {
     const body = schema.safeParse(await req.json());
     if (!body.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });

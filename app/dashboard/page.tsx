@@ -29,6 +29,7 @@ export default async function DashboardPage() {
   ]);
 
   const totalGames = await prisma.game.count({ where: { educatorId: profile.id } });
+  const isPaid = profile.subscriptionPlan === "PRO" || profile.subscriptionPlan === "ULTIMATE";
 
   const quickActions = [
     { href: "/dashboard/games/new", label: "Create Game", description: "AI-powered game builder", icon: Gamepad2, color: "text-primary", bg: "bg-primary/10" },
@@ -39,39 +40,43 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Header */}
-      <div className="rounded-2xl bg-gradient-to-br from-primary/[0.08] via-primary/[0.02] to-accent/[0.05] border border-primary/10 p-6">
-        <div className="flex items-center justify-between">
+      <div className="rounded-2xl bg-gradient-to-br from-primary/[0.08] via-primary/[0.02] to-accent/[0.05] border border-primary/10 p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="font-heading font-bold text-2xl text-txt">
+            <h1 className="font-heading font-bold text-xl sm:text-2xl text-txt">
               Welcome back, {session.user.name?.split(" ")[0]} 👋
             </h1>
-            <p className="text-txt-secondary text-sm mt-0.5">
+            <p className="text-txt-secondary text-xs sm:text-sm mt-0.5">
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </p>
           </div>
-          <Link href="/dashboard/games/new">
-            <Button className="shadow-lg shadow-primary/20 gap-2">
-              <Sparkles className="w-4 h-4" />
-              Create Game
+          <Link href="/dashboard/games/new" className="shrink-0">
+            <Button className="w-full sm:w-auto shadow-lg shadow-primary/20 gap-2 whitespace-nowrap shrink-0">
+              <Sparkles className="w-4 h-4 shrink-0" />
+              <span>Create Game</span>
             </Button>
           </Link>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard icon={Users} value={students.length} label="Total Students" />
-        <StatCard icon={School} value={classes.length} label="Active Classes" />
-        <StatCard icon={Gamepad2} value={`${gamesPublished}/${totalGames}`} label="Games Published" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <StatCard icon={Users} value={students.length} label={isPaid ? "Total Students" : "Students (max 20)"} />
+        <StatCard icon={School} value={classes.length} label={isPaid ? "Active Classes" : "Classes (max 1)"} />
+        <StatCard
+          icon={Gamepad2}
+          value={isPaid ? `${gamesPublished}/${totalGames}` : `${gamesPublished}/5`}
+          label="Games Published"
+        />
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {quickActions.map((a) => (
           <Link key={a.href} href={a.href}>
             <Card className="h-full group hover:border-primary/30 hover:shadow-lg transition-all duration-300 cursor-pointer">
-              <CardContent className="pt-5">
-                <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110", a.bg)}>
+              <CardContent className="p-4 sm:p-5">
+                <div className={cn("w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110", a.bg)}>
                   <a.icon className={cn("w-5 h-5", a.color)} />
                 </div>
                 <p className="font-heading font-semibold text-sm text-txt group-hover:text-primary transition-colors">{a.label}</p>

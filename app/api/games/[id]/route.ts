@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireEducator } from "@/lib/api";
 
+import { checkGamePublishLimit, checkGameTypeAllowed } from "@/lib/plan-guard";
+
 const schema = z.object({
   title: z.string().min(3),
   type: z.enum([
@@ -46,10 +48,34 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const { error, profile } = await requireEducator();
   if (error) return error;
-  if (!(await owned(params.id, profile!.id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const existingGame = await owned(params.id, profile!.id);
+  if (!existingGame) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   try {
     const body = schema.safeParse(await req.json());
     if (!body.success) return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
+
+    // ── Check game type allowed ──
+    const typeCheck = await checkGameTypeAllowed(profile!.id, body.data.type);
+    if (!typeCheck.allowed) {
+      return NextResponse.json({ error: typeCheck.reason, requiresUpgrade: true }, { status: 403 });
+    }
+
+    // ── Check publish limit if transitioning from draft to published ──
+    if (body.data.isPublished && !existingGame.isPublished) {
+      const publishCheck = await checkGamePublishLimit(profile!.id);
+      if (!publishCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: `Published game limit reached (${publishCheck.limit} games max on Free). Upgrade to Pro for unlimited published games.`,
+            requiresUpgrade: true,
+            publishedCount: publishCheck.publishedCount,
+            limit: publishCheck.limit,
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     const game = await prisma.game.update({
       where: { id: params.id },

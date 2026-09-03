@@ -18,7 +18,12 @@ const plans = [
     popular: false,
     icon: Sparkles,
     description: "Perfect for trying out LingoKit",
-    features: ["1 class", "Up to 20 students per class", "Unlimited manual games", "15 AI games / month", "Core game types"],
+    features: [
+      "1 class | up to 20 students",
+      "5 published games (total)",
+      "3 AI games / month",
+      "Core game types (Flashcard, Quiz, Memory)",
+    ],
     cta: "Get started free",
     color: "border-border",
   },
@@ -30,7 +35,13 @@ const plans = [
     popular: true,
     icon: Zap,
     description: "For active teachers & tutors",
-    features: ["Unlimited classes", "Unlimited students", "Unlimited AI games", "All game types", "PDF → game import (up to 10 pages)", "Full class analytics"],
+    features: [
+      "Unlimited classes & students",
+      "Unlimited games & AI generations",
+      "All game types",
+      "PDF → game import (up to 10 pages)",
+      "Full class analytics",
+    ],
     cta: "Upgrade to Pro",
     color: "border-primary/40",
   },
@@ -41,19 +52,26 @@ const plans = [
     yearly: 179,
     popular: false,
     icon: Crown,
-    description: "For power users & small teams",
-    features: ["Everything in Pro", "Multi-chapter PDF import", "Exportable analytics (PDF/CSV)", "Co-teacher (up to 3 seats)", "Priority support", "Early access to new features"],
+    description: "For power users & institutions",
+    features: [
+      "Everything in Pro",
+      "Multi-chapter PDF import",
+      "Exportable analytics (PDF/CSV)",
+      "Priority support",
+      "Early access to new features",
+    ],
     cta: "Go Ultimate",
     color: "border-accent/40",
   },
 ];
 
 const faqs = [
-  { q: "Can I try LingoKit for free?", a: "Yes. The Free plan lets you create content and run one class with up to 20 students before upgrading." },
-  { q: "How does the AI generation limit work?", a: "Free users get 15 AI-generated games or vocabulary sets per month. Pro and Ultimate users get unlimited AI generation." },
+  { q: "Can I try LingoKit for free?", a: "Yes. The Free plan lets you publish up to 5 games, create 1 class with up to 20 students, and run 3 AI generations per month." },
+  { q: "How does the game publishing limit work?", a: "Free users can have up to 5 published games total (both manual and AI-generated). Pro and Ultimate users have unlimited published games." },
+  { q: "How does the AI generation limit work?", a: "Free users receive 3 AI generations per month, which resets on the 1st of every month. Pro and Ultimate users have unlimited AI generations." },
   { q: "Can I cancel anytime?", a: "Yes, you can cancel from the billing page. Your plan stays active until the end of the billing period — no questions asked." },
-  { q: "What payment methods are accepted?", a: "We use Lemon Squeezy for secure payment processing. All major credit and debit cards are accepted." },
-  { q: "Is there a student limit?", a: "Free plans are limited to ~20 students per class. Pro and Ultimate plans have no student limits." },
+  { q: "What payment methods are accepted?", a: "We accept all major credit/debit cards via Lemon Squeezy, as well as EDAHABIA and CIB cards via Chargily for Algerian users." },
+  { q: "Is there a student limit?", a: "Free plans support up to 20 students per class. Pro and Ultimate plans have no student limits." },
 ];
 
 export default function PricingPage() {
@@ -192,13 +210,12 @@ export default function PricingPage() {
                 <tbody>
                   {[
                     ["Classes", "1", "Unlimited", "Unlimited"],
-                    ["Students per class", "~20", "Unlimited", "Unlimited"],
-                    ["Manual word-list games", "Unlimited", "Unlimited", "Unlimited"],
-                    ["AI-generated games", "15/month", "Unlimited", "Unlimited"],
+                    ["Students per class", "Up to 20", "Unlimited", "Unlimited"],
+                    ["Published games", "5 total lifetime", "Unlimited", "Unlimited"],
+                    ["AI generations", "3/month", "Unlimited", "Unlimited"],
+                    ["Game types", "Core 3 types", "All 33 types", "All 33 types"],
                     ["PDF import", "—", "Up to 10 pages", "Multi-chapter"],
-                    ["Game types", "Core 2–3", "All types", "All types"],
                     ["Class analytics", "Basic", "Full", "Full + export"],
-                    ["Co-teacher seats", "—", "—", "Up to 3"],
                     ["Priority support", "—", "—", "✓"],
                     ["Early access", "—", "—", "✓"],
                   ].map(([feature, free, pro, ultimate], i) => (

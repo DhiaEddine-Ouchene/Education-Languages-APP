@@ -151,7 +151,7 @@ export function GamesGridClient({ games, stats }: Props) {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-                    <Link href={`/learn/game/${g.id}`} className="flex-1">
+                    <Link href={`/dashboard/games/${g.id}/preview`} className="flex-1">
                       <Button size="sm" variant="outline" className="w-full text-xs">
                         <Eye className="h-3 w-3 mr-1" />
                         Preview

@@ -30,9 +30,9 @@ const PLAN_FEATURES = {
     icon: Sparkles,
     features: [
       "1 class | up to 20 students",
-      "Unlimited manual games",
-      "15 AI games / month",
-      "Core game types",
+      "5 published games (total)",
+      "3 AI games / month",
+      "Core game types (Flashcard, Quiz, Memory)",
     ],
   },
   PRO: {
@@ -44,7 +44,7 @@ const PLAN_FEATURES = {
     icon: Zap,
     features: [
       "Unlimited classes & students",
-      "Unlimited AI games",
+      "Unlimited games & AI generations",
       "All game types",
       "PDF import (up to 10 pages)",
       "Full class analytics",
@@ -61,8 +61,8 @@ const PLAN_FEATURES = {
       "Everything in Pro",
       "Multi-chapter PDF import",
       "Exportable analytics (PDF/CSV)",
-      "Co-teacher (up to 3 seats)",
-      "Priority support & early access",
+      "Priority support",
+      "Early access to new features",
     ],
   },
 } as const;

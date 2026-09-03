@@ -17,6 +17,7 @@ export default async function PreviewGamePage({ params }: { params: { id: string
   const game = await prisma.game.findFirst({
     where: { id: params.id, educatorId: profile.id },
     include: {
+      exerciseSet: true,
       flashcardData: { include: { pairs: true } },
       quizData: { include: { questions: true } },
       crosswordData: true,
@@ -28,24 +29,59 @@ export default async function PreviewGamePage({ params }: { params: { id: string
 
   const settings = mergeGameContent((game.settings ?? {}) as Record<string, any>, game);
 
-  // Games own their content directly: flashcard pairs or settings JSON.
+  // Carry uploaded images onto play items
+  const pairImageByWord = new Map<string, string | null>();
+  for (const p of game.flashcardData?.pairs ?? []) {
+    if (p.word && p.imageUrl) pairImageByWord.set(p.word.toLowerCase(), p.imageUrl);
+  }
+
+  // Games own their content directly: on flashcard pairs, in settings JSON, settings.data, or exerciseSet items.
+  const data = (settings as any).data;
+  const rawItems =
+    (settings as any).items ||
+    (settings as any).pairs ||
+    data?.items ||
+    data?.pairs ||
+    (settings as any).generated?.items;
+
   const pairItems =
     game.flashcardData?.pairs?.length
       ? game.flashcardData.pairs.map((p, idx) => ({
-          id: `pair-${idx}`, word: p.word, translation: p.translation,
-          audioUrl: p.audioUrl, imageUrl: p.imageUrl, exampleSentence: p.exampleSentence,
+          id: `pair-${idx}`,
+          word: p.word,
+          translation: p.translation,
+          audioUrl: p.audioUrl,
+          imageUrl: pairImageByWord.get(p.word.toLowerCase()) ?? p.imageUrl,
+          exampleSentence: p.exampleSentence,
         }))
-      : (settings as any).pairs?.length
-        ? (settings as any).pairs.map((p: any, idx: number) => ({
-            id: `pair-${idx}`, word: p.word || "", translation: p.translation || "",
-            audioUrl: null, imageUrl: null, exampleSentence: p.exampleSentence || null,
+      : Array.isArray(rawItems) && rawItems.length
+        ? rawItems.map((p: any, idx: number) => ({
+            id: `item-${idx}`,
+            word: p.word || p.correctSentence || p.sentenceWithBlank || p.question || p.verb || p.term || "",
+            translation: p.translation || p.correctWord || p.correctOption || p.clue || p.hint || p.definition || "",
+            audioUrl: p.audioUrl || null,
+            imageUrl: p.imageUrl || null,
+            exampleSentence: p.exampleSentence || null,
           }))
-        : (settings as any).sentenceItems?.length
-          ? (settings as any).sentenceItems.map((s: any, idx: number) => ({
-              id: `sf-${idx}`, word: s.correctAnswer || "", translation: s.sentence || "",
-              audioUrl: null, imageUrl: null, exampleSentence: s.sentence || null,
+        : Array.isArray(game.exerciseSet?.items) && (game.exerciseSet!.items as any[]).length
+          ? (game.exerciseSet!.items as any[]).map((p: any, idx: number) => ({
+              id: `es-${idx}`,
+              word: p.word || p.term || p.front || "",
+              translation: p.translation || p.definition || p.back || "",
+              audioUrl: null,
+              imageUrl: null,
+              exampleSentence: p.exampleSentence || null,
             }))
-          : [];
+          : (settings as any).sentenceItems?.length
+            ? (settings as any).sentenceItems.map((s: any, idx: number) => ({
+                id: `sf-${idx}`,
+                word: s.correctAnswer || "",
+                translation: s.sentence || "",
+                audioUrl: null,
+                imageUrl: null,
+                exampleSentence: s.sentence || null,
+              }))
+            : [];
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
@@ -62,7 +98,7 @@ export default async function PreviewGamePage({ params }: { params: { id: string
         items={adaptPlayItems(game.type as string, settings, pairItems)}
         settings={settings}
         previewMode
-        student={{ name: session.user.name || "Student", image: session.user.image }}
+        student={{ name: session.user.name || "Teacher", image: session.user.image }}
       />
     </div>
   );

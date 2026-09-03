@@ -250,12 +250,12 @@ export function StudentCourseContent({ courseId, sources, lessons, games, studen
                 <div className="space-y-3">
                   <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-amber-200 text-xs">
                     <p className="font-semibold mb-1">👁️ Preview Mode</p>
-                    <p className="opacity-90">Game preview in teacher mode is coming soon. For now, click "Play Game" to test it in student mode.</p>
+                    <p className="opacity-90">Preview this game interactively as your students will experience it.</p>
                   </div>
-                  <Link href={`/learn/game/${active.game.id}`} target="_blank">
+                  <Link href={`/dashboard/games/${active.game.id}/preview`}>
                     <Button variant="primary" size="lg" className="w-full gap-2 rounded-xl">
                       <PlayCircle className="h-5 w-5" />
-                      Play Game (New Tab)
+                      Preview Game
                     </Button>
                   </Link>
                 </div>

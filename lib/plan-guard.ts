@@ -1,24 +1,43 @@
 import { prisma } from "./prisma";
 import type { Plan } from "@prisma/client";
 
-const FREE_TIER_MONTHLY_LIMIT = 15;
+export const FREE_TIER_MONTHLY_AI_LIMIT = 3;
+export const FREE_TIER_PUBLISHED_GAMES_LIMIT = 5;
+export const FREE_TIER_CLASS_LIMIT = 1;
+export const FREE_TIER_STUDENTS_PER_CLASS_LIMIT = 20;
+export const FREE_CORE_GAME_TYPES: string[] = ["FLASHCARD", "QUIZ", "MEMORY"];
 
 export type AIGenerationStatus =
   | { allowed: true; remaining: number; resetAt: Date | null }
   | { allowed: false; remaining: 0; resetAt: Date | null };
 
-// Paid tiers (either the profile's plan or an active subscription row) have no limit.
-function isPaidPlan(plan: string | null | undefined): boolean {
+export type GamePublishStatus =
+  | { allowed: true; publishedCount: number; limit: number; remaining: number }
+  | { allowed: false; publishedCount: number; limit: number; remaining: 0 };
+
+export type GameTypeStatus =
+  | { allowed: true; tier: Plan }
+  | { allowed: false; tier: "FREE"; reason: string };
+
+export type PdfImportStatus =
+  | { allowed: true; maxPages: number }
+  | { allowed: false; reason: string };
+
+export type PlanLimitStatus =
+  | { allowed: true }
+  | { allowed: false; reason: string };
+
+// Helper to check if a plan string is paid
+export function isPaidPlan(plan: string | null | undefined): boolean {
   return plan === "PRO" || plan === "ULTIMATE";
 }
 
 /**
  * Resolve whether an educator is on a paid (unlimited) tier.
  * Checks both the profile's `subscriptionPlan` field AND any ACTIVE paid
- * subscription in the `subscription` table — the field can lag behind the
- * real subscription (e.g. during payment verification or test-mode checkouts).
+ * subscription in the `subscription` table.
  */
-async function educatorIsPaid(
+export async function educatorIsPaid(
   tx: PrismaClientLike,
   educatorId: string
 ): Promise<boolean> {
@@ -36,11 +55,198 @@ async function educatorIsPaid(
 }
 
 /**
+ * Get the effective Plan for an educator (resolving active subscriptions).
+ */
+export async function getEffectivePlan(educatorId: string): Promise<Plan> {
+  const p = await prisma.educatorProfile.findUnique({
+    where: { id: educatorId },
+    select: { subscriptionPlan: true },
+  });
+  if (!p) return "FREE";
+
+  if (p.subscriptionPlan === "ULTIMATE") return "ULTIMATE";
+  if (p.subscriptionPlan === "PRO") return "PRO";
+
+  const active = await prisma.subscription.findFirst({
+    where: { educatorId, status: "ACTIVE", plan: { in: ["PRO", "ULTIMATE"] } },
+    select: { plan: true },
+  });
+
+  return active?.plan ?? "FREE";
+}
+
+/**
+ * Check whether an educator can publish a game under their plan.
+ * FREE tier is capped at 5 published games LIFETIME (manual + AI combined).
+ * PRO and ULTIMATE are unlimited.
+ */
+export async function checkGamePublishLimit(
+  educatorId: string
+): Promise<GamePublishStatus> {
+  const paid = await educatorIsPaid(prisma as any, educatorId);
+  const publishedCount = await prisma.game.count({
+    where: { educatorId, isPublished: true },
+  });
+
+  if (paid) {
+    return {
+      allowed: true,
+      publishedCount,
+      limit: Infinity,
+      remaining: Infinity,
+    };
+  }
+
+  if (publishedCount >= FREE_TIER_PUBLISHED_GAMES_LIMIT) {
+    return {
+      allowed: false,
+      publishedCount,
+      limit: FREE_TIER_PUBLISHED_GAMES_LIMIT,
+      remaining: 0,
+    };
+  }
+
+  return {
+    allowed: true,
+    publishedCount,
+    limit: FREE_TIER_PUBLISHED_GAMES_LIMIT,
+    remaining: FREE_TIER_PUBLISHED_GAMES_LIMIT - publishedCount,
+  };
+}
+
+/**
+ * Check whether an educator is allowed to create or play a specific game type.
+ * FREE tier: Flashcards, Quiz, Memory Match only.
+ * PRO & ULTIMATE: All game types.
+ */
+export async function checkGameTypeAllowed(
+  educatorId: string,
+  gameType: string
+): Promise<GameTypeStatus> {
+  const plan = await getEffectivePlan(educatorId);
+  if (plan !== "FREE") {
+    return { allowed: true, tier: plan };
+  }
+
+  const normalized = gameType.toUpperCase();
+  if (FREE_CORE_GAME_TYPES.includes(normalized)) {
+    return { allowed: true, tier: "FREE" };
+  }
+
+  return {
+    allowed: false,
+    tier: "FREE",
+    reason: `The "${gameType}" game type requires a Pro or Ultimate subscription. Free accounts have access to Flashcards, Quiz, and Memory Match.`,
+  };
+}
+
+/**
+ * Check whether PDF import is allowed and whether the page count fits the tier.
+ * FREE: No PDF import.
+ * PRO: Up to 10 pages.
+ * ULTIMATE: Unlimited / multi-chapter.
+ */
+export async function checkPdfImportAllowed(
+  educatorId: string,
+  pageCount?: number
+): Promise<PdfImportStatus> {
+  const plan = await getEffectivePlan(educatorId);
+
+  if (plan === "FREE") {
+    return {
+      allowed: false,
+      reason: "PDF import requires a Pro or Ultimate plan. Upgrade to convert PDFs into interactive games.",
+    };
+  }
+
+  if (plan === "PRO") {
+    if (pageCount !== undefined && pageCount > 10) {
+      return {
+        allowed: false,
+        reason: `Your document has ${pageCount} pages. Pro plan supports up to 10 pages. Upgrade to Ultimate for multi-chapter PDF import.`,
+      };
+    }
+    return { allowed: true, maxPages: 10 };
+  }
+
+  // ULTIMATE
+  return { allowed: true, maxPages: Infinity };
+}
+
+/**
+ * Check whether analytics export (PDF / CSV) is allowed.
+ * Only ULTIMATE tier includes exportable analytics.
+ */
+export async function checkAnalyticsExportAllowed(
+  educatorId: string
+): Promise<PlanLimitStatus> {
+  const plan = await getEffectivePlan(educatorId);
+  if (plan === "ULTIMATE") {
+    return { allowed: true };
+  }
+
+  return {
+    allowed: false,
+    reason: "Exportable analytics (PDF and CSV) requires an Ultimate subscription.",
+  };
+}
+
+/**
+ * Check whether class creation is allowed.
+ * FREE: Max 1 class.
+ * PRO / ULTIMATE: Unlimited.
+ */
+export async function checkClassLimit(
+  educatorId: string
+): Promise<PlanLimitStatus> {
+  const paid = await educatorIsPaid(prisma as any, educatorId);
+  if (paid) return { allowed: true };
+
+  const classCount = await prisma.class.count({
+    where: { educatorId },
+  });
+
+  if (classCount >= FREE_TIER_CLASS_LIMIT) {
+    return {
+      allowed: false,
+      reason: `Free plan allows up to ${FREE_TIER_CLASS_LIMIT} class. Upgrade to Pro for unlimited classes.`,
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Check whether a student can join a class under the educator's plan.
+ * FREE: Max 20 students.
+ * PRO / ULTIMATE: Unlimited.
+ */
+export async function checkStudentLimit(
+  classId: string
+): Promise<PlanLimitStatus> {
+  const cls = await prisma.class.findUnique({
+    where: { id: classId },
+    select: { educatorId: true, _count: { select: { members: true } } },
+  });
+  if (!cls) return { allowed: false, reason: "Class not found" };
+
+  const paid = await educatorIsPaid(prisma as any, cls.educatorId);
+  if (paid) return { allowed: true };
+
+  if (cls._count.members >= FREE_TIER_STUDENTS_PER_CLASS_LIMIT) {
+    return {
+      allowed: false,
+      reason: `This class has reached the maximum of ${FREE_TIER_STUDENTS_PER_CLASS_LIMIT} students allowed on the teacher's Free plan.`,
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
  * Check whether an educator can perform an AI generation this month.
- *
- * - PRO and ULTIMATE (profile field or active subscription) → always allowed.
- * - FREE → allowed up to 15/month; counter resets lazily on first gen of a new
- *   calendar month. Uses a transaction to avoid race conditions.
+ * - PRO and ULTIMATE → always allowed.
+ * - FREE → allowed up to 3/month; resets on the 1st of each calendar month.
  */
 export async function checkAIGenerationLimit(
   educatorId: string
@@ -92,7 +298,7 @@ export async function checkAIGenerationLimit(
     };
   }
 
-  if (profile.aiGenerationsThisMonth >= FREE_TIER_MONTHLY_LIMIT) {
+  if (profile.aiGenerationsThisMonth >= FREE_TIER_MONTHLY_AI_LIMIT) {
     return {
       allowed: false,
       remaining: 0,
@@ -102,7 +308,7 @@ export async function checkAIGenerationLimit(
 
   return {
     allowed: true,
-    remaining: FREE_TIER_MONTHLY_LIMIT - profile.aiGenerationsThisMonth,
+    remaining: FREE_TIER_MONTHLY_AI_LIMIT - profile.aiGenerationsThisMonth,
     resetAt: profile.aiGenerationsResetAt ?? startOfMonth,
   };
 }
