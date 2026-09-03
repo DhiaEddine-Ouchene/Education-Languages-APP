@@ -152,5 +152,18 @@ export async function requireRole(role: "SUPER_ADMIN" | "EDUCATOR" | "STUDENT") 
 }
 
 export async function getEducatorProfile(userId: string) {
-  return prisma.educatorProfile.findUnique({ where: { userId } });
+  let profile = await prisma.educatorProfile.findUnique({ where: { userId } });
+  if (!profile) {
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (user && (user.role === "EDUCATOR" || user.role === "SUPER_ADMIN")) {
+        profile = await prisma.educatorProfile.create({
+          data: { userId, creatorType: "Teacher" },
+        });
+      }
+    } catch (e) {
+      console.error("[getEducatorProfile] auto-init failed:", e);
+    }
+  }
+  return profile;
 }

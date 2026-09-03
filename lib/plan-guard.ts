@@ -41,11 +41,12 @@ export async function educatorIsPaid(
   tx: PrismaClientLike,
   educatorId: string
 ): Promise<boolean> {
-  const p = await tx.educatorProfile.findUniqueOrThrow({
+  if (!educatorId) return false;
+  const p = await tx.educatorProfile.findUnique({
     where: { id: educatorId },
     select: { subscriptionPlan: true },
   });
-  if (isPaidPlan(p.subscriptionPlan)) return true;
+  if (p && isPaidPlan(p.subscriptionPlan)) return true;
 
   const active = await tx.subscription.findFirst({
     where: { educatorId, status: "ACTIVE", plan: { in: ["PRO", "ULTIMATE"] } },
@@ -58,6 +59,7 @@ export async function educatorIsPaid(
  * Get the effective Plan for an educator (resolving active subscriptions).
  */
 export async function getEffectivePlan(educatorId: string): Promise<Plan> {
+  if (!educatorId) return "FREE";
   const p = await prisma.educatorProfile.findUnique({
     where: { id: educatorId },
     select: { subscriptionPlan: true },
@@ -83,6 +85,9 @@ export async function getEffectivePlan(educatorId: string): Promise<Plan> {
 export async function checkGamePublishLimit(
   educatorId: string
 ): Promise<GamePublishStatus> {
+  if (!educatorId) {
+    return { allowed: false, publishedCount: 0, limit: FREE_TIER_PUBLISHED_GAMES_LIMIT, remaining: 0 };
+  }
   const paid = await educatorIsPaid(prisma as any, educatorId);
   const publishedCount = await prisma.game.count({
     where: { educatorId, isPublished: true },
@@ -199,6 +204,7 @@ export async function checkAnalyticsExportAllowed(
 export async function checkClassLimit(
   educatorId: string
 ): Promise<PlanLimitStatus> {
+  if (!educatorId) return { allowed: false, reason: "Educator profile required" };
   const paid = await educatorIsPaid(prisma as any, educatorId);
   if (paid) return { allowed: true };
 
@@ -251,12 +257,15 @@ export async function checkStudentLimit(
 export async function checkAIGenerationLimit(
   educatorId: string
 ): Promise<AIGenerationStatus> {
+  if (!educatorId) {
+    return { allowed: false, remaining: 0, resetAt: null };
+  }
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   // Use a transaction for atomic read-and-reset
   const profile = await prisma.$transaction(async (tx) => {
-    const p = await tx.educatorProfile.findUniqueOrThrow({
+    const p = await tx.educatorProfile.findUnique({
       where: { id: educatorId },
       select: {
         subscriptionPlan: true,
@@ -264,6 +273,8 @@ export async function checkAIGenerationLimit(
         aiGenerationsResetAt: true,
       },
     });
+
+    if (!p) return null;
 
     // Paid tiers have no limit
     if (await educatorIsPaid(tx as any, educatorId)) {
@@ -288,6 +299,10 @@ export async function checkAIGenerationLimit(
 
     return p;
   });
+
+  if (!profile) {
+    return { allowed: false, remaining: 0, resetAt: null };
+  }
 
   const paid = await educatorIsPaid(prisma as any, educatorId);
   if (paid) {
@@ -320,11 +335,12 @@ export async function checkAIGenerationLimit(
 export async function incrementAIGenerationCount(
   educatorId: string
 ): Promise<void> {
+  if (!educatorId) return;
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   await prisma.$transaction(async (tx) => {
-    const p = await tx.educatorProfile.findUniqueOrThrow({
+    const p = await tx.educatorProfile.findUnique({
       where: { id: educatorId },
       select: {
         subscriptionPlan: true,
@@ -332,6 +348,8 @@ export async function incrementAIGenerationCount(
         aiGenerationsResetAt: true,
       },
     });
+
+    if (!p) return;
 
     // Only count for FREE tier (not paid via plan or active subscription)
     if (isPaidPlan(p.subscriptionPlan)) return;
@@ -363,7 +381,7 @@ export async function incrementAIGenerationCount(
 // Minimal structural type for the transaction client so we can share the paid check.
 type PrismaClientLike = {
   educatorProfile: {
-    findUniqueOrThrow: (args: { where: { id: string }; select: Record<string, boolean> }) => Promise<{ subscriptionPlan: string }>;
+    findUnique: (args: { where: { id: string }; select: Record<string, boolean> }) => Promise<{ subscriptionPlan: string } | null>;
   };
   subscription: {
     findFirst: (args: {
