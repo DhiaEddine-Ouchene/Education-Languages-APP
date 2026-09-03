@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProfileForm } from "@/components/student/ProfileForm";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -95,8 +96,12 @@ export default async function StudentProfilePage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
         <ProfileForm name={user.name} avatarUrl={user.image} />
         <Card>
-          <CardHeader><CardTitle>Account information</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Account & Preferences</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+              <span className="text-txt-secondary">Theme</span>
+              <ThemeToggle className="w-auto px-3 py-1.5 border border-border bg-card shadow-sm rounded-lg" />
+            </div>
             <div className="flex items-center justify-between gap-3 border-b border-border pb-3"><span className="text-txt-secondary">Email</span><span className="font-medium text-right break-all">{user.email}</span></div>
             <div className="flex items-center justify-between gap-3 border-b border-border pb-3"><span className="text-txt-secondary">Role</span><span className="font-medium">{user.role}</span></div>
             <div className="flex items-center justify-between gap-3 border-b border-border pb-3"><span className="text-txt-secondary">Joined</span><span className="inline-flex items-center gap-1 font-medium"><CalendarDays className="h-4 w-4" /> {formatDate(user.createdAt)}</span></div>

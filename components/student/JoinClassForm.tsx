@@ -25,9 +25,25 @@ export function JoinClassForm() {
   };
 
   return (
-    <Card><CardContent className="pt-4 flex gap-2">
-      <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Enter invite code (e.g. AB3D9K)" maxLength={8} />
-      <Button onClick={join} disabled={busy}>{busy ? "Joining..." : "Join class"}</Button>
-    </CardContent></Card>
+    <Card>
+      <CardContent className="p-4 flex items-center gap-3">
+        <Input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="Enter invite code (e.g. AB3D9K)"
+          maxLength={8}
+          className="flex-1"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              join();
+            }
+          }}
+        />
+        <Button onClick={join} disabled={busy} className="whitespace-nowrap shrink-0 px-5 font-semibold">
+          {busy ? "Joining..." : "Join class"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
