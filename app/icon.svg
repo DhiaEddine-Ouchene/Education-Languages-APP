@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1536" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <radialGradient id="bubble" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(720 145) rotate(128) scale(900 860)">
+      <stop offset="0" stop-color="#AAA4FF"/>
+      <stop offset="0.28" stop-color="#7F77DD"/>
+      <stop offset="0.70" stop-color="#4D42C9"/>
+      <stop offset="1" stop-color="#3325AA"/>
+    </radialGradient>
+
+    <linearGradient id="letter" x1="0" y1="220" x2="0" y2="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F4F3FF"/>
+    </linearGradient>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dy="8"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.18"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Main speech bubble -->
+  <path filter="url(#softShadow)" fill="url(#bubble)" d="
+    M210 72
+    H782
+    C879 72 944 137 944 234
+    V648
+    C944 745 879 810 782 810
+    H372
+    L153 934
+    C130 947 110 925 121 901
+    L168 800
+    C105 770 72 715 72 648
+    V234
+    C72 137 113 72 210 72
+    Z"/>
+
+  <!-- Bold rounded L -->
+  <path fill="url(#letter)" d="
+    M391 248
+    C391 216 414 193 446 193
+    C478 193 501 216 501 248
+    V590
+    H689
+    C721 590 744 613 744 645
+    C744 677 721 700 689 700
+    H446
+    C414 700 391 677 391 645
+    V248
+    Z"/>
+</svg>

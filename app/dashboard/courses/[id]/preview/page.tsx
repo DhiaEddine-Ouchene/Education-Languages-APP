@@ -51,7 +51,7 @@ export default async function PreviewCoursePage({ params }: { params: { id: stri
         <StudentCourseContent
           courseId={course.id}
           studentName={session.user.name || "Teacher Preview"}
-          studentEmail={session.user.email || "teacher@eduplay.app"}
+          studentEmail={session.user.email || "teacher@lingokit.app"}
           isPreview={true}
           sources={course.sources.map((s) => ({
             id: s.id,

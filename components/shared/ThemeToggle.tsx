@@ -17,7 +17,7 @@ export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
     try {
-      localStorage.setItem("eduplay-theme", next ? "dark" : "light");
+      localStorage.setItem("lingokit-theme", next ? "dark" : "light");
     } catch {}
   };
 

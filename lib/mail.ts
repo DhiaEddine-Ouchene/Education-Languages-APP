@@ -11,7 +11,7 @@ function layout(title: string, body: string): string {
   return `<div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#F9F9F7;border-radius:12px">
     <h2 style="color:#7F77DD;margin-bottom:16px">${title}</h2>
     <div style="color:#1A1A2E;font-size:15px;line-height:1.6">${body}</div>
-    <p style="color:#6B7280;font-size:12px;margin-top:24px">Sent by ${process.env.NEXT_PUBLIC_APP_NAME ?? "EduPlay"}</p>
+    <p style="color:#6B7280;font-size:12px;margin-top:24px">Sent by ${process.env.NEXT_PUBLIC_APP_NAME ?? "LingoKit"}</p>
   </div>`;
 }
 
@@ -28,7 +28,7 @@ export const sendVerificationCode = (to: string, name: string, code: string) => 
   const html = layout(
     "Verify your email address",
     `Hi <b>${name}</b>,<br/><br/>
-    Thank you for signing up for <b>${process.env.NEXT_PUBLIC_APP_NAME ?? "EduPlay"}</b>!<br/><br/>
+    Thank you for signing up for <b>${process.env.NEXT_PUBLIC_APP_NAME ?? "LingoKit"}</b>!<br/><br/>
     Please use the following 6-digit verification code to complete your registration:
     <div style="background:#ECECFE;padding:20px;border-radius:10px;font-size:28px;font-weight:bold;letter-spacing:6px;text-align:center;color:#7F77DD;margin:20px auto;max-width:240px;border:1px solid #7F77DD;">
       ${code}
@@ -48,7 +48,7 @@ export const sendResetCode = (to: string, name: string, code: string) => {
   const html = layout(
     "Reset your password",
     `Hi <b>${name}</b>,<br/><br/>
-    You requested to reset your password for <b>${process.env.NEXT_PUBLIC_APP_NAME ?? "EduPlay"}</b>.<br/><br/>
+    You requested to reset your password for <b>${process.env.NEXT_PUBLIC_APP_NAME ?? "LingoKit"}</b>.<br/><br/>
     Please use the following 6-digit code to reset your password:
     <div style="background:#FEF3C7;padding:20px;border-radius:10px;font-size:28px;font-weight:bold;letter-spacing:6px;text-align:center;color:#F59E0B;margin:20px auto;max-width:240px;border:1px solid #F59E0B;">
       ${code}
@@ -81,7 +81,7 @@ export const sendBadgeEarned = (to: string, badgeName: string) =>
 
 // Educator emails
 export const sendWelcomeEducator = (to: string, name: string) =>
-  sendMail(to, "Welcome to EduPlay!", layout(`Welcome, ${name}!`, `Onboarding checklist:<ol><li>Create a vocabulary set</li><li>Build your first game</li><li>Create a class and invite students</li></ol>`));
+  sendMail(to, "Welcome to LingoKit!", layout(`Welcome, ${name}!`, `Onboarding checklist:<ol><li>Create a vocabulary set</li><li>Build your first game</li><li>Create a class and invite students</li></ol>`));
 
 export const sendFirstStudentJoined = (to: string, className: string, studentName: string) =>
   sendMail(to, "Your first student joined!", layout("First student 🎓", `<b>${studentName}</b> joined your class <b>${className}</b>.`));

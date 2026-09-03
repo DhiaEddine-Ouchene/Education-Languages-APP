@@ -23,7 +23,7 @@ export function AnalyticsCharts({ engagement, timeSpent, classPerf, hardestWords
     const blob = new Blob([rows], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "eduplay-analytics.csv";
+    a.download = "lingokit-analytics.csv";
     a.click();
   };
 

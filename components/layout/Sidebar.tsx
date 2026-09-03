@@ -9,6 +9,7 @@ import {
   LogOut, ChevronLeft, ChevronRight, ShieldCheck, UserCog, Receipt, Menu, X
 } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { BrandMark } from "@/components/shared/BrandMark";
 
 const educatorLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -38,7 +39,7 @@ export function Sidebar({ role }: { role: "EDUCATOR" | "SUPER_ADMIN" }) {
     <>
       <div className="md:hidden flex items-center justify-between p-4 bg-card border-b border-border sticky top-0 z-40 w-full h-[73px]">
         <div className="flex items-center font-heading font-bold text-primary text-lg">
-          <Gamepad2 className="h-6 w-6 mr-2" /> EduPlay
+          <BrandMark className="h-6 w-6 mr-2" /> LingoKit
         </div>
         <button onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -56,8 +57,8 @@ export function Sidebar({ role }: { role: "EDUCATOR" | "SUPER_ADMIN" }) {
         collapsed ? "md:w-16" : "md:w-60"
       )}>
         <div className="hidden md:flex h-16 items-center px-4 font-heading font-bold text-primary text-lg">
-          <Gamepad2 className="h-6 w-6 shrink-0" />
-          {!collapsed && <span className="ml-2">EduPlay</span>}
+          <BrandMark className="h-6 w-6 shrink-0" />
+          {!collapsed && <span className="ml-2">LingoKit</span>}
         </div>
       <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
         {links.map((l) => {

@@ -7,7 +7,7 @@ export function FolderHome() {
   return (
     <div className="fg">
       <div className="hero">
-        <div className="hero-badge">🎓 EduPlay</div>
+        <div className="hero-badge">🎓 LingoKit</div>
         <h1>Learn languages through play</h1>
         <p>Pick a skill and start a game. Short rounds, instant feedback.</p>
       </div>

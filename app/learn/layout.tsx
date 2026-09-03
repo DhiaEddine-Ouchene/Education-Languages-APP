@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default function LearnLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
-      <LearnHeader appName="EduPlay" logo={null} />
+      <LearnHeader appName="LingoKit" logo={null} />
       <LearnMain>{children}</LearnMain>
       <BottomNav />
     </div>

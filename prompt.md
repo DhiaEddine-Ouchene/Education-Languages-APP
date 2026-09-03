@@ -1,6 +1,6 @@
 You are a senior full-stack developer and UI/UX designer. 
 Build a complete, responsive, production-ready web application 
-called "EduPlay" — a SaaS platform for language 
+called "LingoKit" — a SaaS platform for language 
 learning, targeted at educators who want 
 to build interactive language learning games and courses.
 

@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label, FieldError } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { Gamepad2, Check, X, ArrowLeft, RefreshCw } from "lucide-react";
+import { Check, X, ArrowLeft, RefreshCw } from "lucide-react";
+import { BrandMark } from "@/components/shared/BrandMark";
 
 const schema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -176,7 +177,7 @@ export default function RegisterPage() {
         return;
       }
 
-      toast("success", "Email verified! Welcome to EduPlay.");
+      toast("success", "Email verified! Welcome to LingoKit.");
       
       // Attempt auto-login
       const loginRes = await signIn("credentials", { 
@@ -238,7 +239,7 @@ export default function RegisterPage() {
             </button>
             <div className="flex justify-center mb-4">
               <div className="rounded-full bg-primary-light p-3">
-                <Gamepad2 className="h-10 w-10 text-primary" />
+                <BrandMark className="h-10 w-10 text-primary" />
               </div>
             </div>
             <h1 className="font-heading font-bold text-2xl text-center mb-2">Verify your email</h1>
@@ -290,7 +291,7 @@ export default function RegisterPage() {
     <main className="min-h-screen flex items-center justify-center px-4 py-8">
       <Card className="w-full max-w-md">
         <CardContent className="pt-8 pb-8">
-          <div className="flex justify-center mb-4"><Gamepad2 className="h-10 w-10 text-primary" /></div>
+          <div className="flex justify-center mb-4"><BrandMark className="h-10 w-10 text-primary" /></div>
           <h1 className="font-heading font-bold text-2xl text-center mb-6">Create your account</h1>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>

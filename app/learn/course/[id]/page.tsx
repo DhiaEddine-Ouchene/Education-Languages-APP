@@ -64,7 +64,7 @@ export default async function StudentCourseDetailPage({ params }: { params: { id
         <StudentCourseContent
           courseId={course.id}
           studentName={session.user.name || "Student"}
-          studentEmail={session.user.email || "student@eduplay.app"}
+          studentEmail={session.user.email || "student@lingokit.app"}
           sources={course.sources.map((s) => ({
             id: s.id,
             fileName: s.fileName,

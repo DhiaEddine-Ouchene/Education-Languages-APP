@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Cookie, X, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const COOKIE_KEY = "eduplay_cookie_consent";
+const COOKIE_KEY = "lingokit_cookie_consent";
 
 type ConsentState = "accepted" | "declined" | null;
 
@@ -62,7 +62,7 @@ export function CookieBanner() {
                   We use cookies 🍪
                 </h2>
                 <p className="text-sm text-txt-secondary leading-relaxed">
-                  EduPlay uses essential cookies to keep you logged in and make the platform work. We also use analytics cookies to improve your experience.
+                  LingoKit uses essential cookies to keep you logged in and make the platform work. We also use analytics cookies to improve your experience.
                 </p>
 
                 {/* Expandable details */}
@@ -80,7 +80,7 @@ export function CookieBanner() {
                       <span className="font-semibold text-txt">Essential cookies</span> — Required for login sessions and security. Cannot be disabled.
                     </div>
                     <div>
-                      <span className="font-semibold text-txt">Analytics cookies</span> — Help us understand how you use EduPlay so we can improve it. You can decline these.
+                      <span className="font-semibold text-txt">Analytics cookies</span> — Help us understand how you use LingoKit so we can improve it. You can decline these.
                     </div>
                     <div>
                       <span className="font-semibold text-txt">No advertising cookies</span> — We never use cookies to track you for ads or sell your data.

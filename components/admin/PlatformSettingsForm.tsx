@@ -16,7 +16,7 @@ export function PlatformSettingsForm({ revenueSharePct, promoCodes, emailTemplat
   const [share, setShare] = useState(revenueSharePct);
   const [promos, setPromos] = useState<Promo[]>(promoCodes);
   const [newPromo, setNewPromo] = useState({ code: "", discountPct: 10 });
-  const [welcomeTemplate, setWelcomeTemplate] = useState(emailTemplates.welcome ?? "Welcome to EduPlay, {{name}}!");
+  const [welcomeTemplate, setWelcomeTemplate] = useState(emailTemplates.welcome ?? "Welcome to LingoKit, {{name}}!");
   const [busy, setBusy] = useState(false);
 
   const save = async () => {

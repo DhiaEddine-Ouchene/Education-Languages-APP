@@ -36,7 +36,7 @@ export default function LandingPage() {
               Build <span className="text-primary">language learning games</span> your students will love
             </h1>
             <p className="text-txt-secondary text-lg mb-6">
-              EduPlay helps educators and creators build interactive courses and gamify learning in minutes.
+              LingoKit helps language teachers build interactive vocabulary and grammar games and courses for their classes in minutes.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/auth/register"><Button size="lg">Get started free</Button></Link>

@@ -86,7 +86,7 @@ For each plan+interval combination:
      - Pro Yearly: 13,300 DA
      - Ultimate Monthly: 2,950 DA
      - Ultimate Yearly: 24,000 DA
-   - **Name**: "EduPlay Pro - Monthly" (or appropriate)
+   - **Name**: "LingoKit Pro - Monthly" (or appropriate)
    - **Description**: Clear description for user
    - **Collect billing info**: ✅ Enable
    - **Metadata**: Not needed (we append it via URL parameter)

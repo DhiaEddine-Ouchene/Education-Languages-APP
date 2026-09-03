@@ -1,4 +1,4 @@
-# EduPlay — Game-Fixing Reference Guide
+# LingoKit — Game-Fixing Reference Guide
 
 Hand this guide (or the relevant game block) to any AI/LLM to understand and fix a
 specific game. It explains the **architecture**, the **files** involved, the **data

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Gamepad2 } from "lucide-react";
+import { BrandMark } from "@/components/shared/BrandMark";
 
 export function Footer() {
   return (
@@ -7,7 +7,7 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
         <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-2 font-heading font-bold text-primary mb-2">
-            <Gamepad2 className="h-5 w-5" /> EduPlay
+            <BrandMark className="h-5 w-5" /> LingoKit
           </div>
           <p className="text-txt-secondary">Build interactive language learning games.</p>
         </div>
@@ -34,7 +34,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-border py-4 text-center text-xs text-txt-secondary">
-        © {new Date().getFullYear()} EduPlay. All rights reserved.
+        © {new Date().getFullYear()} LingoKit. All rights reserved.
       </div>
     </footer>
   );

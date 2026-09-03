@@ -1,6 +1,6 @@
 <div align="center">
   <br />
-  <h1>📚 EduPlay</h1>
+  <h1>📚 LingoKit</h1>
   <p align="center">
     <strong>SaaS platform for interactive language learning</strong>
   </p>
@@ -23,7 +23,7 @@
 
 ## 🎯 Overview
 
-**EduPlay** is a teacher-first B2C SaaS platform that lets educators create and manage interactive language learning content. Students play via a simple join code with no signup required.
+**LingoKit** is a teacher-first B2C SaaS platform that lets educators create and manage interactive language learning content. Students play via a simple join code with no signup required.
 
 ### Who it's for
 
@@ -345,8 +345,8 @@ model Subscription {
 
 ```bash
 # Clone & install
-git clone https://github.com/your-org/eduplay.git
-cd eduplay
+git clone https://github.com/your-org/lingokit.git
+cd lingokit
 npm install
 
 # Configure environment

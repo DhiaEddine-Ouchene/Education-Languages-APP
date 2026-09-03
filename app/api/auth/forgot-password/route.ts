@@ -39,21 +39,21 @@ export async function POST(req: Request) {
         <h2 style="color:#7F77DD;margin-bottom:16px">Reset your password</h2>
         <div style="color:#1A1A2E;font-size:15px;line-height:1.6">
           Hi <b>${user.name}</b>,<br/><br/>
-          You requested to reset your password for <b>EduPlay</b>.<br/><br/>
+          You requested to reset your password for <b>LingoKit</b>.<br/><br/>
           Please use the following 6-digit code to reset your password:
           <div style="background:#ECECFE;padding:20px;border-radius:10px;font-size:28px;font-weight:bold;letter-spacing:6px;text-align:center;color:#7F77DD;margin:20px auto;max-width:240px;border:1px solid #7F77DD;">
             ${resetCode}
           </div>
           This code is valid for <b>10 minutes</b>. If you did not request this, please ignore this email.<br/><br/>
         </div>
-        <p style="color:#6B7280;font-size:12px;margin-top:24px">Sent by EduPlay</p>
+        <p style="color:#6B7280;font-size:12px;margin-top:24px">Sent by LingoKit</p>
       </div>
     `;
 
     // Fallback logs for dev testing
     console.log(`\n==========================================\n[MAIL FALLBACK] Password Reset Code for ${user.email}: ${resetCode}\n==========================================\n`);
 
-    await sendMail(user.email, "Reset your EduPlay password", html);
+    await sendMail(user.email, "Reset your LingoKit password", html);
 
     return NextResponse.json({ success: true, message: "If an account exists, a reset code has been sent" });
   } catch (err) {

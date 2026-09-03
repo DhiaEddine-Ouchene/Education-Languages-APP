@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Gamepad2 } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { BrandMark } from "@/components/shared/BrandMark";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 
@@ -19,7 +20,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 bg-card/80 backdrop-blur border-b border-border">
       <nav className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-heading font-bold text-xl text-primary">
-          <Gamepad2 className="h-6 w-6" /> EduPlay
+          <BrandMark className="h-6 w-6" /> LingoKit
         </Link>
         <div className="hidden md:flex items-center gap-6">
           {links.map((l) => (

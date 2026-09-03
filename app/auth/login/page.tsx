@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label, FieldError } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
-import { Gamepad2, ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
+import { BrandMark } from "@/components/shared/BrandMark";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -201,7 +202,7 @@ function LoginForm() {
           </button>
           <div className="flex justify-center mb-4">
             <div className="rounded-full bg-primary-light p-3">
-              <Gamepad2 className="h-10 w-10 text-primary" />
+              <BrandMark className="h-10 w-10 text-primary" />
             </div>
           </div>
           <h1 className="font-heading font-bold text-2xl text-center mb-2">Verify your email</h1>
@@ -251,8 +252,8 @@ function LoginForm() {
   return (
     <Card className="w-full max-w-md">
       <CardContent className="pt-8 pb-8">
-        <div className="flex justify-center mb-4"><Gamepad2 className="h-10 w-10 text-primary" /></div>
-        <h1 className="font-heading font-bold text-2xl text-center mb-6">Log in to EduPlay</h1>
+        <div className="flex justify-center mb-4"><BrandMark className="h-10 w-10 text-primary" /></div>
+        <h1 className="font-heading font-bold text-2xl text-center mb-6">Log in to LingoKit</h1>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>

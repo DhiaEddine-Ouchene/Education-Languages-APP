@@ -1,4 +1,4 @@
-// EduPlay content pack — faithful copy of the folder's data/content.js so every
+// LingoKit content pack — faithful copy of the folder's data/content.js so every
 // built-in game is available immediately. Mechanics are language-agnostic.
 
 export type FolderCategory = { id: string; name: string; emoji: string; color: string; blurb: string };

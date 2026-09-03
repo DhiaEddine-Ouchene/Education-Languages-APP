@@ -17,7 +17,7 @@ const plans = [
     yearly: 0,
     popular: false,
     icon: Sparkles,
-    description: "Perfect for trying out EduPlay",
+    description: "Perfect for trying out LingoKit",
     features: ["1 class", "Up to 20 students per class", "Unlimited manual games", "15 AI games / month", "Core game types"],
     cta: "Get started free",
     color: "border-border",
@@ -49,7 +49,7 @@ const plans = [
 ];
 
 const faqs = [
-  { q: "Can I try EduPlay for free?", a: "Yes. The Free plan lets you create content and run one class with up to 20 students before upgrading." },
+  { q: "Can I try LingoKit for free?", a: "Yes. The Free plan lets you create content and run one class with up to 20 students before upgrading." },
   { q: "How does the AI generation limit work?", a: "Free users get 15 AI-generated games or vocabulary sets per month. Pro and Ultimate users get unlimited AI generation." },
   { q: "Can I cancel anytime?", a: "Yes, you can cancel from the billing page. Your plan stays active until the end of the billing period — no questions asked." },
   { q: "What payment methods are accepted?", a: "We use Lemon Squeezy for secure payment processing. All major credit and debit cards are accepted." },
