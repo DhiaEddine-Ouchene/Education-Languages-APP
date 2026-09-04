@@ -152,7 +152,14 @@ export async function requireRole(role: "SUPER_ADMIN" | "EDUCATOR" | "STUDENT") 
 }
 
 export async function getEducatorProfile(userId: string) {
-  let profile = await prisma.educatorProfile.findUnique({ where: { userId } });
+  let profile = null;
+  try {
+    profile = await prisma.educatorProfile.findUnique({ where: { userId } });
+  } catch (e) {
+    console.error("[auth:getEducatorProfile] Failed to fetch educator profile:", e);
+    return null;
+  }
+
   if (!profile) {
     try {
       const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -162,7 +169,7 @@ export async function getEducatorProfile(userId: string) {
         });
       }
     } catch (e) {
-      console.error("[getEducatorProfile] auto-init failed:", e);
+      console.error("[auth:getEducatorProfile] auto-init failed:", e);
     }
   }
   return profile;

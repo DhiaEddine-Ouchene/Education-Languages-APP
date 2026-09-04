@@ -17,18 +17,53 @@ export default async function DashboardPage() {
   const profile = await getEducatorProfile(session.user.id);
   if (!profile) redirect("/auth/login");
 
-  const [classes, gamesPublished, students, recentProgress] = await Promise.all([
-    prisma.class.findMany({ where: { educatorId: profile.id }, include: { _count: { select: { members: true } } }, orderBy: { createdAt: "desc" } }),
-    prisma.game.count({ where: { educatorId: profile.id, isPublished: true } }),
-    prisma.classMember.findMany({ where: { class: { educatorId: profile.id } }, distinct: ["studentId"], select: { studentId: true } }),
-    prisma.studentProgress.findMany({
-      where: { game: { educatorId: profile.id } },
-      include: { student: { select: { name: true } }, game: { select: { title: true } } },
-      orderBy: { completedAt: "desc" }, take: 8,
-    }),
-  ]);
+  let classes: any[] = [];
+  let gamesPublished = 0;
+  let students: any[] = [];
+  let recentProgress: any[] = [];
+  let totalGames = 0;
 
-  const totalGames = await prisma.game.count({ where: { educatorId: profile.id } });
+  try {
+    const [classesRes, gamesPublishedRes, studentsRes, recentProgressRes, totalGamesRes] =
+      await Promise.allSettled([
+        prisma.class.findMany({
+          where: { educatorId: profile.id },
+          include: { _count: { select: { members: true } } },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.game.count({ where: { educatorId: profile.id, isPublished: true } }),
+        prisma.classMember.findMany({
+          where: { class: { educatorId: profile.id } },
+          distinct: ["studentId"],
+          select: { studentId: true },
+        }),
+        prisma.studentProgress.findMany({
+          where: { game: { educatorId: profile.id } },
+          include: { student: { select: { name: true } }, game: { select: { title: true } } },
+          orderBy: { completedAt: "desc" },
+          take: 8,
+        }),
+        prisma.game.count({ where: { educatorId: profile.id } }),
+      ]);
+
+    if (classesRes.status === "fulfilled") classes = classesRes.value;
+    else console.error("[dashboard:classes] Query failed:", classesRes.reason);
+
+    if (gamesPublishedRes.status === "fulfilled") gamesPublished = gamesPublishedRes.value;
+    else console.error("[dashboard:gamesPublished] Query failed:", gamesPublishedRes.reason);
+
+    if (studentsRes.status === "fulfilled") students = studentsRes.value;
+    else console.error("[dashboard:students] Query failed:", studentsRes.reason);
+
+    if (recentProgressRes.status === "fulfilled") recentProgress = recentProgressRes.value;
+    else console.error("[dashboard:recentProgress] Query failed:", recentProgressRes.reason);
+
+    if (totalGamesRes.status === "fulfilled") totalGames = totalGamesRes.value;
+    else console.error("[dashboard:totalGames] Query failed:", totalGamesRes.reason);
+  } catch (err) {
+    console.error("[dashboard:page] Global overview fetch exception:", err);
+  }
+
   const isPaid = profile.subscriptionPlan === "PRO" || profile.subscriptionPlan === "ULTIMATE";
 
   const quickActions = [

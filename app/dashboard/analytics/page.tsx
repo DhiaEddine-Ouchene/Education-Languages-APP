@@ -11,12 +11,34 @@ export default async function AnalyticsPage() {
   const profile = await getEducatorProfile(session.user.id);
   if (!profile) redirect("/auth/login");
 
-  const games = await prisma.game.findMany({
-    where: { educatorId: profile.id },
-    include: { progress: { include: { student: { select: { name: true } } } }, flashcardData: { include: { pairs: true } } },
-  });
+  let games: any[] = [];
+  let classes: any[] = [];
 
-  const engagement = games.map((g) => ({ name: g.title, plays: g.progress.length }));
+  try {
+    const [gamesRes, classesRes] = await Promise.allSettled([
+      prisma.game.findMany({
+        where: { educatorId: profile.id },
+        include: {
+          progress: { include: { student: { select: { name: true } } } },
+          flashcardData: { include: { pairs: true } },
+        },
+      }),
+      prisma.class.findMany({
+        where: { educatorId: profile.id },
+        include: { members: { select: { studentId: true } } },
+      }),
+    ]);
+
+    if (gamesRes.status === "fulfilled") games = gamesRes.value;
+    else console.error("[dashboard:analytics:games] Query failed:", gamesRes.reason);
+
+    if (classesRes.status === "fulfilled") classes = classesRes.value;
+    else console.error("[dashboard:analytics:classes] Query failed:", classesRes.reason);
+  } catch (err) {
+    console.error("[dashboard:analytics] Query exception:", err);
+  }
+
+  const engagement = games.map((g) => ({ name: g.title, plays: (g.progress ?? []).length }));
 
   // Words come from the game's own content (flashcard pairs or settings JSON).
   const wordsFor = (g: any): string[] => {
@@ -28,10 +50,17 @@ export default async function AnalyticsPage() {
   };
 
   const gameStats = games
-    .filter((g) => g.progress.length > 0)
-    .map((g) => ({ title: g.title, avgScore: g.progress.reduce((s, p) => s + p.score, 0) / g.progress.length, words: wordsFor(g) }))
+    .filter((g) => (g.progress ?? []).length > 0)
+    .map((g) => ({
+      title: g.title,
+      avgScore: g.progress.reduce((s: number, p: any) => s + p.score, 0) / g.progress.length,
+      words: wordsFor(g),
+    }))
     .sort((a, b) => a.avgScore - b.avgScore);
-  const hardestWords = gameStats.slice(0, 3).flatMap((g) => g.words.map((w) => ({ word: w, game: g.title, avgScore: Math.round(g.avgScore) }))).slice(0, 10);
+  const hardestWords = gameStats
+    .slice(0, 3)
+    .flatMap((g) => g.words.map((w) => ({ word: w, game: g.title, avgScore: Math.round(g.avgScore) })))
+    .slice(0, 10);
 
   const now = new Date();
   const days: { day: string; minutes: number }[] = [];
@@ -40,19 +69,18 @@ export default async function AnalyticsPage() {
     d.setDate(d.getDate() - i);
     const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
-    const secs = games.flatMap((g) => g.progress).filter((p) => p.completedAt >= dayStart && p.completedAt <= dayEnd).reduce((s, p) => s + p.timeTaken, 0);
+    const secs = games
+      .flatMap((g) => g.progress ?? [])
+      .filter((p: any) => p.completedAt && new Date(p.completedAt) >= dayStart && new Date(p.completedAt) <= dayEnd)
+      .reduce((s: number, p: any) => s + (p.timeTaken || 0), 0);
     days.push({ day: d.toLocaleDateString("en-US", { weekday: "short" }), minutes: Math.round(secs / 60) });
   }
 
-  const classes = await prisma.class.findMany({
-    where: { educatorId: profile.id },
-    include: { members: { select: { studentId: true } } },
-  });
-  const allProgress = games.flatMap((g) => g.progress);
+  const allProgress = games.flatMap((g) => g.progress ?? []);
   const classPerf = classes.map((c) => {
-    const ids = new Set(c.members.map((m) => m.studentId));
-    const rel = allProgress.filter((p) => ids.has(p.studentId));
-    return { name: c.name, avgScore: rel.length ? Math.round(rel.reduce((s, p) => s + p.score, 0) / rel.length) : 0 };
+    const ids = new Set((c.members ?? []).map((m: any) => m.studentId));
+    const rel = allProgress.filter((p: any) => ids.has(p.studentId));
+    return { name: c.name, avgScore: rel.length ? Math.round(rel.reduce((s: number, p: any) => s + p.score, 0) / rel.length) : 0 };
   });
 
   return (

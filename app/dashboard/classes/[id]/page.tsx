@@ -20,27 +20,48 @@ export default async function ClassDetailPage({ params }: { params: { id: string
   });
   if (!cls) notFound();
 
-  const games = await prisma.game.findMany({ where: { educatorId: profile.id }, select: { id: true, title: true } });
-  const courses = await prisma.course.findMany({ where: { educatorId: profile.id, isPublished: true }, select: { id: true, title: true } });
-
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
   const studentIds = cls.members.map((m) => m.studentId);
-  const [weeklyXP, completions] = await Promise.all([
-    prisma.studentProgress.groupBy({
-      by: ["studentId"],
-      where: { studentId: { in: studentIds }, completedAt: { gte: weekAgo } },
-      _sum: { xpEarned: true },
-    }),
-    prisma.studentProgress.groupBy({
-      by: ["gameId"],
-      where: { studentId: { in: studentIds }, gameId: { in: cls.assignments.map((a) => a.gameId) } },
-      _count: { studentId: true },
-    }),
-  ]);
+  let games: any[] = [];
+  let courses: any[] = [];
+  let weeklyXP: any[] = [];
+  let completions: any[] = [];
+
+  try {
+    const [gamesRes, coursesRes] = await Promise.allSettled([
+      prisma.game.findMany({ where: { educatorId: profile.id }, select: { id: true, title: true } }),
+      prisma.course.findMany({ where: { educatorId: profile.id, isPublished: true }, select: { id: true, title: true } }),
+    ]);
+    if (gamesRes.status === "fulfilled") games = gamesRes.value;
+    if (coursesRes.status === "fulfilled") courses = coursesRes.value;
+
+    if (studentIds.length > 0) {
+      const [weeklyXPRes, completionsRes] = await Promise.allSettled([
+        prisma.studentProgress.groupBy({
+          by: ["studentId"],
+          where: { studentId: { in: studentIds }, completedAt: { gte: weekAgo } },
+          _sum: { xpEarned: true },
+        }),
+        prisma.studentProgress.groupBy({
+          by: ["gameId"],
+          where: { studentId: { in: studentIds }, gameId: { in: cls.assignments.map((a) => a.gameId) } },
+          _count: { studentId: true },
+        }),
+      ]);
+
+      if (weeklyXPRes.status === "fulfilled") weeklyXP = weeklyXPRes.value;
+      else console.error("[dashboard:class:weeklyXP] Query failed:", weeklyXPRes.reason);
+
+      if (completionsRes.status === "fulfilled") completions = completionsRes.value;
+      else console.error("[dashboard:class:completions] Query failed:", completionsRes.reason);
+    }
+  } catch (err) {
+    console.error("[dashboard:class:detail] Secondary queries failed:", err);
+  }
 
   const leaderboard = cls.members
-    .map((m) => ({ name: m.student.name, xp: weeklyXP.find((w) => w.studentId === m.studentId)?._sum.xpEarned ?? 0 }))
+    .map((m) => ({ name: m.student.name, xp: weeklyXP.find((w: any) => w.studentId === m.studentId)?._sum?.xpEarned ?? 0 }))
     .sort((a, b) => b.xp - a.xp);
 
   return (

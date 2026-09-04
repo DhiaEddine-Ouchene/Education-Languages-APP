@@ -16,11 +16,16 @@ export default async function ClassesPage() {
   const profile = await getEducatorProfile(session.user.id);
   if (!profile) redirect("/auth/login");
 
-  const classes = await prisma.class.findMany({
-    where: { educatorId: profile.id },
-    include: { _count: { select: { members: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  let classes: any[] = [];
+  try {
+    classes = await prisma.class.findMany({
+      where: { educatorId: profile.id },
+      include: { _count: { select: { members: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (err) {
+    console.error("[dashboard:classes:page] Failed to fetch classes:", err);
+  }
 
   return (
     <div className="space-y-6">

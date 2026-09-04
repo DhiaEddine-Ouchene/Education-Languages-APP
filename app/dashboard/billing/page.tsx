@@ -20,10 +20,15 @@ export default async function BillingPage({
   const profile = await getEducatorProfile(session.user.id);
   if (!profile) redirect("/auth/login");
 
-  const history = await prisma.subscription.findMany({
-    where: { educatorId: profile.id },
-    orderBy: { createdAt: "desc" },
-  });
+  let history: any[] = [];
+  try {
+    history = await prisma.subscription.findMany({
+      where: { educatorId: profile.id },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (err) {
+    console.error("[dashboard:billing:page] Failed to fetch subscription history:", err);
+  }
 
   // Detect if user is in Algeria
   const headersList = headers();

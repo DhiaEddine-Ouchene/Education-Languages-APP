@@ -14,16 +14,21 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
   const session = await auth();
   if (!session || session.user.role !== "SUPER_ADMIN") redirect("/");
 
-  const users = await prisma.user.findMany({
-    where: {
-      ...(searchParams.role ? { role: searchParams.role as never } : {}),
-      ...(searchParams.plan ? { educatorProfile: { subscriptionPlan: searchParams.plan as never } } : {}),
-      ...(searchParams.q ? { OR: [{ name: { contains: searchParams.q, mode: "insensitive" } }, { email: { contains: searchParams.q, mode: "insensitive" } }] } : {}),
-    },
-    include: { educatorProfile: { select: { subscriptionPlan: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  let users: any[] = [];
+  try {
+    users = await prisma.user.findMany({
+      where: {
+        ...(searchParams.role ? { role: searchParams.role as never } : {}),
+        ...(searchParams.plan ? { educatorProfile: { subscriptionPlan: searchParams.plan as never } } : {}),
+        ...(searchParams.q ? { OR: [{ name: { contains: searchParams.q, mode: "insensitive" } }, { email: { contains: searchParams.q, mode: "insensitive" } }] } : {}),
+      },
+      include: { educatorProfile: { select: { subscriptionPlan: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+  } catch (err) {
+    console.error("[admin:users:page] Failed to fetch users:", err);
+  }
 
   return (
     <div className="space-y-6">

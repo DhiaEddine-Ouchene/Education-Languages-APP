@@ -10,11 +10,35 @@ export default async function ProgressPage() {
   const session = await auth();
   if (!session) redirect("/auth/login");
 
-  const [xp, progress, badges] = await Promise.all([
-    prisma.studentXP.findUnique({ where: { studentId: session.user.id } }),
-    prisma.studentProgress.findMany({ where: { studentId: session.user.id }, include: { game: { include: { flashcardData: { include: { pairs: true } } } } }, orderBy: { completedAt: "asc" } }),
-    prisma.studentBadge.findMany({ where: { studentId: session.user.id }, include: { badge: true } }),
-  ]);
+  let xp: any = null;
+  let progress: any[] = [];
+  let badges: any[] = [];
+
+  try {
+    const [xpRes, progressRes, badgesRes] = await Promise.allSettled([
+      prisma.studentXP.findUnique({ where: { studentId: session.user.id } }),
+      prisma.studentProgress.findMany({
+        where: { studentId: session.user.id },
+        include: { game: { include: { flashcardData: { include: { pairs: true } } } } },
+        orderBy: { completedAt: "asc" },
+      }),
+      prisma.studentBadge.findMany({
+        where: { studentId: session.user.id },
+        include: { badge: true },
+      }),
+    ]);
+
+    if (xpRes.status === "fulfilled") xp = xpRes.value;
+    else console.error("[learn:progress:xp] Query failed:", xpRes.reason);
+
+    if (progressRes.status === "fulfilled") progress = progressRes.value;
+    else console.error("[learn:progress:studentProgress] Query failed:", progressRes.reason);
+
+    if (badgesRes.status === "fulfilled") badges = badgesRes.value;
+    else console.error("[learn:progress:badges] Query failed:", badgesRes.reason);
+  } catch (err) {
+    console.error("[learn:progress:page] Query exception:", err);
+  }
 
   // 30-day heatmap
   const heatmap: { date: string; count: number }[] = [];

@@ -11,13 +11,18 @@ export default async function GamesPage() {
   const profile = await getEducatorProfile(session.user.id);
   if (!profile) redirect("/auth/login");
 
-  const games = await prisma.game.findMany({
-    where: { educatorId: profile.id },
-    include: {
-      _count: { select: { progress: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  let games: any[] = [];
+  try {
+    games = await prisma.game.findMany({
+      where: { educatorId: profile.id },
+      include: {
+        _count: { select: { progress: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (err) {
+    console.error("[dashboard:games:page] Failed to fetch games:", err);
+  }
 
   const publishedCount = games.filter((g) => g.isPublished).length;
   const totalPlays = games.reduce((sum, g) => sum + g._count.progress, 0);

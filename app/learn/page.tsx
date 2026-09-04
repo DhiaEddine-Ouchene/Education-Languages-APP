@@ -16,44 +16,106 @@ export default async function LearnHomePage() {
   const session = await auth();
   if (!session) redirect("/auth/login");
 
-  const [xp, memberships, progress] = await Promise.all([
-    prisma.studentXP.findUnique({ where: { studentId: session.user.id } }),
-    prisma.classMember.findMany({
-      where: { studentId: session.user.id },
-      include: { class: { include: { assignments: { include: { game: true }, orderBy: { dueDate: "asc" } }, educator: true } } },
-    }),
-    prisma.studentProgress.findMany({ where: { studentId: session.user.id }, include: { game: true }, orderBy: { completedAt: "desc" } }),
-  ]);
+  let xp: any = null;
+  let memberships: any[] = [];
+  let progress: any[] = [];
+  let practice: any[] = [];
+  let courseGames: any[] = [];
+  let studentCourses: any[] = [];
+
+  try {
+    const [xpRes, membershipsRes, progressRes] = await Promise.allSettled([
+      prisma.studentXP.findUnique({ where: { studentId: session.user.id } }),
+      prisma.classMember.findMany({
+        where: { studentId: session.user.id },
+        include: {
+          class: {
+            include: {
+              assignments: { include: { game: true }, orderBy: { dueDate: "asc" } },
+              educator: true,
+            },
+          },
+        },
+      }),
+      prisma.studentProgress.findMany({
+        where: { studentId: session.user.id },
+        include: { game: true },
+        orderBy: { completedAt: "desc" },
+      }),
+    ]);
+
+    if (xpRes.status === "fulfilled") xp = xpRes.value;
+    else console.error("[learn:xp] Failed to fetch studentXP:", xpRes.reason);
+
+    if (membershipsRes.status === "fulfilled") memberships = membershipsRes.value;
+    else console.error("[learn:memberships] Failed to fetch classMember:", membershipsRes.reason);
+
+    if (progressRes.status === "fulfilled") progress = progressRes.value;
+    else console.error("[learn:progress] Failed to fetch studentProgress:", progressRes.reason);
+  } catch (err) {
+    console.error("[learn:overview] Initial query batch failed:", err);
+  }
 
   const completedGameIds = new Set(progress.map((p) => p.gameId));
   const now = new Date();
-  const assignments = memberships.flatMap((m) => m.class.assignments.map((a) => ({ ...a, className: m.class.name })));
-  const liveNow = assignments.filter((a) => a.isLive && a.dueDate > now);
-  const todo = assignments.filter((a) => !a.isLive && a.dueDate >= new Date(now.getTime() - 24 * 3600 * 1000) && !completedGameIds.has(a.gameId));
+  const assignments = memberships.flatMap((m) =>
+    (m.class?.assignments ?? []).map((a: any) => ({ ...a, className: m.class?.name }))
+  );
+  const liveNow = assignments.filter((a) => a.isLive && a.dueDate && new Date(a.dueDate) > now);
+  const todo = assignments.filter(
+    (a) =>
+      !a.isLive &&
+      a.dueDate &&
+      new Date(a.dueDate) >= new Date(now.getTime() - 24 * 3600 * 1000) &&
+      !completedGameIds.has(a.gameId)
+  );
   const lastPlayed = progress[0];
 
-  const educatorIds = Array.from(new Set(memberships.map((m) => m.class.educator.id)));
+  const educatorIds = Array.from(
+    new Set(memberships.map((m) => m.class?.educator?.id).filter(Boolean))
+  ) as string[];
   const assignedGameIds = assignments.map((a) => a.gameId);
 
-  const [practice, courseGames] = await Promise.all([
-    prisma.game.findMany({
-      where: educatorIds.length ? { educatorId: { in: educatorIds }, isPublished: true } : { isPublished: true },
-      take: 9,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.game.findMany({
-      where: { id: { in: assignedGameIds }, courseId: { not: null } },
-      select: { courseId: true },
-    }),
-  ]);
+  try {
+    const [practiceRes, courseGamesRes] = await Promise.allSettled([
+      prisma.game.findMany({
+        where: educatorIds.length
+          ? { educatorId: { in: educatorIds }, isPublished: true }
+          : { isPublished: true },
+        take: 9,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.game.findMany({
+        where: { id: { in: assignedGameIds }, courseId: { not: null } },
+        select: { courseId: true },
+      }),
+    ]);
 
-  const assignedCourseIds = Array.from(new Set(courseGames.map((g) => g.courseId).filter(Boolean))) as string[];
-  const studentCourses = await prisma.course.findMany({
-    where: { id: { in: assignedCourseIds } },
-    include: {
-      games: { select: { id: true, title: true, type: true } },
-    },
-  });
+    if (practiceRes.status === "fulfilled") practice = practiceRes.value;
+    else console.error("[learn:practice] Failed to fetch practice games:", practiceRes.reason);
+
+    if (courseGamesRes.status === "fulfilled") courseGames = courseGamesRes.value;
+    else console.error("[learn:courseGames] Failed to fetch courseGames:", courseGamesRes.reason);
+
+    const assignedCourseIds = Array.from(
+      new Set(courseGames.map((g) => g.courseId).filter(Boolean))
+    ) as string[];
+
+    if (assignedCourseIds.length > 0) {
+      try {
+        studentCourses = await prisma.course.findMany({
+          where: { id: { in: assignedCourseIds } },
+          include: {
+            games: { select: { id: true, title: true, type: true } },
+          },
+        });
+      } catch (courseErr) {
+        console.error("[learn:studentCourses] Failed to fetch student courses:", courseErr);
+      }
+    }
+  } catch (err) {
+    console.error("[learn:courses_practice] Second query batch failed:", err);
+  }
 
   const level = xp?.level ?? 1;
 

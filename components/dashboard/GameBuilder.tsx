@@ -295,58 +295,29 @@ export function GameBuilder({ initial }: Props) {
             </CardContent>
           </Card>
 
-          {/* ── Right: Settings ── */}
+          {/* ── Right: Publishing ── */}
           <Card className="shadow-sm border-border/60 self-start">
-            <CardContent className="pt-5 space-y-5">
+            <CardContent className="pt-5 space-y-4">
               <p className="font-heading font-semibold text-sm text-txt flex items-center gap-2">
-                <Settings className="w-4 h-4 text-txt-secondary" />
-                Settings
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                Publishing Status
               </p>
 
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-xs font-medium text-txt-secondary">Difficulty</Label>
-                  <Select value={settings.difficulty} onChange={(e) => setSettings({ ...settings, difficulty: e.target.value })} className="mt-1">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-xs font-medium text-txt-secondary flex items-center gap-1.5">
-                    <Timer className="w-3.5 h-3.5" />
-                    Timer (seconds per question)
-                  </Label>
-                  <Input type="number" min={5} value={settings.timer} onChange={(e) => setSettings({ ...settings, timer: Number(e.target.value) })} className="mt-1" />
-                </div>
-
-                <div className="space-y-2.5 pt-2 border-t border-border/40">
-                  <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-                    <input type="checkbox" checked={settings.hints} onChange={(e) => setSettings({ ...settings, hints: e.target.checked })} className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
-                    <Lightbulb className="w-3.5 h-3.5 text-txt-secondary group-hover:text-primary transition-colors" />
-                    <span className="text-txt group-hover:text-txt transition-colors">Hints</span>
-                  </label>
-                  <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-                    <input type="checkbox" checked={settings.audioAutoplay} onChange={(e) => setSettings({ ...settings, audioAutoplay: e.target.checked })} className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
-                    <Volume2 className="w-3.5 h-3.5 text-txt-secondary group-hover:text-primary transition-colors" />
-                    <span className="text-txt group-hover:text-txt transition-colors">Audio autoplay</span>
-                  </label>
-                  <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-                    <input type="checkbox" checked={settings.shuffle} onChange={(e) => setSettings({ ...settings, shuffle: e.target.checked })} className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
-                    <Shuffle className="w-3.5 h-3.5 text-txt-secondary group-hover:text-primary transition-colors" />
-                    <span className="text-txt group-hover:text-txt transition-colors">Shuffle questions</span>
-                  </label>
-                </div>
-
-                <div className="pt-3 border-t border-border/40 space-y-3">
-                  <p className="text-xs font-semibold text-txt-secondary uppercase tracking-wider">Publishing</p>
-                  <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-                    <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
-                    <CheckCircle2 className="w-3.5 h-3.5 text-txt-secondary group-hover:text-green-500 transition-colors" />
-                    <span className="text-txt group-hover:text-txt transition-colors">Published</span>
-                  </label>
-                </div>
+              <div className="space-y-3">
+                <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={isPublished}
+                    onChange={(e) => setIsPublished(e.target.checked)}
+                    className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-txt font-medium group-hover:text-primary transition-colors">
+                    {isPublished ? "Published (Visible to students)" : "Draft (Hidden from students)"}
+                  </span>
+                </label>
+                <p className="text-xs text-txt-secondary leading-relaxed">
+                  Published games can be assigned to your classes or played directly by your students.
+                </p>
               </div>
             </CardContent>
           </Card>

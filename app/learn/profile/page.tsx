@@ -15,14 +15,52 @@ export default async function StudentProfilePage() {
   const session = await auth();
   if (!session) redirect("/auth/login");
 
-  const [user, xp, gamesPlayed, badgeCount, lastProgress] = await Promise.all([
-    prisma.user.findUnique({ where: { id: session.user.id } }),
-    prisma.studentXP.findUnique({ where: { studentId: session.user.id } }),
-    prisma.studentProgress.count({ where: { studentId: session.user.id } }),
-    prisma.studentBadge.count({ where: { studentId: session.user.id } }),
-    prisma.studentProgress.findFirst({ where: { studentId: session.user.id }, orderBy: { completedAt: "desc" } }),
-  ]);
-  if (!user) redirect("/auth/login");
+  let user: any = null;
+  let xp: any = null;
+  let gamesPlayed = 0;
+  let badgeCount = 0;
+  let lastProgress: any = null;
+
+  try {
+    const [userRes, xpRes, gamesPlayedRes, badgeCountRes, lastProgressRes] =
+      await Promise.allSettled([
+        prisma.user.findUnique({ where: { id: session.user.id } }),
+        prisma.studentXP.findUnique({ where: { studentId: session.user.id } }),
+        prisma.studentProgress.count({ where: { studentId: session.user.id } }),
+        prisma.studentBadge.count({ where: { studentId: session.user.id } }),
+        prisma.studentProgress.findFirst({
+          where: { studentId: session.user.id },
+          orderBy: { completedAt: "desc" },
+        }),
+      ]);
+
+    if (userRes.status === "fulfilled") user = userRes.value;
+    else console.error("[learn:profile:user] Query failed:", userRes.reason);
+
+    if (xpRes.status === "fulfilled") xp = xpRes.value;
+    else console.error("[learn:profile:xp] Query failed:", xpRes.reason);
+
+    if (gamesPlayedRes.status === "fulfilled") gamesPlayed = gamesPlayedRes.value;
+    else console.error("[learn:profile:gamesPlayed] Query failed:", gamesPlayedRes.reason);
+
+    if (badgeCountRes.status === "fulfilled") badgeCount = badgeCountRes.value;
+    else console.error("[learn:profile:badgeCount] Query failed:", badgeCountRes.reason);
+
+    if (lastProgressRes.status === "fulfilled") lastProgress = lastProgressRes.value;
+    else console.error("[learn:profile:lastProgress] Query failed:", lastProgressRes.reason);
+  } catch (err) {
+    console.error("[learn:profile:page] Query exception:", err);
+  }
+
+  if (!user) {
+    user = {
+      id: session.user.id,
+      name: session.user.name ?? "Student",
+      email: session.user.email ?? "",
+      image: session.user.image ?? null,
+      createdAt: new Date(),
+    };
+  }
 
   const initials = user.name?.trim()?.[0]?.toUpperCase() ?? "U";
   const profileCompleteness = Math.round(((user.name ? 1 : 0) + (user.email ? 1 : 0) + (user.image ? 1 : 0)) / 3 * 100);

@@ -17,10 +17,27 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
   if (!session || session.user.role !== "SUPER_ADMIN") redirect("/");
   const tab = (tabs as readonly string[]).includes(searchParams.tab ?? "") ? searchParams.tab! : "ACTIVE";
 
-  const [subs, profiles] = await Promise.all([
-    prisma.subscription.findMany({ where: { status: tab as never }, include: { educator: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "desc" } }),
-    prisma.educatorProfile.groupBy({ by: ["subscriptionPlan"], _count: true }),
-  ]);
+  let subs: any[] = [];
+  let profiles: any[] = [];
+
+  try {
+    const [subsRes, profilesRes] = await Promise.allSettled([
+      prisma.subscription.findMany({
+        where: { status: tab as never },
+        include: { educator: { include: { user: { select: { name: true, email: true } } } } },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.educatorProfile.groupBy({ by: ["subscriptionPlan"], _count: true }),
+    ]);
+
+    if (subsRes.status === "fulfilled") subs = subsRes.value;
+    else console.error("[admin:subscriptions:subs] Query failed:", subsRes.reason);
+
+    if (profilesRes.status === "fulfilled") profiles = profilesRes.value;
+    else console.error("[admin:subscriptions:profiles] Query failed:", profilesRes.reason);
+  } catch (err) {
+    console.error("[admin:subscriptions:page] Query exception:", err);
+  }
 
   return (
     <div className="space-y-6">

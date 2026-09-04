@@ -76,14 +76,7 @@ export function UnifiedGameCreator({ educatorId }: Props) {
     audioSource: "text-to-speech",
     storyPrompt: "",
   });
-  const [settings, setSettings] = useState({
-    difficulty: "medium",
-    timer: 30,
-    hints: true,
-    audioAutoplay: false,
-    shuffle: true,
-    isPublished: false,
-  });
+  const [isPublished, setIsPublished] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Builder state
@@ -271,7 +264,6 @@ export function UnifiedGameCreator({ educatorId }: Props) {
           type: selectedTemplate.type,
           courseId: courseIdParam || undefined,
           settings: {
-            ...settings,
             ...gameConfig,
             // Engine-ready content from the SchemaBuilder. `buildFolderGame`
             // passes `settings.data` through unchanged to the play engine, so
@@ -283,7 +275,7 @@ export function UnifiedGameCreator({ educatorId }: Props) {
               exampleSentence: w.exampleSentence || "",
             })),
           },
-          isPublished: settings.isPublished,
+          isPublished,
         }),
       });
 
@@ -565,8 +557,27 @@ export function UnifiedGameCreator({ educatorId }: Props) {
             </div>
           </div>
 
-          {/* Settings - collapsible panel */}
-          <SettingsPanel settings={settings} setSettings={setSettings} currentGameType={currentGameType} />
+          {/* Publishing Setting */}
+          <div className="rounded-2xl border border-border/60 bg-card p-4 sm:p-5 flex items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-heading font-semibold text-sm text-txt">Publish game immediately</p>
+                <p className="text-xs text-txt-secondary">Students can access and play this game right away once created</p>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={isPublished}
+                onChange={(e) => setIsPublished(e.target.checked)}
+                className="w-5 h-5 rounded border-border/60 text-primary focus:ring-primary/30 cursor-pointer"
+              />
+              <span className="text-sm font-medium text-txt hidden sm:inline">{isPublished ? "Published" : "Draft"}</span>
+            </label>
+          </div>
 
           {/* Bottom save */}
           <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end pt-2">
@@ -600,80 +611,8 @@ export function UnifiedGameCreator({ educatorId }: Props) {
             imageUrl: null,
             exampleSentence: w.exampleSentence || null,
           })) as any}
-          settings={{ ...settings, ...gameConfig, data: builderData }}
+          settings={{ ...gameConfig, data: builderData }}
         />
-      )}
-    </div>
-  );
-}
-
-// ── Settings Panel Component ──
-function SettingsPanel({
-  settings,
-  setSettings,
-  currentGameType,
-}: {
-  settings: any;
-  setSettings: (s: any) => void;
-  currentGameType: GameTypeMeta | null;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-background/50 transition-colors"
-      >
-        <p className="font-heading font-semibold text-sm text-txt flex items-center gap-2">
-          <Settings className="w-4 h-4 text-txt-secondary" />
-          Game Settings
-        </p>
-        <ChevronRight className={cn("w-4 h-4 text-txt-secondary transition-transform", isOpen && "rotate-90")} />
-      </button>
-
-      {isOpen && (
-        <div className="px-4 pb-4 space-y-4 border-t border-border/40 pt-4">
-          <div>
-            <label className="text-xs font-medium text-txt-secondary mb-1 block">Difficulty</label>
-            <select value={settings.difficulty} onChange={(e) => setSettings({ ...settings, difficulty: e.target.value })}
-              className="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-              <option value="easy">🟢 Easy</option>
-              <option value="medium">🟡 Medium</option>
-              <option value="hard">🔴 Hard</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-txt-secondary mb-1 flex items-center gap-1.5">
-              <Timer className="w-3.5 h-3.5" /> Timer (seconds)
-            </label>
-            <Input type="number" min={5} value={settings.timer} onChange={(e) => setSettings({ ...settings, timer: Number(e.target.value) })} />
-          </div>
-          <div className="space-y-2.5 pt-2 border-t border-border/40">
-            <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-              <input type="checkbox" checked={settings.hints} onChange={(e) => setSettings({ ...settings, hints: e.target.checked })}
-                className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
-              <span className="text-txt">Hints</span>
-            </label>
-            <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-              <input type="checkbox" checked={settings.audioAutoplay} onChange={(e) => setSettings({ ...settings, audioAutoplay: e.target.checked })}
-                className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
-              <span className="text-txt">Audio autoplay</span>
-            </label>
-            <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-              <input type="checkbox" checked={settings.shuffle} onChange={(e) => setSettings({ ...settings, shuffle: e.target.checked })}
-                className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
-              <span className="text-txt">Shuffle</span>
-            </label>
-          </div>
-          <div className="pt-3 border-t border-border/40">
-            <label className="flex items-center gap-2.5 text-sm cursor-pointer group">
-              <input type="checkbox" checked={settings.isPublished} onChange={(e) => setSettings({ ...settings, isPublished: e.target.checked })}
-                className="rounded border-border/60 text-primary focus:ring-primary/30 w-4 h-4" />
-              <span className="text-txt">Publish immediately</span>
-            </label>
-          </div>
-        </div>
       )}
     </div>
   );

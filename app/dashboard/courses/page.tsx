@@ -15,11 +15,16 @@ export default async function CoursesPage({ searchParams }: { searchParams: { q?
   const profile = await getEducatorProfile(session.user.id);
   if (!profile) redirect("/auth/login");
 
-  const courses = await prisma.course.findMany({
-    where: { educatorId: profile.id, ...(searchParams.q ? { title: { contains: searchParams.q, mode: "insensitive" } } : {}) },
-    include: { _count: { select: { lessons: true, games: true } } },
-    orderBy: { updatedAt: "desc" },
-  });
+  let courses: any[] = [];
+  try {
+    courses = await prisma.course.findMany({
+      where: { educatorId: profile.id, ...(searchParams.q ? { title: { contains: searchParams.q, mode: "insensitive" } } : {}) },
+      include: { _count: { select: { lessons: true, games: true } } },
+      orderBy: { updatedAt: "desc" },
+    });
+  } catch (err) {
+    console.error("[dashboard:courses:page] Failed to fetch courses:", err);
+  }
 
   return (
     <div className="space-y-6">

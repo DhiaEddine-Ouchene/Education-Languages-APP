@@ -11,11 +11,16 @@ export default async function StudentClassesPage() {
   const session = await auth();
   if (!session) redirect("/auth/login");
 
-  const memberships = await prisma.classMember.findMany({
-    where: { studentId: session.user.id },
-    include: { class: { include: { educator: { include: { user: true } }, _count: { select: { members: true } } } } },
-    orderBy: { joinedAt: "desc" },
-  });
+  let memberships: any[] = [];
+  try {
+    memberships = await prisma.classMember.findMany({
+      where: { studentId: session.user.id },
+      include: { class: { include: { educator: { include: { user: true } }, _count: { select: { members: true } } } } },
+      orderBy: { joinedAt: "desc" },
+    });
+  } catch (err) {
+    console.error("[learn:classes:page] Failed to fetch memberships:", err);
+  }
 
   return (
     <div className="space-y-6">
