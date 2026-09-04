@@ -16,21 +16,25 @@ export default function Crossword({ game, onComplete }: { game: FolderGame; onCo
     const starts: Record<string, number> = {};
     let n = 0;
     const numbered = [...entries]
-      .sort((a: any, b: any) => a.row - b.row || a.col - b.col)
+      .filter((e: any) => e && (e.word || "").length > 0)
+      .sort((a: any, b: any) => (a.row || 0) - (b.row || 0) || (a.col || 0) - (b.col || 0))
       .map((e: any) => {
-        const k = e.row + "," + e.col;
+        const row = e.row || 0;
+        const col = e.col || 0;
+        const k = row + "," + col;
         if (!(k in starts)) {
           n++;
           starts[k] = n;
         }
-        for (let i = 0; i < e.word.length; i++) {
-          const r = e.dir === "down" ? e.row + i : e.row;
-          const c = e.dir === "down" ? e.col : e.col + i;
-          solution[r + "," + c] = e.word[i].toUpperCase();
+        const wordStr = String(e.word || "").toUpperCase();
+        for (let i = 0; i < wordStr.length; i++) {
+          const r = e.dir === "down" ? row + i : row;
+          const c = e.dir === "down" ? col : col + i;
+          solution[r + "," + c] = wordStr[i];
           rows = Math.max(rows, r + 1);
           cols = Math.max(cols, c + 1);
         }
-        return { ...e, num: starts[k] };
+        return { ...e, word: wordStr, row, col, num: starts[k] };
       });
     return { solution, rows, cols, numbered, starts };
   }, [entries]);
@@ -63,6 +67,16 @@ export default function Crossword({ game, onComplete }: { game: FolderGame; onCo
   function reset() {
     setVals({});
     setWrong(new Set());
+  }
+
+  if (entries.length === 0 || model.rows === 0) {
+    return (
+      <GameShell index={0} total={0} score={0} feedback={null} done={false} onNext={reset}>
+        <div className="card center">
+          <p className="note">No crossword puzzle entries added yet.</p>
+        </div>
+      </GameShell>
+    );
   }
 
   const cells = [];

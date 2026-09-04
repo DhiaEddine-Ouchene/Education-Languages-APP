@@ -12,11 +12,17 @@ export default function TapWord({ game, onComplete }: { game: FolderGame; onComp
   const [sel, setSel] = useState<number | null>(null);
   const [phase, setPhase] = useState<"find" | "fix">("find");
 
+  const words: string[] = Array.isArray(r.words)
+    ? r.words
+    : typeof r.words === "string"
+      ? (r.words as string).split(/\s+/).filter(Boolean)
+      : [];
+
   function tapWord(idx: number) {
     if (g.feedback || phase === "fix") return;
     setSel(idx);
     if (idx === r.errorIndex) setPhase("fix");
-    else g.submit(false, `The error is “${r.words?.[r.errorIndex]}”. ` + (r.explain || ""));
+    else g.submit(false, `The error is “${words[r.errorIndex] || words[0] || ""}”. ` + (r.explain || ""));
   }
   function pickFix(opt: string) {
     if (g.feedback) return;
@@ -28,7 +34,7 @@ export default function TapWord({ game, onComplete }: { game: FolderGame; onComp
     g.next();
   }
 
-  if (rounds.length === 0) {
+  if (rounds.length === 0 || words.length === 0) {
     return (
       <GameShell index={0} total={0} score={0} feedback={null} done={false} onNext={next}>
         <div className="card center">
@@ -43,7 +49,7 @@ export default function TapWord({ game, onComplete }: { game: FolderGame; onComp
       <div className="card center">
         <div className="tag">{phase === "find" ? "Tap the incorrect word" : "Choose the correction"}</div>
         <div className="tap-words">
-          {(r.words || []).map((w: string, idx: number) => {
+          {words.map((w: string, idx: number) => {
             let cls = "tap-word";
             if (g.feedback && idx === r.errorIndex) cls += " err";
             else if (idx === sel) cls += " sel";

@@ -171,11 +171,13 @@ function mcqVocab(items: AnyItem[]): any {
   return {
     rounds: items.map((it) => {
       const answer = S(it.translation || it.word);
+      const prompt = S(it.word);
       return {
-        sub: `What does “${S(it.word)}” mean?`,
-        prompt: S(it.word),
+        sub: `What does “${prompt}” mean?`,
+        prompt,
         options: optionSet(answer, distractorsFrom(translations, answer, 3)),
         answer,
+        explain: S(it.explanation || it.explain || `“${prompt}” means “${answer}”.`),
       };
     }),
   };
@@ -194,7 +196,7 @@ function mcqSynonymAntonym(items: AnyItem[]): any {
         prompt: word,
         options: optionSet(syn, [ant, ...dis]),
         answer: syn,
-        explain: `“${syn}” means the same as “${word}”.`,
+        explain: S(it.explanation || `“${syn}” means the same as “${word}”.`),
       });
     }
     if (ant) {
@@ -203,7 +205,7 @@ function mcqSynonymAntonym(items: AnyItem[]): any {
         prompt: word,
         options: optionSet(ant, [syn, ...dis]),
         answer: ant,
-        explain: `“${ant}” is the opposite of “${word}”.`,
+        explain: S(it.explanation || `“${ant}” is the opposite of “${word}”.`),
       });
     }
   }
@@ -219,7 +221,7 @@ function mcqOddOneOut(items: AnyItem[]): any {
         sub: "Which word does NOT belong?",
         options: uniq(words),
         answer: odd,
-        explain: it.category ? `“${odd}” doesn’t fit — the others are ${S(it.category)}.` : `“${odd}” is the odd one out.`,
+        explain: it.category ? `“${odd}” doesn’t fit — the others are ${S(it.category)}.` : S(it.explanation || `“${odd}” is the odd one out.`),
         stack: true,
       };
     }),
@@ -241,6 +243,7 @@ function mcqPictureToWord(items: AnyItem[]): any {
         image,
         options: optionSet(answer, dis),
         answer,
+        explain: S(it.explanation || `“${answer}” is represented in the image.`),
       };
     }),
   };
@@ -258,7 +261,7 @@ function mcqCollocation(items: AnyItem[]): any {
         prompt: base,
         options: optionSet(good, wrong),
         answer: good,
-        explain: `“${base} ${good}” is a natural pairing.`,
+        explain: S(it.explanation || `“${base} ${good}” is a natural pairing.`),
       });
     }
   }
@@ -274,6 +277,7 @@ function mcqWordInContext(items: AnyItem[]): any {
         sub: `Which sentence uses “${S(it.word)}” correctly?`,
         options: optionSet(correct, wrong),
         answer: correct,
+        explain: S(it.explanation || `“${correct}” uses “${S(it.word)}” correctly.`),
         stack: true,
       };
     }),
@@ -287,9 +291,11 @@ function mcqMinimalPair(items: AnyItem[]): any {
       const b = S(it.wordB || it.word2 || it.translation);
       return {
         sub: "Which word do you hear?",
+        prompt: a,
         audioText: a,
         options: uniq([a, b]),
         answer: a,
+        explain: S(it.explanation || `The spoken word was “${a}”.`),
       };
     }),
   };
@@ -303,9 +309,11 @@ function mcqSpeedRound(items: AnyItem[]): any {
       const dis = Array.isArray(it.distractors) ? it.distractors.map(S) : distractorsFrom(words, answer, 3);
       return {
         sub: "Quick — pick the word",
+        prompt: answer,
         audioText: answer,
         options: optionSet(answer, dis),
         answer,
+        explain: S(it.explanation || `The correct word is “${answer}”.`),
       };
     }),
   };
@@ -314,11 +322,11 @@ function mcqSpeedRound(items: AnyItem[]): any {
 function mcqQuestions(items: AnyItem[], sub: string): any {
   return {
     rounds: items.map((q) => ({
-      sub,
+      sub: S(q.sub) || sub,
       prompt: S(q.question || q.prompt),
       options: (Array.isArray(q.options) ? q.options.map(S) : []).filter(Boolean),
-      answer: S(q.correctOption || q.correctAnswer),
-      explain: S(q.explanation),
+      answer: S(q.correctOption || q.correctAnswer || q.answer),
+      explain: S(q.explanation || q.explain || "Review this question."),
       stack: true,
     })),
   };
@@ -326,15 +334,22 @@ function mcqQuestions(items: AnyItem[], sub: string): any {
 
 // fillblank
 function fbFillWord(items: AnyItem[], opts: { audio?: boolean } = {}): any {
-  const words = items.map((i) => i.correctWord || i.answer);
+  const words = items.map((i) => i.correctWord || i.answer || i.word);
   return {
     rounds: items.map((it) => {
-      const answer = S(it.correctWord || it.answer);
-      const text = S(it.sentenceWithBlank || it.sentence);
+      const answer = S(it.correctWord || it.answer || it.word);
+      const text = S(it.sentenceWithBlank || it.sentence || it.text);
+      const dis = Array.isArray(it.distractors)
+        ? it.distractors.map(S)
+        : Array.isArray(it.options)
+          ? it.options.map(S).filter((o) => o !== answer)
+          : distractorsFrom(words, answer, 3);
       const round: any = {
-        text,
-        options: optionSet(answer, distractorsFrom(words, answer, 3)),
+        task: S(it.task) || (opts.audio ? "Listen and choose the missing word" : "Choose the missing word"),
+        text: text || `${answer} means ___`,
+        options: optionSet(answer, dis),
         answer,
+        explain: S(it.explanation || it.explain || `“${answer}” fits correctly into the sentence.`),
       };
       if (opts.audio) round.audioText = text.replace(/_{2,}/, answer);
       return round;
@@ -361,6 +376,7 @@ function fbVerbConjugation(items: AnyItem[]): any {
         text: `${S(f.pronoun)} ___`,
         options: optionSet(answer, distractorsFrom(allForms, answer, 3)),
         answer,
+        explain: S(f.explanation || it.explanation || `${verb} (${S(f.pronoun)}) in ${tense} is “${answer}”.`),
       });
     }
   }
@@ -382,7 +398,7 @@ function fbDialogue(items: AnyItem[]): any {
   const fill = (text: string, ans: string): string => (/_{2,}/.test(text) ? text.replace(/_{2,}/, ans) : text);
 
   for (const it of items) {
-    const scenario = S(it.scenario);
+    const scenario = S(it.scenario) || "Conversation practice";
     const lines: AnyItem[] = Array.isArray(it.lines) ? it.lines : [];
     let blanks: AnyItem[] = Array.isArray(it.blanks) ? it.blanks : [];
     if (!blanks.length) {
@@ -411,7 +427,7 @@ function fbDialogue(items: AnyItem[]): any {
         dialogue,
         options: dis.length ? optionSet(answer, dis) : undefined,
         answer,
-        explain: S(b.explanation || it.explanation),
+        explain: S(b.explanation || it.explanation || `“${answer}” is the natural phrase in this dialogue.`),
       });
     }
   }
@@ -423,8 +439,9 @@ function ttTransformation(items: AnyItem[]): any {
   return {
     rounds: items.map((it) => ({
       instruction: S(it.instruction) || "Transform the sentence",
-      prompt: S(it.prompt),
-      answers: (Array.isArray(it.answers) ? it.answers.map(S) : [S(it.answer)]).filter(Boolean),
+      prompt: S(it.prompt || it.sentence || it.flawedSentence),
+      answers: (Array.isArray(it.answers) ? it.answers.map(S) : [S(it.answer || it.correctSentence)]).filter(Boolean),
+      explain: S(it.explanation || it.explain),
     })),
   };
 }
@@ -432,8 +449,8 @@ function ttTransformation(items: AnyItem[]): any {
 function ttSentence(items: AnyItem[], mode: "dictation" | "listen" | "speak"): any {
   return {
     rounds: items.map((it) => {
-      const sentence = S(it.sentence || it.correctSentence);
-      const round: any = { answers: [sentence] };
+      const sentence = S(it.sentence || it.correctSentence || it.text);
+      const round: any = { answers: [sentence], explain: S(it.explanation || it.explain) };
       if (mode === "dictation") {
         round.instruction = "Listen and type what you hear";
         round.audioText = sentence;
@@ -477,7 +494,8 @@ function orderScramble(items: AnyItem[]): any {
     mode: "letters",
     rounds: items.map((it) => ({
       hint: S(it.hint) || "Unscramble the letters",
-      answer: S(it.word),
+      answer: S(it.word || it.answer),
+      explain: S(it.explanation || it.explain || `The word is “${S(it.word || it.answer)}”.`),
     })),
   };
 }
@@ -486,8 +504,9 @@ function orderSentence(items: AnyItem[]): any {
   return {
     mode: "words",
     rounds: items.map((it) => ({
-      hint: "Put the words in order",
+      hint: S(it.hint) || "Put the words in order",
       answer: S(it.correctSentence || it.sentence || it.answer),
+      explain: S(it.explanation || it.explain),
     })),
   };
 }
@@ -505,9 +524,12 @@ function matchPairs(items: AnyItem[], task: string, toPair: (it: AnyItem) => [st
 
 // sort
 function sortCategories(items: AnyItem[]): any {
-  const categories = uniq(items.map((c) => c.category));
+  const categories = uniq(items.map((c) => c.category || c.name || c.cat));
   const sortItems = items.flatMap((c) =>
-    (Array.isArray(c.words) ? c.words : []).map((w: any) => ({ word: S(w), cat: S(c.category) }))
+    (Array.isArray(c.words) ? c.words : Array.isArray(c.items) ? c.items : []).map((w: any) => ({
+      word: S(typeof w === "object" ? w.word : w),
+      cat: S(c.category || c.name || c.cat),
+    }))
   );
   return { rounds: [{ categories, items: sortItems }] };
 }

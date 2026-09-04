@@ -14,10 +14,10 @@ export default function CategorySort({ game, onComplete }: { game: FolderGame; o
   const [flash, setFlash] = useState<{ cat: string; ok: boolean } | null>(null);
 
   const items = r.items || [];
-  const item = items[idx];
+  const item = items[idx] || {};
 
   function drop(cat: string) {
-    if (g.feedback || flash) return;
+    if (g.feedback || flash || !item.cat) return;
     const ok = item.cat === cat;
     setFlash({ cat, ok });
     if (ok) setCorrect((c) => c + 1);
@@ -35,6 +35,16 @@ export default function CategorySort({ game, onComplete }: { game: FolderGame; o
     setIdx(0);
     setCorrect(0);
     setFlash(null);
+  }
+
+  if (rounds.length === 0 || items.length === 0) {
+    return (
+      <GameShell index={0} total={0} score={0} feedback={null} done={false} onNext={reset}>
+        <div className="card center">
+          <p className="note">No items to sort yet.</p>
+        </div>
+      </GameShell>
+    );
   }
 
   return (

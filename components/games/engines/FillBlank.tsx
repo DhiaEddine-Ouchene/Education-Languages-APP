@@ -9,9 +9,11 @@ function Blank({ value }: { value?: string }) {
   return <span className="blank">{value || "    "}</span>;
 }
 
-function LineWithBlank({ text, value }: { text: string; value?: string }) {
-  if (!text.includes("___")) return <>{text}</>;
-  const [a, b] = text.split("___");
+function LineWithBlank({ text, value }: { text?: string; value?: string }) {
+  const safeText = String(text ?? "");
+  if (!safeText.includes("___")) return <>{safeText}</>;
+  const [a, ...rest] = safeText.split("___");
+  const b = rest.join("___");
   return (
     <>
       {a}
@@ -31,8 +33,9 @@ export default function FillBlank({ game, onComplete }: { game: FolderGame; onCo
 
   function grade(val: string) {
     if (g.feedback || !val.trim()) return;
-    const ok = val.trim().toLowerCase() === r.answer.toLowerCase();
-    g.submit(ok, (ok ? "" : `Answer: “${r.answer}”. `) + (r.explain || ""));
+    const ans = String(r.answer || "").trim();
+    const ok = val.trim().toLowerCase() === ans.toLowerCase();
+    g.submit(ok, (ok ? "" : `Answer: “${ans}”. `) + (r.explain || ""));
   }
   function pick(opt: string) {
     setPicked(opt);

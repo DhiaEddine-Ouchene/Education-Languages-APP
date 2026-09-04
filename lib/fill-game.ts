@@ -7,13 +7,12 @@ import type { ChipData } from "@/components/dashboard/builders/WordBank";
 // (word/phrase + translation, and an optional example sentence) with NO AI call —
 // these fill the builder instantly. Everything else is a "structured" type
 // (crossword grids, category buckets, dialogues, grammar transforms, error
-// spotting, writing prompts, …) that reads much better when the AI shapes it.
+// spotting, writing prompts, MCQ questions, gap-fill sentences, …) that reads
+// much better and generates full fields when the AI shapes it.
 const INSTANT_FILL_TYPES = new Set<string>([
   "FLASHCARD", "FLASHCARD_3D",           // flashcard: word ↔ meaning cards
   "MEMORY",                               // memory: word ↔ meaning pairs
   "WORD_MEANING_MATCH", "DRAG_DROP",      // match: word ↔ meaning pairs
-  "QUIZ", "WORD_IN_CONTEXT", "SPEED_ROUND", // mcq: "what does X mean?"
-  "FILL_GAP_WORD", "LISTEN_FILL_WORD",    // fillblank: gap built from the example sentence
   "WORD_SCRAMBLE",                        // order (letters): unscramble the word
 ]);
 
