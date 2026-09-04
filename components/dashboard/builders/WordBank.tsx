@@ -46,14 +46,12 @@ export function WordBank({
   existingSets, language = "English", level = "B1",
   onLanguageChange, onLevelChange, onSetSaved, onNativeLangChange, onAiGenerateComplete
 }: Props) {
-  const [mode, setMode] = useState<"ai" | "existing" | "manual">("ai");
+  const [mode, setMode] = useState<"ai" | "existing">("ai");
   const [topic, setTopic] = useState("");
   const [targetLanguage, setTargetLanguage] = useState("English");
   const [wordCount, setWordCount] = useState(10);
   const [generating, setGenerating] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState("");
-  const [manualWord, setManualWord] = useState("");
-  const [manualTranslation, setManualTranslation] = useState("");
 
   const [savingSet, setSavingSet] = useState(false);
   const [setName, setSetName] = useState("");
@@ -104,15 +102,6 @@ export function WordBank({
     }
   };
 
-  const addManualWord = () => {
-    const w = manualWord.trim();
-    const t = manualTranslation.trim();
-    if (!w || !t) { toast("error", "Both word and translation are required"); return; }
-    onWordsChange([...words, { id: `manual-${Date.now()}`, word: w, translation: t }]);
-    setManualWord("");
-    setManualTranslation("");
-  };
-
   const removeWord = (id: string) => {
     onWordsChange(words.filter((w) => w.id !== id));
   };
@@ -132,7 +121,7 @@ export function WordBank({
           nativeLanguage: targetLanguage,
           level,
           contentType,
-          sourceType: mode === "ai" ? "AI_TOPIC" : "MANUAL",
+          sourceType: "AI_TOPIC",
           items: words.map((w) => ({
             word: w.word,
             translation: w.translation,
@@ -147,7 +136,6 @@ export function WordBank({
       setShowSaveSet(false);
       setSetName("");
       if (onSetSaved) onSetSaved(vocabData.id);
-      setSetName("");
     } catch (err: any) {
       toast("error", err.message || "Something went wrong");
     } finally {
@@ -174,26 +162,26 @@ export function WordBank({
           <Database className="w-3.5 h-3.5 shrink-0" />
           <span>Sets</span>
         </button>
-        <button onClick={() => setMode("manual")} className={cn("flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1", mode === "manual" ? "bg-primary text-white shadow-sm" : "text-txt-secondary hover:text-txt")}>
-          <Plus className="w-3.5 h-3.5 shrink-0" />
-          <span>Manual</span>
-        </button>
       </div>
 
       {/* AI Generate Panel */}
       {mode === "ai" && (
-        <div className="p-3 space-y-2 border-b border-border/30">
-          <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Topic..." className="text-xs h-8" />
-          <div className="grid grid-cols-2 gap-1.5">
+        <div className="p-3 space-y-2.5 border-b border-border/30">
+          <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Topic (e.g. ordering taxi)..." className="text-xs h-8" />
+          
+          <div className="space-y-2">
             <div>
-              <label className="text-[10px] text-txt-secondary mb-0.5 block">Word Lang</label>
+              <label className="text-[10px] font-semibold text-txt block mb-0.5">Target Language</label>
               <Input value={language} onChange={(e) => onLanguageChange?.(e.target.value)} placeholder="English" className="text-xs h-8" />
+              <p className="text-[9px] text-txt-secondary mt-0.5 leading-tight">The language of the word or phrase learners are practicing.</p>
             </div>
             <div>
-              <label className="text-[10px] text-txt-secondary mb-0.5 block">Translation Lang</label>
+              <label className="text-[10px] font-semibold text-txt block mb-0.5">Native Language</label>
               <Input value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)} placeholder="French" className="text-xs h-8" />
+              <p className="text-[9px] text-txt-secondary mt-0.5 leading-tight">The language used to explain or translate the meaning.</p>
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-1.5 pt-1">
             <Input type="number" min={3} max={50} value={wordCount} onChange={(e) => setWordCount(Number(e.target.value))} className="text-xs h-8" />
             {onLevelChange && (
@@ -206,7 +194,7 @@ export function WordBank({
           </div>
           <Button onClick={generateWithAI} disabled={generating || !topic.trim()} size="sm" className="w-full text-xs h-8 mt-1">
             {generating ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
-            {generating ? "Generating..." : `Generate ${nounFor(contentType).plural}`}
+            {generating ? "Generating..." : "Generate Game Content"}
           </Button>
         </div>
       )}
@@ -230,19 +218,6 @@ export function WordBank({
               ))}
             </select>
           )}
-        </div>
-      )}
-
-      {/* Manual Add Panel */}
-      {mode === "manual" && (
-        <div className="p-3 space-y-2 border-b border-border/30">
-          <Input value={manualWord} onChange={(e) => setManualWord(e.target.value)} placeholder={`${nounFor(contentType).one.charAt(0).toUpperCase() + nounFor(contentType).one.slice(1)}...`} className="text-xs h-8" />
-          <Input value={manualTranslation} onChange={(e) => setManualTranslation(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addManualWord(); } }}
-            placeholder="Translation/Synonym..." className="text-xs h-8" />
-          <Button onClick={addManualWord} disabled={!manualWord.trim() || !manualTranslation.trim()} size="sm" className="w-full text-xs h-8">
-            <Plus className="w-3 h-3 mr-1" /> Add {nounFor(contentType).one.charAt(0).toUpperCase() + nounFor(contentType).one.slice(1)}
-          </Button>
         </div>
       )}
 
@@ -276,8 +251,8 @@ export function WordBank({
         {words.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center text-txt-secondary">
             <BookOpen className="w-8 h-8 mb-2 opacity-40" />
-            <p className="text-xs font-medium">No {nounFor(contentType).plural.toLowerCase()} yet</p>
-            <p className="text-[10px] mt-0.5">Generate, select a set, or add manually</p>
+            <p className="text-xs font-medium">No items yet</p>
+            <p className="text-[10px] mt-0.5">Generate with AI or select a saved set</p>
           </div>
         ) : (
           words.map((chip) => (

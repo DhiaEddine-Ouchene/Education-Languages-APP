@@ -173,9 +173,9 @@ function dialogueFillPrompt({ sourceContent, count, targetLang, nativeLang }: Pa
     `  - "role": "other" for the non-learner character, or "you" for the learner's own turn\n` +
     `  - "text" in ${targetLang}\n` +
     `  - "isBlank": true ONLY for a line where role is "you" (put ___ where the missing word goes)\n` +
-    `- blanks: for each line where isBlank is true, give "lineIndex" (its 0-based index in "lines"), "correctAnswer" (the missing ${targetLang} word/phrase), and "distractors" (2-3 wrong options)\n` +
+    `- blanks: for each line where isBlank is true, give "lineIndex" (its 0-based index in "lines"), "correctAnswer" (the missing ${targetLang} word/phrase), and "distractors" (exactly 3 wrong options, so the learner chooses from 4 options in total)\n` +
     `IMPORTANT: the gap to fill must belong to the learner ("you"). The other character speaks complete lines.\n` +
-    footer(`{"items":[{"scenario":"Ordering a taxi","lines":[{"speaker":"Driver","role":"other","text":"Where to?","isBlank":false},{"speaker":"You","role":"you","text":"I need to go to the ___ please.","isBlank":true}],"blanks":[{"lineIndex":1,"correctAnswer":"airport","distractors":["library","kitchen"]}]}]}`);
+    footer(`{"items":[{"scenario":"Ordering a taxi","lines":[{"speaker":"Driver","role":"other","text":"Where to?","isBlank":false},{"speaker":"You","role":"you","text":"I need to go to the ___ please.","isBlank":true}],"blanks":[{"lineIndex":1,"correctAnswer":"airport","distractors":["library","kitchen","train station"]}]}]}`);
 }
 
 // WORD_IN_CONTEXT — word, correct sentence, incorrect sentences

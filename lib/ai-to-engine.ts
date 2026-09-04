@@ -397,6 +397,14 @@ function fbDialogue(items: AnyItem[]): any {
   };
   const fill = (text: string, ans: string): string => (/_{2,}/.test(text) ? text.replace(/_{2,}/, ans) : text);
 
+  // Collect all available words to ensure we can always provide 4 distinct options
+  const allWords = items.flatMap((it) => [
+    ...(Array.isArray(it.blanks) ? it.blanks.map((b: any) => S(b.correctAnswer)) : []),
+    ...(Array.isArray(it.blanks) ? it.blanks.flatMap((b: any) => (Array.isArray(b.distractors) ? b.distractors.map(S) : [])) : []),
+    S(it.word),
+    S(it.translation),
+  ]).filter(Boolean);
+
   for (const it of items) {
     const scenario = S(it.scenario) || "Conversation practice";
     const lines: AnyItem[] = Array.isArray(it.lines) ? it.lines : [];
@@ -421,11 +429,14 @@ function fbDialogue(items: AnyItem[]): any {
         const line = idx === li ? gap(raw, answer) : answerByLine[idx] ? fill(raw, answerByLine[idx]) : raw;
         return { s: isYou ? "B" : "A", name: S(l.speaker) || (isYou ? "You" : "Them"), line };
       });
-      const dis = Array.isArray(b.distractors) ? b.distractors.map(S) : Array.isArray(b.options) ? b.options.map(S) : [];
+      const rawDis = Array.isArray(b.distractors) ? b.distractors.map(S) : Array.isArray(b.options) ? b.options.map(S) : [];
+      const pool = distractorsFrom(allWords, answer, 3);
+      const combinedDis = uniq([...rawDis, ...pool]);
+      const opts = optionSet(answer, combinedDis, 4);
       rounds.push({
         task: scenario,
         dialogue,
-        options: dis.length ? optionSet(answer, dis) : undefined,
+        options: opts,
         answer,
         explain: S(b.explanation || it.explanation || `“${answer}” is the natural phrase in this dialogue.`),
       });
