@@ -149,20 +149,17 @@ function speedRoundPrompt({ sourceContent, count, targetLang }: Parameters<Promp
 const dialogueLine = z.object({
   speaker: z.string().min(1),
   text: z.string().min(1),
-  isBlank: z.boolean(),
-  // "you" = the learner's own turn (the only side that may ever contain a blank).
-  // "other" = the other character in the scene (waiter, taxi driver, etc.), who always
-  // speaks complete, normal lines and is never blanked.
-  role: z.enum(["you", "other"]),
+  isBlank: z.boolean().optional().default(false),
+  role: z.string().optional().default("other"),
 });
 const dialogueBlank = z.object({
   lineIndex: z.number().int().min(0),
   correctAnswer: z.string().min(1),
-  distractors: z.array(z.string().min(1)).min(2).max(3),
+  distractors: z.array(z.string().min(1)).min(1),
 });
 const dialogueFillItem = z.object({
   scenario: z.string().min(1),
-  lines: z.array(dialogueLine).min(4).max(8),
+  lines: z.array(dialogueLine).min(2),
   blanks: z.array(dialogueBlank).min(1),
 });
 const DIALOGUE_FILL_SCHEMA = z.object({ items: z.array(dialogueFillItem).min(1).max(20) });
@@ -170,15 +167,15 @@ function dialogueFillPrompt({ sourceContent, count, targetLang, nativeLang }: Pa
   return header(`Generate exactly ${count} dialogue-fill exercises for a ${targetLang} learner (native language: ${nativeLang}).`, sourceContent) +
     `Each exercise is a short back-and-forth conversation between the LEARNER and ONE other character (e.g. a waiter, taxi driver, shopkeeper, receptionist).\n` +
     `Each exercise needs:\n` +
-    `- scenario: one sentence in ${nativeLang} describing the situation (e.g. "Ordering coffee at a cafe")\n` +
+    `- scenario: one sentence in ${nativeLang} describing the situation (e.g. "Ordering a taxi")\n` +
     `- lines: 4-8 dialogue lines that alternate between the two speakers, each with:\n` +
-    `  - "speaker": a short name/label (the other character's role, e.g. "Waiter", or "You" for the learner)\n` +
+    `  - "speaker": a short name/label (e.g. "Driver", or "You" for the learner)\n` +
     `  - "role": "other" for the non-learner character, or "you" for the learner's own turn\n` +
     `  - "text" in ${targetLang}\n` +
-    `  - "isBlank": true ONLY for a line where role is "you" — the other character (role "other") must ALWAYS speak a complete, normal line and must NEVER be marked isBlank\n` +
-    `- blanks: for each line where isBlank is true, give "lineIndex" (its 0-based index in "lines"), "correctAnswer" (the missing ${targetLang} word/phrase that completes the learner's line), and "distractors" (2-3 wrong but plausible ${targetLang} options)\n` +
-    `IMPORTANT: the gap to fill must always belong to the learner ("you") replying in the conversation — never to the other character. The other character's lines are shown to the learner as context and must be complete sentences with no blanks.\n` +
-    footer(`{"items":[{"scenario":"...","lines":[{"speaker":"Waiter","role":"other","text":"...","isBlank":false},{"speaker":"You","role":"you","text":"...___...","isBlank":true}],"blanks":[{"lineIndex":1,"correctAnswer":"...","distractors":["...","..."]}]}]}`);
+    `  - "isBlank": true ONLY for a line where role is "you" (put ___ where the missing word goes)\n` +
+    `- blanks: for each line where isBlank is true, give "lineIndex" (its 0-based index in "lines"), "correctAnswer" (the missing ${targetLang} word/phrase), and "distractors" (2-3 wrong options)\n` +
+    `IMPORTANT: the gap to fill must belong to the learner ("you"). The other character speaks complete lines.\n` +
+    footer(`{"items":[{"scenario":"Ordering a taxi","lines":[{"speaker":"Driver","role":"other","text":"Where to?","isBlank":false},{"speaker":"You","role":"you","text":"I need to go to the ___ please.","isBlank":true}],"blanks":[{"lineIndex":1,"correctAnswer":"airport","distractors":["library","kitchen"]}]}]}`);
 }
 
 // WORD_IN_CONTEXT — word, correct sentence, incorrect sentences
@@ -241,10 +238,10 @@ function verbConjugationPrompt({ sourceContent, count, targetLang }: Parameters<
     footer(`{"items":[{"verb":"...","tense":"Present","forms":[{"pronoun":"I","form":"..."},{"pronoun":"you","form":"..."},{"pronoun":"he/she","form":"..."},{"pronoun":"we","form":"..."},{"pronoun":"they","form":"..."}]}]}`);
 }
 
-// MULTIPLE_CHOICE_GRAMMAR & QUIZ — question, 4 options, correct, explanation
+// MULTIPLE_CHOICE_GRAMMAR & QUIZ — question, options, correct, explanation
 const multipleChoiceItem = z.object({
   question: z.string().min(3),
-  options: z.array(z.string().min(1)).length(4),
+  options: z.array(z.string().min(1)).min(2).max(6),
   correctOption: z.string().min(1),
   explanation: z.string().min(1),
 });

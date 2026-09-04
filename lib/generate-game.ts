@@ -71,6 +71,34 @@ export function normalizeAiFields(parsed: unknown, gameType: string): unknown {
         }
       }
 
+      // Special case: SITUATION_DIALOGUE_FILL lines and blanks normalization
+      if (gameType === "SITUATION_DIALOGUE_FILL") {
+        if (Array.isArray(norm["lines"])) {
+          norm["lines"] = norm["lines"].map((l: any, idx: number) => {
+            if (!l || typeof l !== "object") return { speaker: idx % 2 === 0 ? "Speaker" : "You", text: String(l || ""), isBlank: idx % 2 === 1, role: idx % 2 === 1 ? "you" : "other" };
+            const isBlank = typeof l.isBlank === "boolean" ? l.isBlank : String(l.text || "").includes("___");
+            const role = String(l.role || "").toLowerCase() === "you" || String(l.speaker || "").toLowerCase() === "you" ? "you" : "other";
+            return {
+              speaker: String(l.speaker || (role === "you" ? "You" : "Speaker")),
+              text: String(l.text || ""),
+              isBlank,
+              role,
+            };
+          });
+        }
+        if (Array.isArray(norm["blanks"])) {
+          norm["blanks"] = norm["blanks"].map((b: any, idx: number) => {
+            if (!b || typeof b !== "object") return { lineIndex: idx, correctAnswer: "answer", distractors: ["option1", "option2"] };
+            const distractors = Array.isArray(b.distractors) ? b.distractors.map(String).filter(Boolean) : [];
+            return {
+              lineIndex: typeof b.lineIndex === "number" ? b.lineIndex : idx,
+              correctAnswer: String(b.correctAnswer || b.answer || ""),
+              distractors: distractors.length ? distractors : ["wrong1", "wrong2"],
+            };
+          });
+        }
+      }
+
       return norm;
     });
   }
@@ -275,11 +303,19 @@ export async function generateGameFromWordBank(
   }
 
   // 4. Handle special-case game types
-  if (gameType === "SITUATION_DIALOGUE_FILL" && options?.scenarioDescription) {
-    sourceContent = `SCENARIO: ${options.scenarioDescription}\n\nVOCABULARY TO USE:\n${sourceContent}`;
+  if (gameType === "SITUATION_DIALOGUE_FILL") {
+    count = Math.min(count, 3);
+    if (options?.scenarioDescription) {
+      sourceContent = `SCENARIO: ${options.scenarioDescription}\n\nVOCABULARY TO USE:\n${sourceContent}`;
+    }
+  }
+
+  if (["STORY", "WRITING_RUBRIC", "FILL_BLANK"].includes(gameType)) {
+    count = Math.min(count, 1);
   }
 
   if (gameType === "VERB_CONJUGATION") {
+    count = Math.min(count, 1);
     const verb = options?.verb || (options?.words?.[0]?.word) || "to be";
     const tense = options?.tense || "Present";
     sourceContent = `Verb: ${verb}\nTense: ${tense}`;
