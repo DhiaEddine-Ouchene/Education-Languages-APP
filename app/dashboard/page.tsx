@@ -100,8 +100,8 @@ export default async function DashboardPage() {
         <StatCard icon={School} value={classes.length} label={isPaid ? "Active Classes" : "Classes (max 1)"} />
         <StatCard
           icon={Gamepad2}
-          value={isPaid ? `${gamesPublished}/${totalGames}` : `${gamesPublished}/5`}
-          label="Games Published"
+          value={isPaid ? gamesPublished : `${gamesPublished}/5`}
+          label={isPaid ? "Games Published" : "Games Published (max 5)"}
         />
       </div>
 
