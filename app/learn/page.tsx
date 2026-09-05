@@ -78,17 +78,19 @@ export default async function LearnHomePage() {
 
   try {
     const [practiceRes, courseGamesRes] = await Promise.allSettled([
-      prisma.game.findMany({
-        where: educatorIds.length
-          ? { educatorId: { in: educatorIds }, isPublished: true }
-          : { isPublished: true },
-        take: 9,
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.game.findMany({
-        where: { id: { in: assignedGameIds }, courseId: { not: null } },
-        select: { courseId: true },
-      }),
+      educatorIds.length > 0
+        ? prisma.game.findMany({
+            where: { educatorId: { in: educatorIds }, isPublished: true },
+            take: 9,
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
+      assignedGameIds.length > 0
+        ? prisma.game.findMany({
+            where: { id: { in: assignedGameIds }, courseId: { not: null } },
+            select: { courseId: true },
+          })
+        : Promise.resolve([]),
     ]);
 
     if (practiceRes.status === "fulfilled") practice = practiceRes.value;

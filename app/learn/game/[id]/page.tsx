@@ -68,7 +68,31 @@ export default async function GamePlayPage({ params }: { params: { id: string } 
   const isOwner = educatorProfile && educatorProfile.id === game.educatorId;
 
   if (!isOwner) {
-    // Check if the game (or its parent course) is assigned to any class
+    if (!game.isPublished) notFound();
+
+    // Check if student belongs to ANY class taught by this educator
+    const isEnrolledWithEducator = await prisma.classMember.findFirst({
+      where: {
+        studentId: session.user.id,
+        class: { educatorId: game.educatorId },
+      },
+    });
+
+    if (!isEnrolledWithEducator) {
+      return (
+        <div className="max-w-md mx-auto my-16 p-6 bg-card border border-border rounded-xl text-center space-y-4 shadow-md">
+          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950 text-red-600 flex items-center justify-center mx-auto text-xl font-bold">
+            🔒
+          </div>
+          <h2 className="font-heading font-bold text-xl text-txt-primary">Access Restricted</h2>
+          <p className="text-sm text-txt-secondary">
+            This activity is private and available exclusively to students enrolled in this educator's classes.
+          </p>
+        </div>
+      );
+    }
+
+    // Check if the game (or its parent course) is assigned to specific classes
     const assignments = await prisma.assignment.findMany({
       where: {
         OR: [
@@ -96,13 +120,11 @@ export default async function GamePlayPage({ params }: { params: { id: string } 
             </div>
             <h2 className="font-heading font-bold text-xl text-txt-primary">Access Restricted</h2>
             <p className="text-sm text-txt-secondary">
-              This activity is private and assigned exclusively to enrolled class members. You are not currently enrolled in this class.
+              This activity is assigned exclusively to specific classes. You are not enrolled in the assigned class.
             </p>
           </div>
         );
       }
-    } else if (!game.isPublished) {
-      notFound();
     }
   }
 
