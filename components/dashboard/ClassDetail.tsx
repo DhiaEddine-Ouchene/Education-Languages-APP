@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { cn, formatDate } from "@/lib/utils";
-import { Radio, Trophy, Copy, UserPlus, Trash2, UserMinus } from "lucide-react";
+import { Radio, Trophy, Copy, UserPlus, Trash2, UserMinus, AlertTriangle, Loader2, X } from "lucide-react";
 
 type Member = { id: string; studentId?: string; name: string; email: string; joinedAt: string; totalXP: number; level: number; streak: number };
 type AssignmentRow = { id: string; gameTitle: string; dueDate: string; isLive: boolean; completions: number };
@@ -30,6 +30,30 @@ export function ClassDetail({ cls, games, courses, leaderboard }: Props) {
   const [announcement, setAnnouncement] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const deleteClass = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/classes/${cls.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast("error", data.error || "Failed to delete class");
+        return;
+      }
+      toast("success", `Class "${cls.name}" deleted`);
+      setShowDeleteModal(false);
+      router.push("/dashboard/classes");
+      router.refresh();
+    } catch (err: any) {
+      toast("error", err.message || "Failed to delete class");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const addStudent = async () => {
     if (!studentEmail || !studentEmail.includes("@")) return toast("error", "Enter a valid student email");
@@ -122,16 +146,82 @@ export function ClassDetail({ cls, games, courses, leaderboard }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Delete Class Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-5 bg-background border-b border-border flex justify-between items-center">
+              <div className="flex items-center gap-2 text-error font-heading font-bold text-lg">
+                <AlertTriangle className="h-5 w-5" />
+                <span>Delete Class</span>
+              </div>
+              <button
+                onClick={() => !isDeleting && setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="p-1 rounded-full text-txt-secondary hover:bg-border transition-colors disabled:opacity-50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3">
+              <p className="text-sm text-txt-primary">
+                Are you sure you want to delete <span className="font-semibold text-txt-primary">"{cls.name}"</span>?
+              </p>
+              <p className="text-xs text-txt-secondary leading-relaxed">
+                This action is permanent and cannot be undone. All student memberships, progress records tied to this class, and assignments will be deleted.
+              </p>
+            </div>
+
+            <div className="p-4 bg-background border-t border-border flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={deleteClass}
+                disabled={isDeleting}
+                className="bg-error hover:bg-error/90 text-white border-none"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-1.5" /> Delete Class
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading font-bold text-2xl">{cls.name}</h1>
           <p className="text-sm text-txt-secondary">{cls.language} · {cls.level} · {cls.members.length} students</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(cls.inviteCode); toast("success", "Invite code copied"); }}>
             <Copy className="h-4 w-4" /> {cls.inviteCode}
           </Button>
-          <Button size="sm" variant="accent" onClick={startLive} disabled={busy}><Radio className="h-4 w-4" /> Live session</Button>
+          <Button size="sm" variant="accent" onClick={startLive} disabled={busy || isDeleting}><Radio className="h-4 w-4" /> Live session</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowDeleteModal(true)}
+            disabled={busy || isDeleting}
+            className="text-error border-error/30 hover:bg-error/10 hover:border-error hover:text-error"
+            title="Delete this class"
+          >
+            <Trash2 className="h-4 w-4 mr-1.5" /> Delete Class
+          </Button>
         </div>
       </div>
 

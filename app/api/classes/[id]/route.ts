@@ -36,6 +36,16 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
   if (error) return error;
   const existing = await prisma.class.findFirst({ where: { id: params.id, educatorId: profile!.id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  await prisma.class.delete({ where: { id: params.id } });
-  return NextResponse.json({ ok: true });
+
+  try {
+    await prisma.$transaction([
+      prisma.classMember.deleteMany({ where: { classId: params.id } }),
+      prisma.assignment.deleteMany({ where: { classId: params.id } }),
+      prisma.class.delete({ where: { id: params.id } }),
+    ]);
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error("[api:classes:delete] Error deleting class:", err);
+    return NextResponse.json({ error: err.message || "Failed to delete class" }, { status: 500 });
+  }
 }
