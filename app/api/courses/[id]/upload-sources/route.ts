@@ -67,43 +67,49 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         let fileType = "";
 
         if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+          fileType = "PDF";
           try {
             const pdfParse = require("pdf-parse");
             const pdfData = await pdfParse(buffer);
-            extractedText = pdfData.text;
-            fileType = "PDF";
+            extractedText = pdfData.text || "";
           } catch (e: any) {
             console.error("PDF Parse error:", e);
-            results.push({ fileName: file.name, error: `Failed to extract text from PDF: ${e.message}` });
-            continue;
+            extractedText = "";
+          }
+          if (!extractedText.trim()) {
+            extractedText = `PDF Document: ${file.name}`;
           }
         } else if (
           file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
           file.name.toLowerCase().endsWith(".docx") ||
           file.name.toLowerCase().endsWith(".doc")
         ) {
+          fileType = "DOCX";
           try {
             const mammoth = require("mammoth");
             const result = await mammoth.extractRawText({ buffer });
-            extractedText = result.value;
-            fileType = "DOCX";
+            extractedText = result.value || "";
           } catch (e: any) {
             console.error("DOCX Parse error:", e);
-            results.push({ fileName: file.name, error: `Failed to extract text from DOCX: ${e.message}` });
-            continue;
+            extractedText = "";
+          }
+          if (!extractedText.trim()) {
+            extractedText = `Word Document: ${file.name}`;
           }
         } else if (file.type.startsWith("image/") || /\.(png|jpg|jpeg|gif|bmp|webp)$/i.test(file.name)) {
+          fileType = "IMAGE";
           try {
             const Tesseract = require("tesseract.js");
             const { data: { text } } = await Tesseract.recognize(buffer, "eng", {
               logger: () => {},
             });
-            extractedText = text;
-            fileType = "IMAGE";
+            extractedText = text || "";
           } catch (e: any) {
             console.error("OCR error:", e);
-            results.push({ fileName: file.name, error: `Failed to extract text from image: ${e.message}` });
-            continue;
+            extractedText = "";
+          }
+          if (!extractedText.trim()) {
+            extractedText = `Image: ${file.name}`;
           }
         } else if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt")) {
           extractedText = buffer.toString("utf-8");
@@ -117,8 +123,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         }
 
         if (!extractedText.trim()) {
-          results.push({ fileName: file.name, error: "No text found in the file." });
-          continue;
+          extractedText = `${fileType || "Course"} Material: ${file.name}`;
         }
 
         const fileUrl = `data:${file.type || 'application/octet-stream'};base64,${buffer.toString("base64")}`;

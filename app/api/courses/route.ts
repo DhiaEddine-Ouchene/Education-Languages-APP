@@ -20,61 +20,56 @@ const schema = z.object({
   lessons: z.array(lessonSchema).default([]),
 });
 
-async function owned(id: string, educatorId: string) {
-  return prisma.course.findFirst({ where: { id, educatorId } });
-}
-
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET() {
   const { error, profile } = await requireEducator();
   if (error) return error;
-  const course = await prisma.course.findFirst({ where: { id: params.id, educatorId: profile!.id }, include: { lessons: { orderBy: { order: "asc" } } } });
-  if (!course) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(course);
-}
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  const { error, profile } = await requireEducator();
-  if (error) return error;
-  if (!(await owned(params.id, profile!.id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
   try {
-    const body = schema.safeParse(await req.json());
-    if (!body.success) return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
-    const { lessons, ...data } = body.data;
-    const course = await prisma.$transaction(async (tx) => {
-      const existing = await tx.lesson.findMany({ where: { courseId: params.id }, select: { id: true } });
-      const existingIds = new Set(existing.map((l) => l.id));
-      const incomingIds = new Set(lessons.filter((l) => l.id).map((l) => l.id as string));
-
-      // Remove deleted lessons
-      const idsToDelete = Array.from(existingIds).filter((id) => !incomingIds.has(id));
-      if (idsToDelete.length) {
-        await tx.lesson.deleteMany({ where: { id: { in: idsToDelete } } });
-      }
-
-      // Update existing lessons
-      for (let i = 0; i < lessons.length; i++) {
-        const l = lessons[i];
-        if (l.id && existingIds.has(l.id)) {
-          await tx.lesson.update({ where: { id: l.id }, data: { title: l.title, type: l.type, content: l.content, order: i } });
-        } else {
-          await tx.lesson.create({ data: { courseId: params.id, title: l.title, type: l.type, content: l.content, order: i } });
-        }
-      }
-
-      // Update course data
-      return tx.course.update({ where: { id: params.id }, data: { ...data, coverImage: data.coverImage || null } });
+    const courses = await prisma.course.findMany({
+      where: { educatorId: profile!.id },
+      include: {
+        _count: { select: { lessons: true, games: true } },
+      },
+      orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(course);
-  } catch (err) {
-    console.error("[courses:PUT]", err);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    return NextResponse.json(courses);
+  } catch (err: any) {
+    console.error("[courses:GET]", err);
+    return NextResponse.json({ error: err.message || "Failed to fetch courses" }, { status: 500 });
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request) {
   const { error, profile } = await requireEducator();
   if (error) return error;
-  if (!(await owned(params.id, profile!.id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  await prisma.course.delete({ where: { id: params.id } });
-  return NextResponse.json({ ok: true });
+
+  try {
+    const body = schema.safeParse(await req.json());
+    if (!body.success) {
+      return NextResponse.json({ error: "Invalid input", details: body.error.flatten() }, { status: 400 });
+    }
+
+    const { lessons, ...data } = body.data;
+
+    const course = await prisma.course.create({
+      data: {
+        ...data,
+        coverImage: data.coverImage || null,
+        educatorId: profile!.id,
+        lessons: {
+          create: lessons.map((l, i) => ({
+            title: l.title,
+            type: l.type,
+            content: l.content || "",
+            order: i,
+          })),
+        },
+      },
+    });
+
+    return NextResponse.json(course, { status: 201 });
+  } catch (err: any) {
+    console.error("[courses:POST]", err);
+    return NextResponse.json({ error: err.message || "Failed to create course" }, { status: 500 });
+  }
 }

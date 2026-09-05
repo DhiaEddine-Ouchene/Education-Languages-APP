@@ -144,12 +144,16 @@ export function CourseBuilder({ initial }: Props) {
         body: JSON.stringify(form),
       });
       if (!res.ok) {
-        toast("error", "Failed to save course");
+        const body = await res.json().catch(() => ({}));
+        toast("error", body.error || "Failed to save course");
         return null;
       }
       const data = await res.json();
       setCourseId(data.id);
       return data.id;
+    } catch (err: any) {
+      toast("error", err.message || "Failed to save course");
+      return null;
     } finally {
       setSaving(false);
     }
