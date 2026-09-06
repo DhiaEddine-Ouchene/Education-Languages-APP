@@ -26,9 +26,9 @@ export default function GameShell({
 }) {
   return (
     <div className="fg">
-      <div className="card center" style={{ padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="card center" style={{ padding: "7px 12px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <span className="tag" style={{ margin: 0 }}>{done ? "Done" : `Round ${index + 1} / ${total}`}</span>
-        <span className="score-pill" style={{ marginLeft: "auto", background: "#fff", borderRadius: 999, padding: "4px 10px", fontWeight: 800, boxShadow: "0 6px 24px rgba(45,42,74,.08)" }}>⭐ {score}</span>
+        <span className="score-pill" style={{ margin: 0 }}>⭐ {score}</span>
       </div>
 
       {!done && total > 1 && (

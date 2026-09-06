@@ -84,12 +84,12 @@ export default async function PreviewGamePage({ params }: { params: { id: string
             : [];
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-3 sm:space-y-4 max-w-3xl mx-auto px-1 sm:px-4 py-1 sm:py-4">
       <Link
         href={`/dashboard/games/${game.id}`}
-        className="inline-flex items-center gap-1 text-sm text-txt-secondary hover:text-primary transition-colors font-medium"
+        className="inline-flex items-center gap-1 text-xs sm:text-sm text-txt-secondary hover:text-primary transition-colors font-medium px-1"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to editor
+        <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Back to editor
       </Link>
       <GamePlayer
         gameId={game.id}

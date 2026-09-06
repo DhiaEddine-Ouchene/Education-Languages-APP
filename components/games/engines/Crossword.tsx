@@ -99,8 +99,10 @@ export default function Crossword({ game, onComplete }: { game: FolderGame; onCo
   return (
     <GameShell index={g.i} total={1} score={g.score} feedback={g.feedback} done={g.done} onNext={g.next}>
       <div className="card">
-        <div className="cw-grid" style={{ gridTemplateColumns: `repeat(${model.cols}, 2.1rem)` }}>
-          {cells}
+        <div style={{ overflowX: "auto", paddingBottom: 4, width: "100%" }}>
+          <div className="cw-grid" style={{ gridTemplateColumns: `repeat(${model.cols}, minmax(1.6rem, 1.9rem))` }}>
+            {cells}
+          </div>
         </div>
         <div className="clues">
           <h4>Across</h4>

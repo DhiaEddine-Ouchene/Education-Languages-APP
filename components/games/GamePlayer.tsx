@@ -171,26 +171,26 @@ export function GamePlayer({ gameId, title, type, items, settings, previewMode =
       initial="hidden"
       animate="visible"
       transition={gameTransition}
-      className="py-4"
+      className="py-1 sm:py-4"
     >
-      <div className="mx-auto mb-5 max-w-4xl rounded-card border border-border bg-card/90 p-4 shadow-card backdrop-blur sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto mb-3 max-w-4xl rounded-card border border-border bg-card/90 p-3 shadow-card backdrop-blur sm:mb-5 sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-pill bg-primary-light px-3 py-1 text-xs font-semibold text-primary-dark">
+            <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-pill bg-primary-light px-2.5 py-0.5 text-xs font-semibold text-primary-dark">
               <Sparkles className="h-3.5 w-3.5" /> {gameLabels[type] ?? "Language game"}
             </div>
-            <h1 className="font-heading text-2xl font-bold leading-tight text-txt-primary">{title}</h1>
-            <p className="mt-1 text-sm text-txt-secondary">{items.length} words · Clean practice mode · Instant feedback</p>
+            <h1 className="font-heading text-lg font-bold leading-tight text-txt-primary sm:text-2xl">{title}</h1>
+            <p className="mt-0.5 text-xs text-txt-secondary sm:text-sm">{items.length} words · Practice mode · Instant feedback</p>
           </div>
           {previewMode && (
-            <div className="inline-flex items-center gap-2 rounded-card border border-warning/30 bg-orange-50 px-3 py-2 text-sm font-medium text-warning">
-              <Eye className="h-4 w-4" /> Teacher preview — progress is not saved
+            <div className="inline-flex items-center gap-1.5 rounded-card border border-warning/30 bg-orange-50 px-2.5 py-1.5 text-xs font-medium text-warning sm:text-sm sm:px-3 sm:py-2">
+              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Teacher preview — progress is not saved
             </div>
           )}
         </div>
       </div>
 
-      <div className="mx-auto max-w-4xl rounded-card border border-border bg-gradient-to-br from-white via-white to-primary-light/40 p-4 shadow-card sm:p-6">
+      <div className="mx-auto max-w-4xl rounded-card border border-border bg-gradient-to-br from-white via-white to-primary-light/40 p-2 shadow-card sm:p-5">
         {result ? (
           <>
             <GameResultScreen

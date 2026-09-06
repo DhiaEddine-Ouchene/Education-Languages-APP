@@ -74,10 +74,10 @@ export function GamePreviewModal({ isOpen, onClose, gameType, gameTitle, customI
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-fade-in"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-border/40">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden border border-border/40">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/40 bg-background shrink-0">
           <div className="flex items-center gap-3">
@@ -252,8 +252,8 @@ export function GamePreviewModal({ isOpen, onClose, gameType, gameTitle, customI
             </div>
           ) : (
             /* ── Play Tab ── */
-            <div className="p-4">
-              <div className="mb-3 flex items-center gap-2">
+            <div className="p-2 sm:p-4">
+              <div className="mb-2 flex items-center gap-2">
                 <PlayCircle className="w-4 h-4 text-primary" />
                 <span className="text-xs font-semibold text-txt-secondary uppercase tracking-wider">Live Preview</span>
                 <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full ml-auto">

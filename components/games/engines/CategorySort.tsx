@@ -53,7 +53,15 @@ export default function CategorySort({ game, onComplete }: { game: FolderGame; o
         <div className="tag">Word {Math.min(idx + 1, items.length)} of {items.length}</div>
         <div className="big-word">{item?.word}</div>
       </div>
-      <div className="buckets" style={{ gridTemplateColumns: `repeat(${(r.categories || []).length}, 1fr)` }}>
+      <div
+        className="buckets"
+        style={{
+          gridTemplateColumns:
+            (r.categories || []).length > 3
+              ? "repeat(2, 1fr)"
+              : `repeat(${Math.max((r.categories || []).length, 1)}, 1fr)`,
+        }}
+      >
         {(r.categories || []).map((cat: string) => {
           let cls = "bucket";
           if (flash && flash.cat === cat) cls += flash.ok ? " ok" : " no";
